@@ -6,6 +6,8 @@
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { getFirestore, doc, setDoc } from "firebase/firestore"; // Firestore imports
     import { goto } from '$app/navigation';
+    import adapter from '@sveltejs/adapter-static';
+
 
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const auth = getAuth(app);
