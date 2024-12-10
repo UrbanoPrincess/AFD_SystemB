@@ -117,32 +117,32 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                   <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
-                  <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                  <input id="first-name" type="text" bind:value={formPatientName} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
               </div>
               <div>
                   <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                  <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                  <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
               </div>
               <div>
                   <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                  <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                  <input id="last-name" type="text" bind:value={formLastName} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
               </div>
               <div>
                   <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
-                  <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                  <input id="email" type="text" bind:value={formEmail} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
               </div>
               <div>
                   <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
-                  <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                  <input id="home-address" type="text" bind:value={formHomeAddress} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
               </div>
               <div class="grid grid-cols-2 gap-4">
                   <div>
                       <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
-                      <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                      <input id="age" type="number" bind:value={formAge} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
                   </div>
                   <div>
                       <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                      <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
+                      <select id="gender" bind:value={formGender} required class ="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
                           <option value="">Select</option>
                           <option value="male">Male</option>
                           <option value="female">Female</option>
@@ -162,10 +162,14 @@
 
 <!-- Success message -->
 {#if successMessage}
-  <div class="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg">
-      {successMessage}
+  <div class="absolute top-0 left-0 right-0 flex justify-center mt-4">
+      <div class="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg text-center">
+          {successMessage}
+      </div>
   </div>
 {/if}
+
+
 
 <style>
   :global(body) {

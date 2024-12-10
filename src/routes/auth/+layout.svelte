@@ -117,7 +117,7 @@
 
     /* Logout Button */
     .logout-btn {
-        background-color: #00a2e8;
+        background-color: #00b3ff;
         color: white;
         border: none;
         cursor: pointer;
@@ -183,27 +183,27 @@
         <ul class="sidebar-menu">
             <li>
                 <a href="./profile">
-                    <img class="icon" src="/images/icon-dashboard.png" alt="Dashboard Icon" />
+                    <i class="fas fa-user icon"></i>
                     <span class="text">Profile</span>
                 </a>
             </li>
            
             <li>
                 <a href="./medicine-list">
-                    <img class="icon" src="/images/icon-prescriptions.png" alt="Prescriptions Icon" />
+                    <i class="fas fa-pills icon"></i>
                     <span class="text">Medicines List</span>
                 </a>
             </li>
 
             <li>
                 <a href="./prescription">
-                    <img class="icon" src="/images/icon-prescriptions.png" alt="Prescriptions Icon" />
+                    <i class="fas fa-file-medical-alt icon"></i>
                     <span class="text">Prescriptions</span>
                 </a>
             </li>
             <li>
                 <a href="./appointment">
-                    <img class="icon" src="/images/icon-prescriptions.png" alt="Prescriptions Icon" />
+                    <i class="fas fa-calendar-check icon"></i>
                     <span class="text">appointment</span>
                 </a>
             </li>
