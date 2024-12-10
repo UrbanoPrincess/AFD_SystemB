@@ -1,6 +1,52 @@
 <script lang="ts">
+    // Import necessary modules
+    import { writable } from 'svelte/store';
+    import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+    import type { User } from "firebase/auth"; // Import User as a type
+    import { onMount } from 'svelte'; // Import onMount from Svelte
+    import { firebaseConfig } from "$lib/firebaseConfig";
+    import { initializeApp, getApps, getApp } from "firebase/app";
+    import { goto } from '$app/navigation';
+
+    // Firebase setup
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+
+    // Create a writable store for username
+    export const username = writable<string>('');  // The username will be updated here
+
     export let isCollapsed = false;
-    export let logout;
+    let loading = writable(false);  // State for the loading popup
+
+    // Monitor auth state changes
+    onMount(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                username.set(user.displayName ?? user.email ?? '');  // Fallback to empty string if null
+            } else {
+                username.set(''); // Clear username when logged out
+            }
+        });
+
+        return () => unsubscribe();
+    });
+
+    // Logout function with loading state
+    export function logout() {
+        loading.set(true);  // Show loading popup
+
+        signOut(auth)
+            .then(() => {
+                console.log('User signed out');
+                username.set(''); // Clear username on logout
+                goto('/'); // Navigate to the landing page (routes/+page.svelte)
+                loading.set(false);  // Hide loading popup
+            })
+            .catch((error) => {
+                console.error('Error signing out: ', error);
+                loading.set(false);  // Hide loading popup on error
+            });
+    }
 
     // Function to toggle the sidebar state
     function toggleSidebar() {
@@ -47,16 +93,16 @@
         justify-content: center;
         align-items: center;
         background-color: white;
-        width: 80px; /* Default width */
-        height: 80px; /* Default height */
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         padding: 10px;
-        transition: width 0.3s ease, height 0.3s ease; /* Smooth transition */
+        transition: width 0.3s ease, height 0.3s ease;
     }
 
     .sidebar.collapsed .circle-background {
-        width: 50px; /* Smaller width when collapsed */
-        height: 50px; /* Smaller height when collapsed */
+        width: 50px;
+        height: 50px;
     }
 
     .sidebar-header span {
@@ -88,17 +134,17 @@
     }
 
     .sidebar-menu a {
-        display: flex; /* Flexbox for aligning icon and text horizontally */
-        align-items: center; /* Center vertically */
+        display: flex;
+        align-items: center;
         text-decoration: none;
         color: white;
         width: 100%;
     }
 
     .sidebar-menu a .icon {
-        width: 24px; /* Adjust icon size */
+        width: 24px;
         height: 24px;
-        margin-right: 10px; /* Spacing between icon and text */
+        margin-right: 10px;
     }
 
     .sidebar-menu a .text {
@@ -108,7 +154,7 @@
 
     /* Collapsed Sidebar Adjustments */
     .sidebar.collapsed .text {
-        display: none; /* Hide text when collapsed */
+        display: none;
     }
 
     .sidebar.collapsed .icon {
@@ -148,6 +194,7 @@
         justify-content: center;
     }
 
+    /* Toggle Sidebar Button */
     .toggle-btn {
         cursor: pointer;
         background: none;
@@ -166,6 +213,34 @@
     .content.shifted.collapsed {
         margin-left: 5rem;
     }
+
+    /* Loading Popup styles */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .loading-spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #00a2e8;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
 
 <div class="layout">
@@ -175,7 +250,7 @@
                 <img src={isCollapsed ? "/images/icon-person.png" : "/images/logo(landing).png"} alt="Logo" />
             </div>
             {#if !isCollapsed}
-                <span>&lt;user_name&gt;</span>
+                <span>{$username}</span> <!-- Display username from store -->
             {/if}
         </div>
 
@@ -187,14 +262,12 @@
                     <span class="text">Profile</span>
                 </a>
             </li>
-           
             <li>
                 <a href="./medicine-list">
                     <i class="fas fa-pills icon"></i>
                     <span class="text">Medicines List</span>
                 </a>
             </li>
-
             <li>
                 <a href="./prescription">
                     <i class="fas fa-file-medical-alt icon"></i>
@@ -204,7 +277,7 @@
             <li>
                 <a href="./appointment">
                     <i class="fas fa-calendar-check icon"></i>
-                    <span class="text">appointment</span>
+                    <span class="text">Appointment</span>
                 </a>
             </li>
         </ul>
@@ -228,4 +301,11 @@
     <div class="content {isCollapsed ? 'shifted collapsed' : 'shifted'}">
         <slot /> <!-- Slot for the main content -->
     </div>
+
+    <!-- Loading Spinner (pop-up) -->
+    {#if $loading}
+        <div class="loading-overlay">
+            <div class="loading-spinner"></div>
+        </div>
+    {/if}
 </div>
