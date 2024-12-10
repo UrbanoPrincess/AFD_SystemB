@@ -24,51 +24,69 @@
 </script>
 
 <style>
-    .container {
-        padding: 1rem;
-        margin: 0 auto;
-        max-width: 1200px;
-    }
+.container {
+    padding: 1rem;
+    margin: 0 auto;
+    max-width: 1200px;
+    height: 100%; 
+    overflow-y: auto;
+    transition: background-color 0.3s, box-shadow 0.3s; /* Smooth transition */
+}
 
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr); /* 3 columns */
-        gap: 20px;
-    }
+.grid {
+    display: grid;
+    gap: 20px;
+    margin-bottom: 20px; 
+    grid-template-columns: repeat(3, 1fr); 
 
-    .medicine-card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
+}
 
-    .image-preview {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        border-radius: 8px;
-        background-color: #f0f0f0;
-    }
+.medicine-card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%; 
+    
+}
+.medicine-card:hover{
+background-color: #f5f5f5; 
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.658); 
+    transform: scale(1.01); 
+}
+.image-preview {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+}
 
-    .medicine-name {
-        font-size: 1.25rem;
-        font-weight: bold;
-        margin-top: 10px;
-    }
+.medicine-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-top: 10px;
+}
 
-    .medicine-description {
-        color: #666;
-        margin-top: 10px;
-    }
+.medicine-description {
+    color: #666;
+    margin-top: 10px;
+    flex-grow: 1;
+    text-align: justify;
+}
 
-    .medicine-quantity {
-        margin-top: 10px;
-    }
+.medicine-quantity {
+    margin-top: 10px;
+    margin-bottom: 0
+}
+
 </style>
 
 <div class="container">
-    <h1 class="text-2xl font-semibold mb-4">Medicines</h1>
+    <h1 class="text-2xl font-semibold mb-4">In-stock Medicines</h1>
 
     <div class="grid">
         {#each medicines as medicine}
