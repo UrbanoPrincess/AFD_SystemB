@@ -6,8 +6,6 @@
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { getFirestore, doc, setDoc } from "firebase/firestore"; // Firestore imports
     import { goto } from '$app/navigation';
-    import adapter from '@sveltejs/adapter-static';
-
 
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const auth = getAuth(app);
@@ -27,15 +25,19 @@
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Save user data with a 'role' as 'userPatient' to Firestore
+            // Generate a unique patient ID (using user.uid or any other method)
+            const patientId = `patient_${user.uid}`;
+
+            // Save user data with a 'role' as 'userPatient' and an auto-generated patient ID
             await setDoc(doc(db, "users", user.uid), {
+                patientId: patientId, // Auto-generated Patient ID
                 email: user.email,
                 role: 'userPatient', // Define the role for patients
                 createdAt: new Date().toISOString()
             });
 
             registrationMessage = "Registration successful! Welcome, " + user.email;
-            setTimeout(() => goto('/profile'), 1500); // Adjust the redirect path
+            setTimeout(() => goto('/auth/profile'), 1500); // Adjust the redirect path
         } catch (error) {
             registrationMessage = "Registration failed: " + error.message;
         }
@@ -98,13 +100,14 @@
                 Register
             </button>
         </div>
- <!-- Login Link -->
- <div class="text-center pt-2">
-    <span class="text-sm text-gray-600">Already have an account?</span>
-    <a href="/loginPatient" class="ml-1 text-sm font-medium text-blue-600 hover:text-blue-500">
-      Sign in
-    </a>
-  </div>
+
+        <!-- Login Link -->
+        <div class="text-center pt-2">
+            <span class="text-sm text-gray-600">Already have an account?</span>
+            <a href="/loginPatient" class="ml-1 text-sm font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </a>
+        </div>
         <p class="text-red-500 text-center">{registrationMessage}</p>
     </div>
 </div>

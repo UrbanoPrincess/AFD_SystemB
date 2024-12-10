@@ -201,6 +201,12 @@
                     <span class="text">Prescriptions</span>
                 </a>
             </li>
+            <li>
+                <a href="./appointment">
+                    <img class="icon" src="/images/icon-prescriptions.png" alt="Prescriptions Icon" />
+                    <span class="text">appointment</span>
+                </a>
+            </li>
         </ul>
 
         <!-- Logout Button -->
