@@ -26,7 +26,8 @@
   let firstDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay();
 
   const morningSlots = [
-    "9:00 AM", "9:10 AM", "9:20 AM", "9:30 AM", "9:40 AM", "9:50 AM", "10:00 AM", "10:10 AM", "10:20 AM", "10:30 AM"
+    "9:00 AM", "9:10 AM", "9:20 AM", "9:30 AM", "9:40 AM", "9:50 AM", "10:00 AM", "10:10 AM", "10:20 AM", 
+    "10:30 AM", "10:40 AM", "10:50 AM",
   ];
 
   // Select time
@@ -143,6 +144,7 @@
     font-size: 14px;
     width: 100%;
     height: 100%;
+    transition: background-color 0.3s, color 0.3s; /* Smooth transition for hover */
   }
 
   button:hover {
@@ -152,6 +154,11 @@
 
   button:focus {
     outline: none;
+  }
+
+  .selected {
+  background-color: #3b82f6;
+  color: white;
   }
 
   .day-label, .calendar-number {
@@ -164,7 +171,7 @@
   }
 
   .calendar-number {
-    border-radius: 0;
+    border-radius: 50;
   }
 
   .slot-button {
@@ -217,7 +224,7 @@
   </div>
 
   <!-- Slots Section -->
-  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-2/3">
+  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-1/2">
     <div class="mb-6">
       <div class="flex items-center mb-4">
         <img
