@@ -30,7 +30,8 @@
 
   const morningSlots = [
     "9:00 AM", "9:10 AM", "9:20 AM", "9:30 AM", "9:40 AM", "9:50 AM", "10:00 AM", "10:10 AM", "10:20 AM", 
-    "10:30 AM", "10:40 AM", "10:50 AM",
+    "10:30 AM", "10:40 AM", "10:50 AM", "11:00 AM", "11:10 AM", "11:20 AM", "11:30 AM", "11:40 AM", "11:50 AM",
+
   ];
 
   function selectTime(time: string) {
@@ -111,10 +112,17 @@
   }
 
   .main-container {
+    margin-top: 20px; /* Optional top margin */
+    max-width: 1200px; /* Ensure the container is responsive */
     width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    margin-left: auto; /* Center the container horizontally */
+    margin-right: auto;
+    display: flex;
+    flex-wrap: wrap; /* Handle smaller screens better */
+    justify-content: center; /* Center align the items */
+    gap: 20px; /* Space between sections */
   }
+
 
   .slot-button {
     width: 100%;
@@ -157,7 +165,7 @@
   </div>
 
   <!-- Slots Section -->
-  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-2/3">
+  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-5/6">
     <div class="mb-6">
       <div class="flex items-center mb-4">
         <img
@@ -169,7 +177,7 @@
         />
         <div>
           <div class="text-gray-700 font-semibold">Morning</div>
-          <div class="text-gray-500 text-sm">9:00 AM to 12:00 PM</div>
+          <div class="text-gray-500 text-sm">9:00 AM to 12:00 PM (every weekdays)</div>
         </div>
       </div>
 
@@ -205,38 +213,38 @@
 
 <!-- Appointments Section -->
 {#if appointments.length > 0}
-  <div class="appointments-section">
-    <h3 class="font-semibold text-lg text-gray-700">Your Appointments</h3>
-    {#each appointments as appointment}
-      <div class="appointment-item">
-        <div>
-          <p><strong>Date:</strong> {appointment.date}</p>
-          <p><strong>Time:</strong> {appointment.time}</p>
-        </div>
-        <Button
-          on:click={() => openDeleteModal(appointment.id)}
-          style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
-          class="delete-button"
-        >
-          <CloseOutline class="w-6 h-6 text-white" />
-        </Button>
+<div class="appointments-section">
+  <h3 class="font-semibold text-lg text-gray-700">Your Appointments</h3>
+  {#each appointments as appointment}
+    <div class="appointment-item">
+      <div>
+        <p><strong>Date:</strong> {appointment.date}</p>
+        <p><strong>Time:</strong> {appointment.time}</p>
       </div>
-    {/each}
-  </div>
+      <Button
+        on:click={() => openDeleteModal(appointment.id)}
+        style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+        class="delete-button"
+      >
+        <CloseOutline class="w-6 h-6 text-white" />
+      </Button>
+    </div>
+  {/each}
+</div>
 {:else}
-  <div class="appointments-section">
-    <p>No appointments found. Book an appointment to see it here!</p>
-  </div>
+<div class="appointments-section">
+  <p>No appointments found. Book an appointment to see it here!</p>
+</div>
 {/if}
 
 <!-- Confirmation Modal for Deleting Appointment -->
 <Modal bind:open={popupModal} size="xs" autoclose>
-  <div class="text-center">
-    <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
-    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to cancel this appointment?</h3>
-    <div>
-      <Button color="red" class="me-2" on:click={deleteAppointment}>Yes, I'm sure</Button>
-      <Button color="alternative" on:click={() => (popupModal = false)}>No, cancel</Button>
-    </div>
+<div class="text-center">
+  <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
+  <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to cancel this appointment?</h3>
+  <div>
+    <Button color="red" class="me-2" on:click={deleteAppointment}>Yes, I'm sure</Button>
+    <Button color="alternative" on:click={() => (popupModal = false)}>No, cancel</Button>
   </div>
+</div>
 </Modal>
