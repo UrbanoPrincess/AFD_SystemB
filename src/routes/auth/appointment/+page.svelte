@@ -1,20 +1,23 @@
 <script lang="ts">
+  import { Datepicker } from 'flowbite-svelte';
   import { onMount } from "svelte";
-  import { getFirestore, collection, getDocs, addDoc, query, where } from "firebase/firestore";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where } from "firebase/firestore";
   import { initializeApp } from "firebase/app";
   import { firebaseConfig } from "$lib/firebaseConfig";
   import { getAuth, onAuthStateChanged } from "firebase/auth";
   import '@fortawesome/fontawesome-free/css/all.css';
+  import { Button, Modal } from 'flowbite-svelte';
+  import { ExclamationCircleOutline, CloseOutline } from 'flowbite-svelte-icons';
 
-  // Initialize Firebase app
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
 
   type Appointment = {
+    id: string;
     date: string;
     time: string;
-    patientId: string; 
+    patientId: string;
   };
 
   let selectedDate = new Date();
@@ -22,50 +25,28 @@
   let appointments: Appointment[] = [];
   let patientId: string | null = null;
 
-  let daysInMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
-  let firstDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay();
+  let popupModal = false; // Modal state for confirmation
+  let selectedAppointmentId: string | null = null; // To store the selected appointment for deletion
 
   const morningSlots = [
     "9:00 AM", "9:10 AM", "9:20 AM", "9:30 AM", "9:40 AM", "9:50 AM", "10:00 AM", "10:10 AM", "10:20 AM", 
     "10:30 AM", "10:40 AM", "10:50 AM",
   ];
 
-  // Select time
   function selectTime(time: string) {
     selectedTime = time;
   }
 
-  // Navigate through months
-  function navigateMonth(direction: number) {
-    const newDate = new Date(selectedDate);
-    newDate.setMonth(selectedDate.getMonth() + direction);
-    selectedDate = newDate;
-    
-    daysInMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
-    firstDayOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay();
-  }
-
-  // Function to book appointment
   async function bookAppointment() {
     if (selectedTime && patientId) {
       try {
-        // Save appointment to Firestore with patientId (uid)
         const docRef = await addDoc(collection(db, "appointments"), {
-          patientId: patientId,  // Store the UID of the patient
+          patientId: patientId,
           date: selectedDate.toLocaleDateString(),
           time: selectedTime,
         });
-        console.log("Document written with ID: ", docRef.id);
-
-        // Update local state
-        appointments.push({ 
-          date: selectedDate.toLocaleDateString(), 
-          time: selectedTime, 
-          patientId: patientId
-        });
+        appointments.push({ id: docRef.id, date: selectedDate.toLocaleDateString(), time: selectedTime, patientId: patientId });
         alert(`Appointment booked on ${selectedDate.toLocaleDateString()} at ${selectedTime}`);
-
-        // Reset selected time
         selectedTime = null;
       } catch (e) {
         console.error("Error adding document: ", e);
@@ -75,12 +56,6 @@
     }
   }
 
-  // Get formatted date
-  function getFormattedDate(date: Date) {
-    return date.toLocaleDateString('default', { month: 'long', day: 'numeric', year: 'numeric' });
-  }
-
-  // Fetch appointments for the current patient (using patientId)
   async function getAppointments() {
     if (patientId) {
       try {
@@ -89,27 +64,39 @@
         appointments = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data() as Appointment;
-          appointments.push(data);
+          appointments.push({ ...data, id: doc.id });
         });
-        console.log(appointments);
       } catch (e) {
         console.error("Error fetching appointments: ", e);
       }
     }
   }
 
-  // Fetch patient ID when the user logs in
+  async function deleteAppointment() {
+    if (selectedAppointmentId) {
+      try {
+        await deleteDoc(doc(db, "appointments", selectedAppointmentId));
+        appointments = appointments.filter(appointment => appointment.id !== selectedAppointmentId);
+        alert("Appointment deleted.");
+        popupModal = false; // Close modal after deleting
+      } catch (e) {
+        console.error("Error deleting appointment: ", e);
+        alert("Failed to delete appointment.");
+      }
+    }
+  }
+
+  function openDeleteModal(appointmentId: string) {
+    selectedAppointmentId = appointmentId;
+    popupModal = true;
+  }
+
   onMount(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is logged in, get the UID
         patientId = user.uid;
-        console.log("Logged in as: ", patientId);
-        
-        // Fetch appointments for the logged-in user
         getAppointments();
       } else {
-        // User is not logged in
         patientId = null;
         alert("Please log in to book an appointment.");
       }
@@ -124,107 +111,53 @@
   }
 
   .main-container {
-    margin-top: 24px;
-  }
-
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-    justify-items: center;
-    align-items: center;
-  }
-
-  button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 8px;
-    border-radius: 8px;
-    font-size: 14px;
     width: 100%;
-    height: 100%;
-    transition: background-color 0.3s, color 0.3s; /* Smooth transition for hover */
-  }
-
-  button:hover {
-    background-color: #3b82f6;
-    color: white;
-  }
-
-  button:focus {
-    outline: none;
-  }
-
-  .selected {
-  background-color: #3b82f6;
-  color: white;
-  }
-
-  .day-label, .calendar-number {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 40px;
-    width: 40px;
-    font-weight: bold;
-  }
-
-  .calendar-number {
-    border-radius: 50;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
   .slot-button {
-    border-radius: 8px;
     width: 100%;
-    height: 40px;
+  }
+
+  .slots-container {
+    max-height: 300px; /* Adjust the height as needed */
+    overflow-y: auto;  /* Enables vertical scrolling */
+  }
+
+  .appointments-section {
+    margin-top: 30px;
+    background-color: #f9fafb;
+    padding: 10px;
+    border-radius: 8px;
+    max-height: 300px; /* Adjust the height as needed */
+    overflow-y: auto;  /* Enables vertical scrolling */
+  }
+
+  .appointment-item {
+    margin: 5px 0;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .datepicker-container {
+    max-width: 100%;
   }
 </style>
 
-<!-- Main Container -->
 <div class="flex flex-col lg:flex-row gap-6 main-container">
-  <!-- Calendar Section -->
-  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-1/3">
-    <div class="flex justify-between items-center mb-4">
-      <button
-        class="fas fa-chevron-left text-gray-500 cursor-pointer"
-        on:click={() => navigateMonth(-1)}
-        aria-label="Previous month"
-      ></button>
-      <span class="text-gray-700 font-semibold">{getFormattedDate(selectedDate)}</span>
-      <button
-        class="fas fa-chevron-right text-gray-500 cursor-pointer"
-        on:click={() => navigateMonth(1)}
-        aria-label="Next month"
-      ></button>
-    </div>
-
-    <div class="grid grid-cols-7 gap-2 text-gray-700">
-      {#each ['S', 'M', 'T', 'W', 'TH', 'F', 'S'] as day}
-        <div class="day-label">{day}</div>
-      {/each}
-      {#each Array(firstDayOfMonth).fill('') as _}
-        <div></div>
-      {/each}
-      <div class="calendar-grid">
-        {#each Array(daysInMonth) as _, i}
-          <button
-            class="calendar-number py-2 px-4 hover:bg-blue-500 hover:text-white"
-            class:selected={selectedDate.getDate() === (i + 1)}
-            on:click={() => {
-              selectedDate.setDate(i + 1);
-              selectedDate = new Date(selectedDate); // force reactivity
-            }}
-          >
-            {i + 1}
-          </button>
-        {/each}
-      </div>
-    </div>
+  <!-- Datepicker Section -->
+  <div class="w-full lg:w-96 mb-4 datepicker-container">
+    <Datepicker bind:value={selectedDate} color="red" />
   </div>
 
   <!-- Slots Section -->
-  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-1/2">
+  <div class="bg-white p-6 rounded-lg shadow-md w-full lg:w-2/3">
     <div class="mb-6">
       <div class="flex items-center mb-4">
         <img
@@ -240,17 +173,19 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-4">
-        {#each morningSlots as slot}
-          <button
-            class="slot-button border border-gray-300 text-gray-700"
-            class:selected={selectedTime === slot}
-            on:click={() => selectTime(slot)}
-            class:booked={appointments.some(appointment => appointment.time === slot && appointment.date === selectedDate.toLocaleDateString())}
-          >
-            {slot}
-          </button>
-        {/each}
+      <div class="slots-container">
+        <div class="grid grid-cols-4 gap-4">
+          {#each morningSlots as slot}
+            <button
+              class="slot-button border border-gray-300 text-gray-700"
+              class:selected={selectedTime === slot}
+              on:click={() => selectTime(slot)}
+              class:booked={appointments.some(appointment => appointment.time === slot && appointment.date === selectedDate.toLocaleDateString())}
+            >
+              {slot}
+            </button>
+          {/each}
+        </div>
       </div>
 
       {#if selectedTime}
@@ -267,3 +202,41 @@
     </div>
   </div>
 </div>
+
+<!-- Appointments Section -->
+{#if appointments.length > 0}
+  <div class="appointments-section">
+    <h3 class="font-semibold text-lg text-gray-700">Your Appointments</h3>
+    {#each appointments as appointment}
+      <div class="appointment-item">
+        <div>
+          <p><strong>Date:</strong> {appointment.date}</p>
+          <p><strong>Time:</strong> {appointment.time}</p>
+        </div>
+        <Button
+          on:click={() => openDeleteModal(appointment.id)}
+          style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+          class="delete-button"
+        >
+          <CloseOutline class="w-6 h-6 text-white" />
+        </Button>
+      </div>
+    {/each}
+  </div>
+{:else}
+  <div class="appointments-section">
+    <p>No appointments found. Book an appointment to see it here!</p>
+  </div>
+{/if}
+
+<!-- Confirmation Modal for Deleting Appointment -->
+<Modal bind:open={popupModal} size="xs" autoclose>
+  <div class="text-center">
+    <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
+    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to cancel this appointment?</h3>
+    <div>
+      <Button color="red" class="me-2" on:click={deleteAppointment}>Yes, I'm sure</Button>
+      <Button color="alternative" on:click={() => (popupModal = false)}>No, cancel</Button>
+    </div>
+  </div>
+</Modal>
