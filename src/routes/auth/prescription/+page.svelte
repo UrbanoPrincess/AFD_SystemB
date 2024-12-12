@@ -1,94 +1,70 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { getFirestore, collection, getDocs, query, where } from "firebase/firestore";
-  import { getAuth } from "firebase/auth";  // Import Firebase Authentication
-  import { initializeApp } from "firebase/app";
-  import { firebaseConfig } from "$lib/firebaseConfig";  // Import firebase config
+  import { initializeApp, getApps, getApp } from "firebase/app";
+  import { firebaseConfig } from "$lib/firebaseConfig"; // Import your Firebase config
+  import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-  let prescriptions: any[] = [];
-  let error: string | null = null;
-  let isLoading: boolean = true;
+  // Define the type for prescription data
+  type Prescription = {
+      medication: string;
+      dosage: string;
+      dateIssued: string;
+      patientId: string;
+      userId: string;
+  };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);  // Initialize Firebase App
-  const db = getFirestore(app);  // Get Firestore database instance
-  const auth = getAuth(app);  // Firebase Authentication instance
+  let prescriptions: Prescription[] = [];
+  let currentUserId: string = "";
 
-  // Fetch prescriptions data when component mounts
-  onMount(async () => {
-    try {
-      const user = auth.currentUser;  // Get the current logged-in user
+  // Initialize Firebase App only if not already initialized
+  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  const db = getFirestore(app);
+  const auth = getAuth();
+
+  // Set currentUserId dynamically
+  onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Reference the 'prescriptions' collection
-        const prescriptionRef = collection(db, 'prescriptions');
-        
-        // Query to filter prescriptions by the current user's UID
-        const q = query(prescriptionRef, where("userId", "==", user.uid));
-        
-        // Get filtered prescriptions
-        const querySnapshot = await getDocs(q);
-
-        // Extract documents into an array
-        prescriptions = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,  // Using Firestore document ID as a unique identifier
-            patientName: data.patientName,
-            patientAddress: data.patientAddress,
-            patientAge: data.patientAge,
-            patientPhone: data.patientPhone,
-            medications: data.medications,   // Ensure medications field is fetched
-            instructions: data.instructions, // Ensure instructions field is fetched
-            timestamp: data.timestamp,
-            patientId: data.patientId,       // If needed for reference
-            userId: data.userId
-          };
-        });
-      } else {
-        console.error("No user is logged in.");
+          currentUserId = user.uid; // Set the user ID dynamically
       }
-    } catch (err) {
-      error = (err as Error).message;
-    } finally {
-      isLoading = false;
-    }
+  });
+
+  // Function to fetch prescription data from Firestore
+  async function fetchPrescriptions() {
+      try {
+          // Query Firestore for prescriptions where userId matches the current user
+          const q = query(collection(db, "prescriptions"), where("userId", "==", currentUserId));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+              console.log("No matching prescription documents found.");
+          } else {
+              prescriptions = querySnapshot.docs.map(doc => doc.data() as Prescription);
+              console.log("Fetched prescriptions: ", prescriptions);
+          }
+      } catch (error) {
+          console.error("Error fetching prescriptions: ", error);
+      }
+  }
+
+  // Fetch data when component is mounted
+  onMount(() => {
+      fetchPrescriptions();
   });
 </script>
 
 <style>
-  /* Add your CSS styles here */
-  .prescription-container {
-    background-color: #f9fafb;
-    padding: 20px;
-    border-radius: 8px;
-  }
-
-  .prescription-item {
-    margin-bottom: 20px;
-    padding: 15px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  }
-
-  .prescription-item p {
-    font-size: 14px;
-    margin: 5px 0;
-  }
-
-  .title {
-    font-weight: bold;
-  }
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
 </style>
 
 <div class="flex items-center justify-center min-h-screen bg-gray-100">
-  <div class="prescription-container w-full max-w-2xl">
+  <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
     <!-- Header -->
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start">
       <div class="flex items-center">
-        <img
-          src="https://storage.googleapis.com/a1aa/image/vERFnmxhfbyhHyNwYkHJujmHtDFhPMbf9rPXjUx5RKtzbq4TA.jpg"
-          alt="Sun with dental logo"
+        <img 
+          src="/images/logo(landing).png" 
+          alt="Sun with dental logo" 
           class="w-16 h-16 mr-4"
         />
         <div>
@@ -100,37 +76,31 @@
         </div>
       </div>
       <div class="text-right">
-        <p class="text-sm">DATE: {new Date().toLocaleDateString()}</p>
+        <p class="text-sm"></p>
       </div>
     </div>
 
     <!-- Patient and Prescription Details -->
-    {#if isLoading}
-      <p>Loading prescriptions...</p>
-    {:else if error}
-      <p>Error: {error}</p>
-    {:else if prescriptions.length === 0}
-      <p>No prescriptions found for the current user.</p>
-    {:else}
-      {#each prescriptions as prescription (prescription.id)}
-        <div class="prescription-item">
-          <div>
-            <p class="title">NAME:<span> {prescription.patientName}</p>
-            <p class="title">ADDRESS:<span> {prescription.patientAddress}</p>
-            <p class="title">AGE:<span> {prescription.patientAge}</p>
-            <p class="title">PHONE:<span> {prescription.patientPhone}</p>
-          </div>
-          <div>
-            <p class="font-bold text-lg">Medications:</p>
-            <p>{prescription.medications}</p> <!-- Correct field -->
-            <p class="font-bold text-lg">Instructions:</p>
-            <p>{prescription.instructions}</p> <!-- Correct field -->
-            <p class="text-sm">Prescription Date: {new Date(prescription.timestamp.seconds * 1000).toLocaleString()}</p>
-            <p class="text-sm"><span class="font-bold">Patient ID:</span> {prescription.patientId}</p>
-            <p class="text-sm"><span class="font-bold">User ID:</span> {prescription.userId}</p>
-          </div>
+    {#each prescriptions as { medication, dosage, dateIssued, patientId, userId } (userId + patientId)}
+    <div class="flex justify-between mt-4">
+      <div>
+        <p class="text-sm"><span class="font-bold">MEDICATION:</span> {medication}</p>
+        <p class="text-sm"><span class="font-bold">DOSAGE:</span> {dosage}</p>
+        <p class="text-sm"><span class="font-bold">DATE ISSUED:</span> {dateIssued}</p>
+        <p class="text-sm"><span class="font-bold">PATIENT ID:</span> {patientId}</p>
+      </div>
+      <div class="flex items-start">
+        <div class="text-6xl font-bold mr-4">Rx</div>
+        <div class="text-left">
+          <p class="font-bold text-lg">Prescription Details</p>
         </div>
-      {/each}
-    {/if}
+      </div>
+    </div>
+    {/each}
+
+    <!-- Signature -->
+    <div class="mt-8 text-right">
+      <p class="text-sm">Signature of Prescriber</p>
+    </div>
   </div>
 </div>

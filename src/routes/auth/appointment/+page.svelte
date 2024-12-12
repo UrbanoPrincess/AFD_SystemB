@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Datepicker } from 'flowbite-svelte';
   import { onMount } from "svelte";
-  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where } from "firebase/firestore";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
   import { initializeApp } from "firebase/app";
   import { firebaseConfig } from "$lib/firebaseConfig";
   import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -18,6 +18,7 @@
     date: string;
     time: string;
     patientId: string;
+    cancellationStatus?: 'pending' | 'approved' | 'rejected' | null;
   };
 
   let selectedDate = new Date();
@@ -29,9 +30,11 @@
   let selectedAppointmentId: string | null = null; // To store the selected appointment for deletion
 
   const morningSlots = [
-    "9:00 AM", "9:10 AM", "9:20 AM", "9:30 AM", "9:40 AM", "9:50 AM", "10:00 AM", "10:10 AM", "10:20 AM", 
-    "10:30 AM", "10:40 AM", "10:50 AM", "11:00 AM", "11:10 AM", "11:20 AM", "11:30 AM", "11:40 AM", "11:50 AM",
+    "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", 
+  ];
 
+  const afternoonSlots = [
+    "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM"
   ];
 
   function selectTime(time: string) {
@@ -73,23 +76,89 @@
     }
   }
 
-  async function deleteAppointment() {
+  async function requestCancelAppointment() {
     if (selectedAppointmentId) {
       try {
-        await deleteDoc(doc(db, "appointments", selectedAppointmentId));
-        appointments = appointments.filter(appointment => appointment.id !== selectedAppointmentId);
-        alert("Appointment deleted.");
-        popupModal = false; // Close modal after deleting
+        // Update the appointment document to include cancellation request
+        const appointmentRef = doc(db, "appointments", selectedAppointmentId);
+        await updateDoc(appointmentRef, {
+          cancellationStatus: 'pending'
+        });
+
+        // Update local state
+        appointments = appointments.map(appointment => 
+          appointment.id === selectedAppointmentId 
+            ? { ...appointment, cancellationStatus: 'pending' } 
+            : appointment
+        );
+
+        alert("Cancellation request submitted.");
+        popupModal = false;
       } catch (e) {
-        console.error("Error deleting appointment: ", e);
-        alert("Failed to delete appointment.");
+        console.error("Error requesting cancellation: ", e);
+        alert("Failed to submit cancellation request.");
       }
     }
   }
 
-  function openDeleteModal(appointmentId: string) {
+  function openCancelModal(appointmentId: string) {
     selectedAppointmentId = appointmentId;
     popupModal = true;
+  }
+
+  function isTimeSlotAvailable(slot: string, date: Date): boolean {
+    const currentDate = new Date();
+    const selectedDate = new Date(date);
+    
+    // Check if the selected date is in the past
+    if (selectedDate < currentDate) {
+      return false;
+    }
+    
+    // Check for weekend restrictions
+    const dayOfWeek = selectedDate.getDay();
+    if (dayOfWeek === 0) { // Sunday
+      // Allow slots between 8 AM and 4 PM
+      const sundaySlots = [
+        ...morningSlots, // All morning slots
+        ...afternoonSlots // All afternoon slots
+      ];
+      if (!sundaySlots.includes(slot)) {
+        return false;
+      }
+    } else if (dayOfWeek === 6) { // Saturday
+      // No appointments on Saturday
+      return false;
+    }
+    
+    // If it's today's date, check if the time is in the past
+    if (
+      selectedDate.toDateString() === currentDate.toDateString() && 
+      isTimePassed(slot)
+    ) {
+      return false;
+    }
+    
+    return true;
+  }
+
+  function isTimePassed(time: string): boolean {
+    const currentTime = new Date();
+    const [slotTime, period] = time.split(' ');
+    const [hours, minutes] = slotTime.split(':').map(Number);
+    
+    let adjustedHours = hours;
+    if (period === 'PM' && hours !== 12) {
+      adjustedHours += 12;
+    }
+    if (period === 'AM' && hours === 12) {
+      adjustedHours = 0;
+    }
+    
+    const slotDateTime = new Date();
+    slotDateTime.setHours(adjustedHours, minutes, 0, 0);
+    
+    return slotDateTime < currentTime;
   }
 
   onMount(() => {
@@ -176,8 +245,12 @@
           width="24"
         />
         <div>
-          <div class="text-gray-700 font-semibold">Morning</div>
-          <div class="text-gray-500 text-sm">9:00 AM to 12:00 PM (every weekdays)</div>
+          <div class="text-gray-700 font-semibold">Morning Hours</div>
+          <div class="text-gray-500 text-sm">
+            Monday to Friday: 8:00 AM to 12:00 PM
+            | Sunday: 8:00 AM to 12:00 AM
+            | Saturday: Day Off
+          </div>
         </div>
       </div>
 
@@ -186,9 +259,42 @@
           {#each morningSlots as slot}
             <button
               class="slot-button border border-gray-300 text-gray-700"
-              class:selected={selectedTime === slot}
-              on:click={() => selectTime(slot)}
-              class:booked={appointments.some(appointment => appointment.time === slot && appointment.date === selectedDate.toLocaleDateString())}
+              class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+              on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+              disabled={!isTimeSlotAvailable(slot, selectedDate)}
+            >
+              {slot}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="flex items-center mb-4">
+          <img
+            alt="Afternoon icon"
+            class="mr-2"
+            height="24"
+            src="https://cdn.dribbble.com/users/128741/screenshots/710759/afternoon.png"
+            width="24"
+          />
+          <div>
+            <div class="text-gray-700 font-semibold">Afternoon Hours</div>
+            <div class="text-gray-500 text-sm">
+              Monday to Friday: 1:00 PM to 5:00 PM
+              | Sunday: 1:00 PM to 4:00 PM
+              | Saturday: Day Off
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4">
+          {#each afternoonSlots as slot}
+            <button
+              class="slot-button border border-gray-300 text-gray-700"
+              class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+              on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+              disabled={!isTimeSlotAvailable(slot, selectedDate)}
             >
               {slot}
             </button>
@@ -216,18 +322,26 @@
 <div class="appointments-section">
   <h3 class="font-semibold text-lg text-gray-700">Your Appointments</h3>
   {#each appointments as appointment}
-    <div class="appointment-item">
+    <div 
+      class="appointment-item"
+      class:opacity-50={appointment.cancellationStatus === 'pending'}
+    >
       <div>
         <p><strong>Date:</strong> {appointment.date}</p>
         <p><strong>Time:</strong> {appointment.time}</p>
+        {#if appointment.cancellationStatus === 'pending'}
+          <p class="text-yellow-600 font-semibold">Cancellation Pending</p>
+        {/if}
       </div>
-      <Button
-        on:click={() => openDeleteModal(appointment.id)}
-        style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
-        class="delete-button"
-      >
-        <CloseOutline class="w-6 h-6 text-white" />
-      </Button>
+      {#if appointment.cancellationStatus !== 'pending'}
+        <Button
+          on:click={() => openCancelModal(appointment.id)}
+          style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+          class="delete-button"
+        >
+          <CloseOutline class="w-6 h-6 text-white" />
+        </Button>
+      {/if}
     </div>
   {/each}
 </div>
@@ -241,10 +355,12 @@
 <Modal bind:open={popupModal} size="xs" autoclose>
 <div class="text-center">
   <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
-  <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">Are you sure you want to cancel this appointment?</h3>
+  <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+    Are you sure you want to request cancellation for this appointment?
+  </h3>
   <div>
-    <Button color="red" class="me-2" on:click={deleteAppointment}>Yes, I'm sure</Button>
-    <Button color="alternative" on:click={() => (popupModal = false)}>No, cancel</Button>
+    <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
+    <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
   </div>
 </div>
 </Modal>
