@@ -7,6 +7,8 @@
     import { firebaseConfig } from "$lib/firebaseConfig";
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { goto } from '$app/navigation';
+    import '@fortawesome/fontawesome-free/css/all.css';
+
 
     // Firebase setup
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
