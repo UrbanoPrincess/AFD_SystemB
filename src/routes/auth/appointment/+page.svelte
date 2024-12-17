@@ -22,6 +22,7 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'approved' | 'rejected' | null;
+  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled';
 };
 
 let selectedDate = new Date();
@@ -70,7 +71,7 @@ const morningSlots = [
 ];
 
 const afternoonSlots = [
-  "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:30 PM"
+  "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM","4:30 PM"
 ];
 
 function selectTime(time: string) {
@@ -78,6 +79,14 @@ function selectTime(time: string) {
 }
 
 async function bookAppointment() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize today's date to avoid time mismatches
+
+  if (!selectedDate || selectedDate < today) {
+    alert("You cannot book an appointment on a past date.");
+    return;
+  }
+
   if (selectedTime && patientId && selectedService) {
     try {
       const docRef = await addDoc(collection(db, "appointments"), {
@@ -85,7 +94,8 @@ async function bookAppointment() {
         date: selectedDate.toLocaleDateString(),
         time: selectedTime,
         service: selectedService,
-        subServices: selectedSubServices, // Store selected sub-services
+        subServices: selectedSubServices,
+        status: 'pending', // Default status
       });
       appointments.push({ 
         id: docRef.id, 
@@ -93,12 +103,13 @@ async function bookAppointment() {
         time: selectedTime, 
         patientId: patientId,
         service: selectedService,
-        subServices: selectedSubServices 
+        subServices: selectedSubServices,
+        status: 'pending', // Default status
       });
-      alert(`Appointment booked on ${selectedDate.toLocaleDateString()} at ${selectedTime}`);
+      alert(`Appointment request submitted for ${selectedDate.toLocaleDateString()} at ${selectedTime}.`);
       selectedTime = null;
       selectedService = null;
-      selectedSubServices = []; // Reset selected sub-services
+      selectedSubServices = [];
     } catch (e) {
       console.error("Error adding document: ", e);
     }
@@ -106,6 +117,7 @@ async function bookAppointment() {
     alert("Please select a time, service, and ensure you're logged in.");
   }
 }
+
 
 async function getAppointments() {
   if (patientId) {
@@ -226,9 +238,6 @@ function toggleSubService(subService: string) {
     cursor: not-allowed;
   }
 
- 
-
-
   .slot-button {
     width: 100%;
   }
@@ -283,7 +292,7 @@ function toggleSubService(subService: string) {
     <div class="mb-4 flex-1">
       <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="block text-sm font-medium text-gray-700">Select Service</label>
-      <select bind:value={selectedService} class="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+      <select bind:value={selectedService} class="block w-full border border-gray-700 rounded-md shadow-sm p-2">
         <option value="" disabled>Select a service</option>
         {#each services as service}
           <option value={service}>{service}</option>
@@ -291,10 +300,14 @@ function toggleSubService(subService: string) {
       </select>
     </div>
 
-    <!-- Datepicker Section -->
-    <div class="mb-4 flex-1">
-      <Datepicker bind:value={selectedDate} color="red" />
-    </div>
+  <!-- Datepicker Section -->
+
+  <div class="mb-4 flex-1">
+  <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
+  <div id="datepicker-wrapper">
+    <Datepicker bind:value={selectedDate} color="red" />
+  </div>
+</div>
   </div>
 
   <!-- Sub-Service Selection Checkboxes -->
@@ -391,8 +404,14 @@ function toggleSubService(subService: string) {
             <TableBodyCell>
               {#if appointment.cancellationStatus === 'pending'}
                 <span class="text-yellow-600 font-semibold">Cancellation Pending</span>
-              {:else}
+              {:else if appointment.status === 'confirmed'}
                 <span class="text-green-600 font-semibold">Confirmed</span>
+              {:else if appointment.status === 'completed'}
+                <span class="text-blue-600 font-semibold">Completed</span>
+              {:else if appointment.status === 'cancelled'}
+                <span class="text-red-600 font-semibold">Cancelled</span>
+              {:else}
+                <span class="text-gray-600 font-semibold">pending</span>
               {/if}
             </TableBodyCell>
             <TableBodyCell>
