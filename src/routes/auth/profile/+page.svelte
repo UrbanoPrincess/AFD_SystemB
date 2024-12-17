@@ -5,12 +5,12 @@
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { getAuth, onAuthStateChanged } from "firebase/auth";
     import type { User } from "firebase/auth";
-  
+
     // Firebase setup
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     const db = getFirestore(app);
     const auth = getAuth(app);
-  
+
     // State for form inputs and data display
     let formPatientName = "";
     let formLastName = "";
@@ -19,43 +19,84 @@
     let formEmail = "";
     let formPhone = "";
     let formHomeAddress = "";
-    let formPatientId = "";
-  
-    let patientProfile = {
-        name: "",
-        lastName: "",
-        id: "",
-        age: "",
-        gender: "",
-        email: "",
-        phone: "",
-        address: ""
+
+    // Define the type for patientProfile
+    type PatientProfile = {
+        name: string;
+        lastName: string;
+        id: string;
+        age: string;
+        gender: string;
+        email: string;
+        phone: string;
+        address: string;
     };
-  
+
+    // Initialize patientProfile with default values
+    let patientProfile: PatientProfile = {
+        name: '',
+        lastName: '',
+        id: '',
+        age: '',
+        gender: '',
+        email: '',
+        phone: '',
+        address: ''
+    };
+
     let currentUser: User | null = null;
-  
+
     // Monitor auth state changes
     onMount(() => {
-        const savedProfile = localStorage.getItem("patientProfile");
-        if (savedProfile) {
-            patientProfile = JSON.parse(savedProfile);
-            console.log("Loaded patient profile from localStorage: ", patientProfile);
-        }
-  
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 console.log("User is logged in: ", currentUser);
+
+                try {
+                    // Fetch user profile from Firestore
+                    const patientRef = doc(db, "patientProfiles", currentUser.uid);
+                    const patientDoc = await getDoc(patientRef);
+
+                    if (patientDoc.exists()) {
+                        patientProfile = patientDoc.data() as PatientProfile;
+                        console.log("Loaded patient profile from Firestore: ", patientProfile);
+                    } else {
+                        console.log("No profile found for this user. Using default values.");
+                        patientProfile = {
+                            name: '',
+                            lastName: '',
+                            id: currentUser.uid,
+                            age: '',
+                            gender: '',
+                            email: '',
+                            phone: '',
+                            address: ''
+                        };
+                    }
+                } catch (error) {
+                    console.error("Error loading patient profile: ", error);
+                }
             } else {
                 currentUser = null;
-                console.log("User is not logged in");
+                patientProfile = {
+                    name: '',
+                    lastName: '',
+                    id: '',
+                    age: '',
+                    gender: '',
+                    email: '',
+                    phone: '',
+                    address: ''
+                };
+                console.log("User is not logged in.");
             }
         });
-  
+
         return () => unsubscribe();
     });
-  
-    // Save patient profile to Firestore with auto-generated ID
+
+    // Save patient profile to Firestore
     async function savePatientProfile() {
         if (!currentUser) {
             console.log("Please log in to save the profile.");
@@ -65,48 +106,25 @@
             console.error("Please fill out all required fields.");
             return;
         }
-  
+
         try {
             // Reference to the collection "patientProfiles"
             const patientRef = doc(db, "patientProfiles", currentUser.uid);
-  
-            // Check if the user's record exists
-            const patientDoc = await getDoc(patientRef);
-  
-            if (patientDoc.exists()) {
-                // Update the existing profile
-                await setDoc(
-                    patientRef,
-                    {
-                        name: formPatientName,
-                        lastName: formLastName,
-                        age: formAge,
-                        gender: formGender,
-                        email: formEmail,
-                        phone: formPhone,
-                        address: formHomeAddress
-                    },
-                    { merge: true } // Merge to keep other fields intact
-                );
-  
-                console.log("Patient profile updated successfully.");
-            } else {
-                // If no record exists, create a new one
-                await setDoc(patientRef, {
-                    name: formPatientName,
-                    lastName: formLastName,
-                    age: formAge,
-                    gender: formGender,
-                    email: formEmail,
-                    phone: formPhone,
-                    address: formHomeAddress,
-                    id: currentUser.uid // Use UID as a unique ID
-                });
-  
-                console.log("New patient profile saved successfully.");
-            }
-  
-            // Update local state and localStorage
+
+            await setDoc(patientRef, {
+                name: formPatientName,
+                lastName: formLastName,
+                age: formAge,
+                gender: formGender,
+                email: formEmail,
+                phone: formPhone,
+                address: formHomeAddress,
+                id: currentUser.uid
+            });
+
+            console.log("Patient profile saved/updated successfully.");
+
+            // Update local state
             patientProfile = {
                 name: formPatientName,
                 lastName: formLastName,
@@ -117,15 +135,13 @@
                 address: formHomeAddress,
                 id: currentUser.uid
             };
-  
-            localStorage.setItem("patientProfile", JSON.stringify(patientProfile));
         } catch (error) {
             console.error("Error saving patient profile: ", error);
         }
     }
-  </script>
-  
-  <div class="flex items-center justify-center min-h-screen">
+</script>
+
+<div class="flex items-center justify-center min-h-screen">
     <div class="bg-white rounded-lg shadow-lg flex flex-col form-container">
         <!-- Header Section -->
         <div class="header-section">
@@ -139,7 +155,7 @@
               <p>Age: {patientProfile.age || "xx"} Gender: {patientProfile.gender || "xxxxx"}</p>
             </div>
         </div>
-  
+
         <!-- Form Section -->
         <form class="space-y-6 p-6" on:submit|preventDefault={savePatientProfile}>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -186,15 +202,15 @@
             </div>
         </form>
     </div>
-  </div>
-  
-  <style>
+</div>
+
+<style>
     :global(body) {
         margin: 0;
         font-family: sans-serif;
         background-color: #f3f4f6;
     }
-  
+
     .form-container {
         width: 100%;
         max-width: 600px;
@@ -202,7 +218,7 @@
         margin: auto;
         overflow-y: auto;
     }
-  
+
     .header-section {
         background-color: #08B8F3;
         border-top-left-radius: 8px;
@@ -212,18 +228,17 @@
         display: flex;
         align-items: center;
     }
-  
+
     .logo {
         width: 80px;
         height: 80px;
         border-radius: 50%;
         margin-right: 16px;
     }
-  
+
     @media (min-width: 768px) {
         .form-container {
             max-width: 1337px;
         }
     }
-  </style>
-  
+</style>
