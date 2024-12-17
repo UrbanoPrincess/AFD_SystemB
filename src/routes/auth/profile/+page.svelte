@@ -34,8 +34,6 @@
   
     let currentUser: User | null = null;
   
-    let showForm = true; // Controls form visibility
-  
     // Monitor auth state changes
     onMount(() => {
         const savedProfile = localStorage.getItem("patientProfile");
@@ -121,7 +119,6 @@
             };
   
             localStorage.setItem("patientProfile", JSON.stringify(patientProfile));
-            showForm = false; // Hide the form after saving
         } catch (error) {
             console.error("Error saving patient profile: ", error);
         }
@@ -131,9 +128,9 @@
   <div class="flex items-center justify-center min-h-screen">
     <div class="bg-white rounded-lg shadow-lg flex flex-col form-container">
         <!-- Header Section -->
-        <div class="flex items-center header" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px;">
+        <div class="header-section">
             <img src="/images/logo(landing).png" 
-                 alt="Decorative logo" style="width: 80px; height: 80px; border-radius: 50%; margin-right: 16px;" />
+                 alt="Decorative logo" class="logo" />
             <div class="text-white">
               <h1 class="text-lg font-bold">
                 {`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}
@@ -143,53 +140,51 @@
             </div>
         </div>
   
-        <!-- Conditional Form -->
-        {#if showForm}
-          <form class="space-y-6 p-6" on:submit|preventDefault={savePatientProfile}>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                      <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
-                      <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                  </div>
-                  <div>
-                      <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                      <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                  </div>
-                  <div>
-                      <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                      <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                  </div>
-                  <div>
-                      <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
-                      <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                  </div>
-                  <div>
-                      <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
-                      <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                  </div>
-                  <div class="grid grid-cols-2 gap-4">
-                      <div>
-                          <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
-                          <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                      </div>
-                      <div>
-                          <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                          <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
-                              <option value="">Select</option>
-                              <option value="male">Male</option>
-                              <option value="female">Female</option>
-                              <option value="other">Other</option>
-                          </select>
-                      </div>
-                  </div>
-              </div>
-              <div class="flex justify-end">
-                  <button type="submit" class="bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-md hover:bg-blue-600">
-                      Save
-                  </button>
-              </div>
-          </form>
-        {/if}
+        <!-- Form Section -->
+        <form class="space-y-6 p-6" on:submit|preventDefault={savePatientProfile}>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
+                    <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
+                <div>
+                    <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
+                    <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
+                <div>
+                    <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
+                    <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
+                        <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div>
+                        <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                        <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-md hover:bg-blue-600">
+                    Save
+                </button>
+            </div>
+        </form>
     </div>
   </div>
   
@@ -199,6 +194,7 @@
         font-family: sans-serif;
         background-color: #f3f4f6;
     }
+  
     .form-container {
         width: 100%;
         max-width: 600px;
@@ -206,9 +202,24 @@
         margin: auto;
         overflow-y: auto;
     }
-    .header {
+  
+    .header-section {
+        background-color: #08B8F3;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
         height: 168px;
+        display: flex;
+        align-items: center;
     }
+  
+    .logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin-right: 16px;
+    }
+  
     @media (min-width: 768px) {
         .form-container {
             max-width: 1337px;
