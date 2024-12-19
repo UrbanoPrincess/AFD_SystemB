@@ -40,7 +40,7 @@
 		"@svelte-plugins/datepicker": "^1.0.9",
 		"date-fn": "^0.0.2",
 		"date-fns": "^4.1.0",
-		"firebase": "^11.0.2",
+		"firebase": "^11.1.0",
 		"svelte-datepicker": "^1.0.0"
 	}
 }
