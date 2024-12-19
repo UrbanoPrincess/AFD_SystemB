@@ -346,7 +346,7 @@ markAppointmentAsCompleted(appointmentId);
 
 </style>
 <div class="scrollable-container">
-<div style="padding: 40px; width: 850px; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white; max-height: 85vh; overflow-y: auto;">
+<div style="padding: 40px; width: 850px; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white; max-height: 100%; overflow-y: auto;">
 
   <!-- Header -->
   <div class="flex justify-between items-start mb-4">
