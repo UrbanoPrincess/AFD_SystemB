@@ -25,8 +25,8 @@ type Appointment = {
   patientId: string;
   service: string;
   subServices: string[];
-  cancellationStatus?: 'pending' | 'approved' | 'rejected' | null;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled' | 'Accepted';
+  cancellationStatus?: 'pending' | 'approved' | 'Decline' | null;
+  status: 'pending' | 'confirmed' | 'Decline' | 'completed' | 'cancelled' | 'Accepted';
 };
 
 let selectedDate = new Date();
@@ -438,8 +438,8 @@ async function fetchAppointments() {
               <span class="text-green-600 font-semibold">Accepted</span>
             {:else if appointment.status === 'completed'}
               <span class="text-blue-600 font-semibold">Completed</span>
-            {:else if appointment.status === 'cancelled'}
-              <span class="text-red-600 font-semibold">Cancelled</span>
+            {:else if appointment.status === 'Decline'}
+              <span class="text-red-600 font-semibold">Decline</span>
             {:else}
               <span class="text-gray-600 font-semibold">Pending</span>
             {/if}
