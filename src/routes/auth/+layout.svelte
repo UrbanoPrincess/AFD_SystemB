@@ -165,7 +165,7 @@
 
     /* Logout Button */
     .logout-btn {
-        background-color: #00b3ff;
+        background-color: #00a2e8;
         color: white;
         border: none;
         cursor: pointer;
