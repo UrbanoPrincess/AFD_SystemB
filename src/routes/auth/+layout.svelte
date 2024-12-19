@@ -260,25 +260,25 @@
         <ul class="sidebar-menu">
             <li>
                 <a href="./profile">
-                    <i class="fas fa-user icon"></i>
+                    <img class="icon" src="/images/icon-patient.png" alt="Patient Icon" />
                     <span class="text">Profile</span>
                 </a>
             </li>
             <li>
-                <a href="./medicine-list">
-                    <i class="fas fa-pills icon"></i>
-                    <span class="text">Medicines List</span>
-                </a>
-            </li>
-            <li>
                 <a href="./prescription">
-                    <i class="fas fa-file-medical-alt icon"></i>
+                    <img class="icon" src="/images/icon-prescriptions.png" alt="Medicines Icon" />
                     <span class="text">Prescriptions</span>
                 </a>
             </li>
             <li>
+                <a href="./medicine-list">
+                    <img class="icon" src="/images/icon-medicines.png" alt="Prescriptions Icon" />
+                    <span class="text">Medicines List</span>
+                </a>
+            </li>
+            <li>
                 <a href="./appointment">
-                    <i class="fas fa-calendar-check icon"></i>
+                    <img class="icon" src="/images/icon-dashboard.png" alt="Dashboard Icon" />
                     <span class="text">Appointment</span>
                 </a>
             </li>
