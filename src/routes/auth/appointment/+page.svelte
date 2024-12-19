@@ -229,10 +229,7 @@ onMount(() => {
     if (user) {
       patientId = user.uid;
       getAppointments();
-    } else {
-      patientId = null;
-      alert("Please log in to book an appointment.");
-    }
+    } 
   });
 });
 
@@ -266,7 +263,7 @@ async function fetchAppointments() {
 
 <style>
   .booked {
-    background-color: #cbd5e1;
+    background-color: #ffffff;
     cursor: not-allowed;
   }
 
@@ -277,16 +274,10 @@ async function fetchAppointments() {
   .slots-container {
     max-height: 300px; /* Adjust the height as needed */
     overflow-y: auto;  /* Enables vertical scrolling */
+
   }
 
-  .appointments-section {
-    margin-top: 30px;
-    background-color: #f9fafb;
-    padding: 10px;
-    border-radius: 8px;
-    max-height: 300px; /* Adjust the height as needed */
-    overflow-y: auto;  /* Enables vertical scrolling */
-  }
+ 
 
 
  
@@ -299,10 +290,25 @@ async function fetchAppointments() {
     -ms-overflow-style: none;  /* For Internet Explorer and Edge */
     scrollbar-width: none;      /* For Firefox */
   }
+  .scrollable-container {
+    height: 100%; /* Adjust the height to your needs */
+    overflow-y: auto; /* Enables vertical scrolling */
+    -ms-overflow-style: none;  /* Hides scrollbar in IE and Edge */
+    scrollbar-width: none; /* Hides scrollbar in Firefox */
+}
+.appointments-section1{
+ margin-bottom: 10px;
+  margin-left: 70px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 850px;
+  border-radius: 12px;
+  margin-top: 0%;
+}
 
 
 </style>
-<div style="padding: 40px; width: 100%; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white; max-height: 85vh; overflow-y: auto;">
+<div class="scrollable-container">
+<div style="padding: 40px; width: 850px; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white; max-height: 85vh; overflow-y: auto;">
 
   <!-- Header -->
   <div class="flex justify-between items-start mb-4">
@@ -413,10 +419,14 @@ async function fetchAppointments() {
       </div>
     {/if}
   </div>
+</div>
 
   <!-- Line Separator -->
-  <hr class="my-6 border-t-2 border-gray-200" />
+  <div class="appointments-section1">
+ 
+
   {#if appointments.length > 0}
+  
   <Table shadow>
     <TableHead>
       <TableHeadCell>Date</TableHeadCell>
@@ -463,8 +473,9 @@ async function fetchAppointments() {
   <div class="appointments-section">
     <p>No appointments found. Book an appointment to see it here!</p>
   </div>
+  
 {/if}
-
+</div>
 </div>
 
 <!-- Confirmation Modal for Deleting Appointment -->
@@ -479,4 +490,5 @@ async function fetchAppointments() {
       <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
     </div>
   </div>
+  
 </Modal>
