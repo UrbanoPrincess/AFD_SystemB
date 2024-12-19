@@ -278,7 +278,7 @@
             </li>
             <li>
                 <a href="./appointment">
-                    <img class="icon" src="/images/icon-dashboard.png" alt="Dashboard Icon" />
+                    <img class="icon" src="/images/icon-appointment.png" alt="Dashboard Icon" />
                     <span class="text">Appointment</span>
                 </a>
             </li>
