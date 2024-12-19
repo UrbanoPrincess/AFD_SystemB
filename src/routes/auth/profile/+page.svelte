@@ -207,7 +207,7 @@
 </script>
 
 
-
+<div class="main-container">
 <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
     <img src="/images/logo(landing).png" 
          alt="Decorative logo" class="logo" style="width: 80px; height: 80px; border-radius: 50%; margin-right: 16px;" />
@@ -222,11 +222,22 @@
 
 <!-- Edit Profile Dropdown Button -->
 <div style="margin-top: 16px;">
-    <button 
-        on:click={toggleEditProfile}
-        class="dropdown-btn" style="background-color: {isEditingProfile ? '#45a049' : '#4CAF50'};">
-        {isEditingProfile ? "Hide Edit Profile" : "Edit Profile"}
-    </button>
+        <button 
+            on:click={toggleEditProfile}
+            class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md shadow-md hover:bg-blue-600 flex items-center">
+            
+            <!-- Arrow Icon (Left when not editing, Right when editing) -->
+            <span class="mr-2">
+                {#if isEditingProfile}
+                <i class="fas fa-chevron-up"></i>  
+                {:else}
+                <i class="fas fa-chevron-right"></i>  
+                {/if}
+            </span>
+            
+            <!-- Button Text -->
+            {isEditingProfile ? "Cancel Edit" : "Edit Profile"}
+        </button>
 </div>
 
 <!-- Form Section -->
@@ -281,7 +292,17 @@
 
 <!-- View Past Visits Dropdown -->
 <div class="view-past-visits">
-    <button class="dropdown-btn" on:click={toggleDropdown}>
+      <button class="dropdown-btn" on:click={toggleDropdown}>
+        <!-- Font Awesome Arrow Icon -->
+        <span class="mr-2">
+            {#if isDropdownOpen}
+                <i class="fas fa-chevron-up"></i>  
+            {:else}
+                <i class="fas fa-chevron-right"></i>  
+            {/if}
+        </span>
+    
+        <!-- Button Text -->
         {#if isDropdownOpen}
             Hide Past Visits
         {:else}
@@ -317,12 +338,24 @@
 <!-- Prescription History Dropdown -->
 <div class="view-prescriptions">
     <button class="dropdown-btn" on:click={togglePrescriptionDropdown}>
+        
+        <!-- Arrow Icon (Up when dropdown is open, Down when closed) -->
+        <span class="mr-2">
+            {#if isPrescriptionDropdownOpen}
+            <i class="fas fa-chevron-up"></i>  
+            {:else}
+            <i class="fas fa-chevron-right"></i>  
+            {/if}
+        </span>
+        
+        <!-- Button Text -->
         {#if isPrescriptionDropdownOpen}
             Hide Prescription History
         {:else}
             View Prescription History
         {/if}
     </button>
+
 
     {#if isPrescriptionDropdownOpen}
     <div class="dropdown-content">
@@ -348,33 +381,54 @@
     </div>
 {/if}
 </div>
-
+</div>
 
 <!-- Styling for the dropdown -->
 <style>
-    .dropdown-btn {
-        padding: 10px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        cursor: pointer;
-        text-align: center;
-        width: 100%;
-        font-size: 16px;
-    }
+   /* Main container to make it scrollable */
+.main-container {
+    height: calc(100vh - 168px); /* Subtract the header height */
+    overflow-y: auto; /* Allow vertical scrolling */
+    padding: 16px;  /* Optional padding for spacing */
+}
 
-    .dropdown-btn:hover {
-        background-color: #45a049;
-    }
+/* Hide scrollbar for Webkit browsers (Chrome, Safari) */
+.main-container::-webkit-scrollbar {
+    display: none;
+}
 
-    .dropdown-content {
-        margin-top: 10px;
-        padding: 10px;
-        background-color: #ffffff;
-        
-        border-radius: 5px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
+/* Hide scrollbar for Internet Explorer 10+ and Firefox */
+.main-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.dropdown-btn {
+    display: flex;                /* Enable flexbox layout */
+    align-items: center;          
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    text-align: right;             /* Align text to the left */
+    width: 100%;
+    font-size: 16px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.dropdown-btn:hover {
+    background-color: #45a049;
+}
+
+.dropdown-content {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
     .profile-form-container{
         background-color: white;
     border-radius: 12px;
