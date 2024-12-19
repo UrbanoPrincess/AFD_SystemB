@@ -9,6 +9,7 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import { Button, Modal, Dropdown, DropdownItem } from 'flowbite-svelte';
 import { ExclamationCircleOutline, CloseOutline } from 'flowbite-svelte-icons';
 import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+import { onSnapshot } from "firebase/firestore";
 
 
 onMount(() => {
@@ -26,8 +27,9 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'approved' | 'rejected' | null;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled' | 'Accepted';
+  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled' | 'Accepted' | 'Declined'; // Added "Declined"
 };
+
 
 let selectedDate = new Date();
 let selectedTime: string | null = null;
@@ -35,7 +37,7 @@ let selectedService: string | null = null;
 let selectedSubServices: string[] = []; // Array to hold selected sub-services
 let appointments: Appointment[] = [];
 let patientId: string | null = null;
-
+let appointmentId = "someAppointmentId";
 // Declare services
 const services = [
   "Consultation",
@@ -69,6 +71,7 @@ const subServices: SubServices = {
 
 let popupModal = false; // Modal state for confirmation
 let selectedAppointmentId: string | null = null; // To store the selected appointment for deletion
+let selectedAppointment: Appointment | null = null; // Track selected appointment
 
 const morningSlots = [
   "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", 
@@ -174,7 +177,7 @@ async function requestCancelAppointment() {
 }
 
 function openCancelModal(appointmentId: string) {
-  selectedAppointmentId = appointmentId;
+  selectedAppointment = appointments.find(appointment => appointment.id === appointmentId) || null;
   popupModal = true;
 }
 
@@ -244,23 +247,58 @@ function toggleSubService(subService: string) {
     selectedSubServices.push(subService);
   }
 }
-async function fetchAppointments() {
+function fetchAppointments() {
+    if (patientId) {
+        const appointmentsRef = query(
+            collection(db, "appointments"),
+            where("patientId", "==", patientId)
+        );
+
+        onSnapshot(appointmentsRef, (querySnapshot) => {
+            appointments = querySnapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    date: data.date || "",
+                    time: data.time || "",
+                    patientId: data.patientId || "",
+                    service: data.service || "",
+                    subServices: data.subServices || [],
+                    cancellationStatus: data.cancellationStatus || null,
+                    status: data.status || "pending",
+                };
+            });
+        });
+    }
+}
+
+
+// Add the deleteAppointment function
+async function deleteAppointment(appointmentId: string) {
   try {
-    const querySnapshot = await getDocs(collection(db, "appointments"));
-    const fetchedAppointments: Appointment[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as Appointment;
-      fetchedAppointments.push({
-        ...data,
-        id: doc.id,
-        status: data.status || 'pending', // Default to 'pending' if not set
-      });
-    });
-    appointments = fetchedAppointments;
-  } catch (error) {
-    console.error("Error fetching appointments: ", error);
+    const appointmentRef = doc(db, "appointments", appointmentId);
+    await deleteDoc(appointmentRef); // Delete the appointment from Firebase
+
+    // Update the appointments list in the UI
+    appointments = appointments.filter(appointment => appointment.id !== appointmentId);
+
+    alert("Appointment has been deleted.");
+  } catch (e) {
+    console.error("Error deleting appointment: ", e);
+    alert("Failed to delete appointment.");
   }
 }
+// Define an async function to handle the update
+async function markAppointmentAsCompleted(appointmentId: string) {
+  const appointmentRef = doc(db, "appointments", appointmentId);
+  await updateDoc(appointmentRef, {
+    status: 'completed'  // Mark as completed/done
+  });
+}
+
+// Then call the function where necessary
+markAppointmentAsCompleted(appointmentId);
+
 
 </script>
 
@@ -427,35 +465,35 @@ async function fetchAppointments() {
     </TableHead>
     <TableBody tableBodyClass="divide-y">
       {#each appointments as appointment}
-        <TableBodyRow class={appointment.cancellationStatus === 'pending' ? 'opacity-50' : ''}>
-          <TableBodyCell>{appointment.date}</TableBodyCell>
-          <TableBodyCell>{appointment.time}</TableBodyCell>
-          <TableBodyCell>{appointment.service}</TableBodyCell>
-          <TableBodyCell>
-            {#if appointment.cancellationStatus === 'pending'}
-              <span class="text-yellow-600 font-semibold">Cancellation Pending</span>
-            {:else if appointment.status === 'Accepted'}
-              <span class="text-green-600 font-semibold">Accepted</span>
-            {:else if appointment.status === 'completed'}
-              <span class="text-blue-600 font-semibold">Completed</span>
-            {:else if appointment.status === 'cancelled'}
-              <span class="text-red-600 font-semibold">Cancelled</span>
-            {:else}
-              <span class="text-gray-600 font-semibold">Pending</span>
-            {/if}
-          </TableBodyCell>
-          <TableBodyCell>
-            {#if appointment.cancellationStatus !== 'pending'}
-              <Button
-                on:click={() => openCancelModal(appointment.id)}
-                style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
-                class="delete-button"
-              >
-                <CloseOutline class="w-6 h-6 text-white" />
-              </Button>
-            {/if}
-          </TableBodyCell>
-        </TableBodyRow>
+      <TableBodyRow class={appointment.cancellationStatus === 'pending' ? 'opacity-50' : ''}>
+        <TableBodyCell>{appointment.date}</TableBodyCell>
+        <TableBodyCell>{appointment.time}</TableBodyCell>
+        <TableBodyCell>{appointment.service}</TableBodyCell>
+        <TableBodyCell>
+          {#if appointment.status === 'completed'}
+        <span class="text-blue-600 font-semibold">Completed</span>
+          {:else if appointment.status === 'Accepted'}
+            <span class="text-green-600 font-semibold">Accepted</span>
+          {:else if appointment.status === 'Declined'}
+          <span class="text-red-600 font-semibold">Declined</span>
+          {:else}
+          <span class="text-black-900 font-semibold">{appointment.status}</span>
+          {/if}
+        </TableBodyCell>
+        <TableBodyCell>
+          {#if appointment.cancellationStatus !== 'pending'}
+            <Button
+              on:click={() => openCancelModal(appointment.id)}
+              style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+              class="delete-button"
+            >
+              <CloseOutline class="w-6 h-6 text-white" />
+            </Button>
+          {/if}
+        </TableBodyCell>
+      </TableBodyRow>
+      
+      
       {/each}
     </TableBody>
   </Table>
@@ -471,12 +509,26 @@ async function fetchAppointments() {
 <Modal bind:open={popupModal} size="xs" autoclose>
   <div class="text-center">
     <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
-    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-      Are you sure you want to request cancellation for this appointment?
-    </h3>
-    <div>
-      <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
-      <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
-    </div>
+    {#if selectedAppointment?.status === 'Accepted'}
+      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+        Are you sure you want to request cancellation for this appointment?
+      </h3>
+      <div>
+        <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
+        <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
+      </div>
+    {:else if selectedAppointment?.status === 'Declined'}
+      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+        Are you sure you want to delete this declined appointment?
+      </h3>
+      <div>
+        <Button color="red" class="me-2" on:click={() => {
+          if (selectedAppointment) {
+            deleteAppointment(selectedAppointment.id);
+          }
+        }}>Yes, Delete Appointment</Button>
+                <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
+      </div>
+    {/if}
   </div>
 </Modal>
