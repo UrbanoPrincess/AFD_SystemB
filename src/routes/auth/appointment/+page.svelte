@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Checkbox, Datepicker } from 'flowbite-svelte';
 import { onMount } from "svelte";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc, getDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { firebaseConfig } from "$lib/firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -10,6 +10,10 @@ import { Button, Modal, Dropdown, DropdownItem } from 'flowbite-svelte';
 import { ExclamationCircleOutline, CloseOutline } from 'flowbite-svelte-icons';
 import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
 
+
+onMount(() => {
+  fetchAppointments();
+});
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -22,7 +26,7 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'approved' | 'rejected' | null;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'canceled' | 'completed' | 'cancelled' | 'Accepted';
 };
 
 let selectedDate = new Date();
@@ -80,7 +84,7 @@ function selectTime(time: string) {
 
 async function bookAppointment() {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize today's date to avoid time mismatches
+  today.setHours(0, 0, 0, 0);
 
   if (!selectedDate || selectedDate < today) {
     alert("You cannot book an appointment on a past date.");
@@ -95,23 +99,34 @@ async function bookAppointment() {
         time: selectedTime,
         service: selectedService,
         subServices: selectedSubServices,
-        status: 'pending', // Default status
+        status: 'pending', // Explicitly set the status
+        cancellationStatus: null, // Optional field for cancellations
       });
-      appointments.push({ 
-        id: docRef.id, 
-        date: selectedDate.toLocaleDateString(), 
-        time: selectedTime, 
-        patientId: patientId,
-        service: selectedService,
-        subServices: selectedSubServices,
-        status: 'pending', // Default status
-      });
-      alert(`Appointment request submitted for ${selectedDate.toLocaleDateString()} at ${selectedTime}.`);
-      selectedTime = null;
-      selectedService = null;
-      selectedSubServices = [];
+
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const appointmentData = docSnap.data();
+        const appointment: Appointment = {
+          id: docRef.id,
+          date: appointmentData.date,
+          time: appointmentData.time,
+          patientId: appointmentData.patientId,
+          service: appointmentData.service,
+          subServices: appointmentData.subServices,
+          cancellationStatus: appointmentData.cancellationStatus || null,
+          status: appointmentData.status, // Should now have a value
+        };
+        appointments.push(appointment);
+
+        alert(`Appointment request submitted for ${appointment.date} at ${appointment.time}.`);
+        selectedTime = null;
+        selectedService = null;
+        selectedSubServices = [];
+      } else {
+        console.error("No document found for the new appointment.");
+      }
     } catch (e) {
-      console.error("Error adding document: ", e);
+      console.error("Error adding or fetching document: ", e);
     }
   } else {
     alert("Please select a time, service, and ensure you're logged in.");
@@ -227,6 +242,23 @@ function toggleSubService(subService: string) {
     selectedSubServices = selectedSubServices.filter(item => item !== subService);
   } else {
     selectedSubServices.push(subService);
+  }
+}
+async function fetchAppointments() {
+  try {
+    const querySnapshot = await getDocs(collection(db, "appointments"));
+    const fetchedAppointments: Appointment[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as Appointment;
+      fetchedAppointments.push({
+        ...data,
+        id: doc.id,
+        status: data.status || 'pending', // Default to 'pending' if not set
+      });
+    });
+    appointments = fetchedAppointments;
+  } catch (error) {
+    console.error("Error fetching appointments: ", error);
   }
 }
 
@@ -384,56 +416,54 @@ function toggleSubService(subService: string) {
 
   <!-- Line Separator -->
   <hr class="my-6 border-t-2 border-gray-200" />
-
-  <!-- Appointments Section -->
   {#if appointments.length > 0}
-    <Table shadow>
-      <TableHead>
-        <TableHeadCell>Date</TableHeadCell>
-        <TableHeadCell>Time</TableHeadCell>
-        <TableHeadCell>Service</TableHeadCell>
-        <TableHeadCell>Status</TableHeadCell>
-        <TableHeadCell>Actions</TableHeadCell>
-      </TableHead>
-      <TableBody tableBodyClass="divide-y">
-        {#each appointments as appointment}
-          <TableBodyRow class={appointment.cancellationStatus === 'pending' ? 'opacity-50' : ''}>
-            <TableBodyCell>{appointment.date}</TableBodyCell>
-            <TableBodyCell>{appointment.time}</TableBodyCell>
-            <TableBodyCell>{appointment.service}</TableBodyCell>
-            <TableBodyCell>
-              {#if appointment.cancellationStatus === 'pending'}
-                <span class="text-yellow-600 font-semibold">Cancellation Pending</span>
-              {:else if appointment.status === 'confirmed'}
-                <span class="text-green-600 font-semibold">Confirmed</span>
-              {:else if appointment.status === 'completed'}
-                <span class="text-blue-600 font-semibold">Completed</span>
-              {:else if appointment.status === 'cancelled'}
-                <span class="text-red-600 font-semibold">Cancelled</span>
-              {:else}
-                <span class="text-gray-600 font-semibold">pending</span>
-              {/if}
-            </TableBodyCell>
-            <TableBodyCell>
-              {#if appointment.cancellationStatus !== 'pending'}
-                <Button
-                  on:click={() => openCancelModal(appointment.id)}
-                  style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
-                  class="delete-button"
-                >
-                  <CloseOutline class="w-6 h-6 text-white" />
-                </Button>
-              {/if}
-            </TableBodyCell>
-          </TableBodyRow>
-        {/each}
-      </TableBody>
-    </Table>
-  {:else}
-    <div class="appointments-section">
-      <p>No appointments found. Book an appointment to see it here!</p>
-    </div>
-  {/if}
+  <Table shadow>
+    <TableHead>
+      <TableHeadCell>Date</TableHeadCell>
+      <TableHeadCell>Time</TableHeadCell>
+      <TableHeadCell>Service</TableHeadCell>
+      <TableHeadCell>Status</TableHeadCell>
+      <TableHeadCell>Actions</TableHeadCell>
+    </TableHead>
+    <TableBody tableBodyClass="divide-y">
+      {#each appointments as appointment}
+        <TableBodyRow class={appointment.cancellationStatus === 'pending' ? 'opacity-50' : ''}>
+          <TableBodyCell>{appointment.date}</TableBodyCell>
+          <TableBodyCell>{appointment.time}</TableBodyCell>
+          <TableBodyCell>{appointment.service}</TableBodyCell>
+          <TableBodyCell>
+            {#if appointment.cancellationStatus === 'pending'}
+              <span class="text-yellow-600 font-semibold">Cancellation Pending</span>
+            {:else if appointment.status === 'Accepted'}
+              <span class="text-green-600 font-semibold">Accepted</span>
+            {:else if appointment.status === 'completed'}
+              <span class="text-blue-600 font-semibold">Completed</span>
+            {:else if appointment.status === 'cancelled'}
+              <span class="text-red-600 font-semibold">Cancelled</span>
+            {:else}
+              <span class="text-gray-600 font-semibold">Pending</span>
+            {/if}
+          </TableBodyCell>
+          <TableBodyCell>
+            {#if appointment.cancellationStatus !== 'pending'}
+              <Button
+                on:click={() => openCancelModal(appointment.id)}
+                style="background-color: #ff4747; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;"
+                class="delete-button"
+              >
+                <CloseOutline class="w-6 h-6 text-white" />
+              </Button>
+            {/if}
+          </TableBodyCell>
+        </TableBodyRow>
+      {/each}
+    </TableBody>
+  </Table>
+{:else}
+  <div class="appointments-section">
+    <p>No appointments found. Book an appointment to see it here!</p>
+  </div>
+{/if}
 
 </div>
 
