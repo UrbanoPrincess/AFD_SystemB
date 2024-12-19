@@ -59,7 +59,7 @@
 
     .right-section img {
         padding-left: 25rem;
-        max-width: 120%; 
+        max-width: 180%; 
         max-height: 80%; 
         object-fit: contain; 
     }
@@ -78,9 +78,10 @@
         <h1>Dental Patient Records and Prescription Management System for Streamlined Dental Care and Treatment Tracking</h1>
        
     </div>
-    <div class="right-section">
-        <img src="/images/logo(landing).png" alt="Landing Logo" />
-    </div>
+    <div class="right-section" style="width: 100%; height: auto;">
+  <img src="/images/logo(landing).png" alt="Landing Logo" height="400" />
+</div>
+
 </main>
 
 
