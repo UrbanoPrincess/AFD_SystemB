@@ -86,7 +86,7 @@
 
 <style>
   .scrollable-container {
-    max-height: 80vh; /* Adjust the height to your needs */
+    height: 100%; /* Adjust the height to your needs */
     overflow-y: auto; /* Enables vertical scrolling */
     -ms-overflow-style: none;  /* Hides scrollbar in IE and Edge */
     scrollbar-width: none; /* Hides scrollbar in Firefox */
@@ -94,6 +94,7 @@
 
 .scrollable-container::-webkit-scrollbar {
     display: none; /* Hides scrollbar in WebKit browsers */
+    
 }
 
 

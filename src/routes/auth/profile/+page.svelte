@@ -219,7 +219,12 @@
       <p>Age: {patientProfile.age || "xx"} Gender: {patientProfile.gender || "xxxxx"}</p>
     </div>
 </div>
-
+<div class="patient-details" style="margin-bottom: 16px;">
+   <h1 class="text-lg font-bold">Patient Details</h1>
+   <p><strong>Email</strong><br> {patientProfile.email}</p>
+   <p><strong>Phone</strong> <br>{patientProfile.phone}</p>
+   <p><strong>Address</strong> <br>{patientProfile.address}</p>
+</div>
 <!-- Edit Profile Dropdown Button -->
 <div style="margin-top: 16px;">
         <button 
@@ -290,96 +295,92 @@
     </div>
 {/if}
 
-<!-- View Past Visits Dropdown -->
-<div class="view-past-visits">
-      <button class="dropdown-btn" on:click={toggleDropdown}>
-        <!-- Font Awesome Arrow Icon -->
-        <span class="mr-2">
+<!-- View Past Visits and Prescription History -->
+<div class="flex justify-between">
+    <!-- View Past Visits Dropdown -->
+    <div class="view-past-visits w-1/2 pr-2">
+        <button class="dropdown-btn" on:click={toggleDropdown}>
+            <span class="mr-2">
+                {#if isDropdownOpen}
+                    <i class="fas fa-chevron-up"></i>  
+                {:else}
+                    <i class="fas fa-chevron-right"></i>  
+                {/if}
+            </span>
             {#if isDropdownOpen}
-                <i class="fas fa-chevron-up"></i>  
+                Hide Past Visits
             {:else}
-                <i class="fas fa-chevron-right"></i>  
+                View Past Visits
             {/if}
-        </span>
-    
-        <!-- Button Text -->
+        </button>
+
         {#if isDropdownOpen}
-            Hide Past Visits
-        {:else}
-            View Past Visits
-        {/if}
-    </button>
-
-    {#if isDropdownOpen}
-    <div class="dropdown-content">
-        {#if doneAppointments.length === 0}
-            <p>No completed appointments available.</p>
-        {:else}
-            <ul class="space-y-4">
-                {#each doneAppointments as appointment}
-                    <li class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex justify-between">
-                            <div>
-                                <h3 class="text-lg font-bold">Date: {appointment.date}</h3>
-                                <p class="text-sm text-gray-600">Time: {appointment.time}</p>
-                                <p class="text-sm text-gray-600">Service: {appointment.service}</p>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span class="text-sm text-gray-500">Status: {appointment.status}</span>
-                            </div>
-                        </div>
-                    </li>
-                {/each}
-            </ul>
-        {/if}
-    </div>
-{/if}
-</div>
-<!-- Prescription History Dropdown -->
-<div class="view-prescriptions">
-    <button class="dropdown-btn" on:click={togglePrescriptionDropdown}>
-        
-        <!-- Arrow Icon (Up when dropdown is open, Down when closed) -->
-        <span class="mr-2">
-            {#if isPrescriptionDropdownOpen}
-            <i class="fas fa-chevron-up"></i>  
+        <div class="dropdown-content">
+            {#if doneAppointments.length === 0}
+                <p>No completed appointments available.</p>
             {:else}
-            <i class="fas fa-chevron-right"></i>  
-            {/if}
-        </span>
-        
-        <!-- Button Text -->
-        {#if isPrescriptionDropdownOpen}
-            Hide Prescription History
-        {:else}
-            View Prescription History
-        {/if}
-    </button>
-
-
-    {#if isPrescriptionDropdownOpen}
-    <div class="dropdown-content">
-        {#if prescriptions.length === 0}
-            <p>No prescriptions available.</p>
-        {:else}
-            <ul class="space-y-4">
-                {#each prescriptions as prescription}
-                    <li class="p-4 border border-gray-200 rounded-lg">
-                        <div class="flex justify-between">
-                            <div>
-                                <h3 class="text-lg font-bold">Date: {prescription.date}</h3>
-                                <p class="text-sm text-gray-600">Medications: {prescription.medication}</p>
-                                <p class="text-sm text-gray-600">Instructions: {prescription.instructions}</p>
-                                <p class="text-sm text-gray-600">Qty/Refills: {prescription.qtyRefills}</p>
-                                <p class="text-sm text-gray-600">Prescriber: {prescription.prescriber}</p>
+                <ul class="space-y-4">
+                    {#each doneAppointments as appointment}
+                        <li class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold">Date: {appointment.date}</h3>
+                                    <p class="text-sm text-gray-600">Time: {appointment.time}</p>
+                                    <p class="text-sm text-gray-600">Service: {appointment.service}</p>
+                                </div>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-sm text-gray-500">Status: {appointment.status}</span>
+                                </div>
                             </div>
-                        </div>
-                    </li>
-                {/each}
-            </ul>
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        </div>
         {/if}
     </div>
-{/if}
+
+    <!-- Prescription History Dropdown -->
+    <div class="view-prescriptions w-1/2 pl-2">
+        <button class="dropdown-btn" on:click={togglePrescriptionDropdown}>
+            <span class="mr-2">
+                {#if isPrescriptionDropdownOpen}
+                <i class="fas fa-chevron-up"></i>  
+                {:else}
+                <i class="fas fa-chevron-right"></i>  
+                {/if}
+            </span>
+            {#if isPrescriptionDropdownOpen}
+                Hide Prescription History
+            {:else}
+                View Prescription History
+            {/if}
+        </button>
+
+        {#if isPrescriptionDropdownOpen}
+        <div class="dropdown-content">
+            {#if prescriptions.length === 0}
+                <p>No prescriptions available.</p>
+            {:else}
+                <ul class="space-y-4">
+                    {#each prescriptions as prescription}
+                        <li class="p-4 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between">
+                                <div>
+                                    <h3 class="text-lg font-bold">Date: {prescription.dateVisited}</h3>
+                                    <p class="text-sm text-gray-600">Medications: {prescription.medication}</p>
+                                    <p class="text-sm text-gray-600">Instructions: {prescription.instructions}</p>
+                                    <p class="text-sm text-gray-600">Qty/Refills: {prescription.qtyRefills}</p>
+                                    <p class="text-sm text-gray-600">Prescriber: {prescription.prescriber}</p>
+                                </div>
+                            </div>
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        </div>
+        {/if}
+    </div>
 </div>
 </div>
 
@@ -401,14 +402,15 @@
 .main-container {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    height: 100%;
 }
 
 .dropdown-btn {
     display: flex;                /* Enable flexbox layout */
     align-items: center;          
     padding: 10px;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #d7dad7;
+    color: black;
     border: none;
     cursor: pointer;
     text-align: right;             /* Align text to the left */
@@ -419,13 +421,14 @@
 }
 
 .dropdown-btn:hover {
-    background-color: #45a049;
+    background-color: #098ED0;
+    
 }
 
 .dropdown-content {
     margin-top: 10px;
     padding: 10px;
-    background-color: #f9f9f9;
+    background-color: white;
     border: 1px solid #ddd;
     border-radius: 5px;
 }
@@ -433,5 +436,11 @@
         background-color: white;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .patient-details{
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 16px;
     }
 </style>
