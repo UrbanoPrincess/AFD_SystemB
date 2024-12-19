@@ -172,19 +172,28 @@
 
     // Toggle edit profile
     function toggleEditProfile() {
-    isEditingProfile = !isEditingProfile;
+        isEditingProfile = !isEditingProfile; // Toggle edit state
 
-    if (isEditingProfile) {
-        // Initialize form fields with existing profile data when editing starts
-        formPatientName = patientProfile.name;
-        formLastName = patientProfile.lastName;
-        formAge = patientProfile.age;
-        formGender = patientProfile.gender;
-        formEmail = patientProfile.email;
-        formPhone = patientProfile.phone;
-        formHomeAddress = patientProfile.address;
+        if (isEditingProfile) {
+            // Initialize form fields with existing profile data when editing starts
+            formPatientName = patientProfile.name;
+            formLastName = patientProfile.lastName;
+            formAge = patientProfile.age;
+            formGender = patientProfile.gender;
+            formEmail = patientProfile.email;
+            formPhone = patientProfile.phone;
+            formHomeAddress = patientProfile.address;
+        } else {
+            // Reset form fields when editing is canceled
+            formPatientName = "";
+            formLastName = "";
+            formAge = "";
+            formGender = "";
+            formEmail = "";
+            formPhone = "";
+            formHomeAddress = "";
+        }
     }
-}
 
     // Toggle prescription history dropdown
     function togglePrescriptionDropdown() {
@@ -215,8 +224,8 @@
 <div style="margin-top: 16px;">
     <button 
         on:click={toggleEditProfile}
-        class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md shadow-md hover:bg-blue-600">
-        {isEditingProfile ? "Cancel Edit" : "Edit Profile"}
+        class="dropdown-btn" style="background-color: {isEditingProfile ? '#45a049' : '#4CAF50'};">
+        {isEditingProfile ? "Hide Edit Profile" : "Edit Profile"}
     </button>
 </div>
 
@@ -361,8 +370,14 @@
     .dropdown-content {
         margin-top: 10px;
         padding: 10px;
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
+        background-color: #ffffff;
+        
         border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .profile-form-container{
+        background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 </style>
