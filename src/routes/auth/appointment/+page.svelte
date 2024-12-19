@@ -72,6 +72,9 @@ const subServices: SubServices = {
 let popupModal = false; // Modal state for confirmation
 let selectedAppointmentId: string | null = null; // To store the selected appointment for deletion
 let selectedAppointment: Appointment | null = null; // Track selected appointment
+let confirmationMessage: string = ''; // Message to show in the modal
+let popupModalCancel = false;  // For the cancellation modal
+let popupModalDelete = false;  // For the deletion modal
 
 const morningSlots = [
   "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", 
@@ -136,6 +139,23 @@ async function bookAppointment() {
   }
 }
 
+function getConfirmationMessage(appointment: Appointment): string {
+  if (appointment.status === 'Declined') {
+    return "Are you sure you want to delete this declined appointment?";
+  } else if (appointment.status === 'completed') {
+    return "Are you sure you want to delete this completed appointment?";
+  } else if (appointment.status === 'pending') {
+    if (appointment.cancellationStatus === 'pending') {
+      return "Are you sure you want to remove your appointment request?";
+    } else {
+      return "Do you want to request cancellation?";
+    }
+  } else if (appointment.status === 'canceled') {
+    return "Are you sure you want to delete this canceled appointment?";
+  }
+  return "Are you sure you want to delete this appointment?";
+}
+
 
 async function getAppointments() {
   if (patientId) {
@@ -177,9 +197,12 @@ async function requestCancelAppointment() {
 }
 
 function openCancelModal(appointmentId: string) {
-  selectedAppointment = appointments.find(appointment => appointment.id === appointmentId) || null;
-  popupModal = true;
-}
+    selectedAppointment = appointments.find(appointment => appointment.id === appointmentId) || null;
+    if (selectedAppointment) {
+      confirmationMessage = getConfirmationMessage(selectedAppointment);
+      popupModal = true; // Show the modal
+    }
+  }
 
 function isTimeSlotAvailable(slot: string, date: Date): boolean {
   const currentDate = new Date();
@@ -232,10 +255,7 @@ onMount(() => {
     if (user) {
       patientId = user.uid;
       getAppointments();
-    } else {
-      patientId = null;
-      alert("Please log in to book an appointment.");
-    }
+    } 
   });
 });
 
@@ -314,7 +334,7 @@ markAppointmentAsCompleted(appointmentId);
 
   .slots-container {
     max-height: 300px; /* Adjust the height as needed */
-      /* Enables vertical scrolling */
+    overflow-y: auto;  /* Enables vertical scrolling */
   }
 
   .appointments-section {
@@ -323,7 +343,7 @@ markAppointmentAsCompleted(appointmentId);
     padding: 10px;
     border-radius: 8px;
     max-height: 300px; /* Adjust the height as needed */
-    
+    overflow-y: auto;  /* Enables vertical scrolling */
   }
 
 
@@ -472,11 +492,7 @@ markAppointmentAsCompleted(appointmentId);
         <TableBodyCell>
           {#if appointment.status === 'completed'}
         <span class="text-blue-600 font-semibold">Completed</span>
-          {:else if appointment.status === 'Accepted'}
-            <span class="text-green-600 font-semibold">Accepted</span>
-          {:else if appointment.status === 'Declined'}
-          <span class="text-red-600 font-semibold">Declined</span>
-          {:else}
+      {:else}
           <span class="text-black-900 font-semibold">{appointment.status}</span>
           {/if}
         </TableBodyCell>
@@ -506,31 +522,40 @@ markAppointmentAsCompleted(appointmentId);
 </div>
 
 <!-- Confirmation Modal for Deleting Appointment -->
+<!-- Confirmation Modal for Deleting Appointment -->
 <Modal bind:open={popupModal} size="xs" autoclose>
   <div class="text-center">
+    <!-- Exclamation Icon -->
     <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
-    {#if selectedAppointment?.status === 'Accepted'}
-      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-        Are you sure you want to request cancellation for this appointment?
-      </h3>
-      <div>
-        <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
-        <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
-      </div>
-      
-      <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
-    {:else if selectedAppointment?.status === 'Declined'}
-      <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-        Are you sure you want to delete this declined appointment?
-      </h3>
-      <div>
-        <Button color="red" class="me-2" on:click={() => {
-          if (selectedAppointment) {
-            deleteAppointment(selectedAppointment.id);
-          }
-        }}>Yes, Delete Appointment</Button>
-                <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
-      </div>
-    {/if}
+    
+    <!-- Modal Message for Cancellation -->
+    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+      Are you sure you want to request cancellation for this appointment?
+    </h3>
+    
+    <!-- Buttons for Confirming or Cancelling the Action -->
+    <div>
+      <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
+      <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
+    </div>
+  </div>
+</Modal>
+
+<!-- Modal for Deleting Declined Appointment -->
+<Modal bind:open={popupModal} size="xs" autoclose>
+  <div class="text-center">
+    <!-- Exclamation Icon -->
+    <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
+    
+    <!-- Modal Message for Deletion -->
+    <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
+      Are you sure you want to delete this declined appointment?
+    </h3>
+    
+    <!-- Buttons for Confirming or Cancelling the Action -->
+    <div>
+      <Button color="red" class="me-2" on:click={() => deleteAppointment(appointmentId)}>Yes, Delete Appointment</Button>
+      <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
+    </div>
   </div>
 </Modal>
