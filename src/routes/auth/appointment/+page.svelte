@@ -38,6 +38,8 @@ let patientId: string | null = null;
 let reasonNotAvailable = false;
   let reasonSchedulingConflict = false;
   let reasonOther = false;
+  let selectedReason = '';
+  let otherReason = '';
 
   // Collect the selected reasons into an array
   function getSelectedReasons() {
@@ -161,18 +163,29 @@ async function getAppointments() {
   }
 }
 
-async function requestCancelAppointment() {
-    if (selectedAppointmentId && getSelectedReasons().length > 0) {
+ // Function to handle cancellation request
+ async function requestCancelAppointment() {
+  if (selectedAppointmentId) { // Ensure `selectedAppointmentId` is not null or undefined
+    if (selectedReason) { // Ensure a reason is selected
+      if (selectedReason === 'Other' && otherReason.trim() === '') {
+        alert("Please specify the reason for cancellation.");
+        return;
+      }
+
       try {
+        // Ensure the selectedAppointmentId is a valid string before passing to `doc`
         const appointmentRef = doc(db, "appointments", selectedAppointmentId);
+        
+        // Update Firestore document
         await updateDoc(appointmentRef, {
           cancellationStatus: 'pending',
-          cancelReason: getSelectedReasons().join(", ") // Store the selected reasons in Firestore
+          cancelReason: selectedReason === 'Other' ? otherReason : selectedReason
         });
 
-        appointments = appointments.map(appointment => 
-          appointment.id === selectedAppointmentId 
-            ? { ...appointment, cancellationStatus: 'pending', cancelReason: getSelectedReasons().join(", ") } 
+        // Update the local appointments list
+        appointments = appointments.map(appointment =>
+          appointment.id === selectedAppointmentId
+            ? { ...appointment, cancellationStatus: 'pending', cancelReason: selectedReason === 'Other' ? otherReason : selectedReason }
             : appointment
         );
 
@@ -185,7 +198,11 @@ async function requestCancelAppointment() {
     } else {
       alert("Please select a reason for cancellation.");
     }
+  } else {
+    alert("No appointment selected.");
   }
+}
+
 function openCancelModal(appointmentId: string) {
   selectedAppointmentId = appointmentId;
   popupModal = true;
@@ -480,34 +497,51 @@ async function fetchAppointments() {
 
 </div>
 
-<!-- Confirmation Modal for Deleting Appointment -->
 <Modal bind:open={popupModal} size="xs" autoclose>
   <div class="text-center">
     <ExclamationCircleOutline class="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" />
     <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
       Are you sure you want to request cancellation for this appointment?
     </h3>
-    <!-- Add checklist for cancellation reasons -->
-    <div class="mb-4 text-left">
-      <p class="text-gray-600">Reason for Cancellation:</p>
-      <div>
-        <label class="block">
-          <input type="checkbox" bind:checked={reasonNotAvailable} /> 
-          Service is no longer needed
-        </label>
-        <label class="block">
-          <input type="checkbox" bind:checked={reasonSchedulingConflict} />
-          Scheduling conflict
-        </label>
-        <label class="block">
-          <input type="checkbox" bind:checked={reasonOther} />
-          Other
-        </label>
+
+    <!-- Appointment Details Display -->
+    {#if selectedAppointmentId}
+      <div class="text-left mb-4">
+        <p><strong>Service:</strong> {appointments.find(appointment => appointment.id === selectedAppointmentId)?.service}</p>
+        <p><strong>Date:</strong> {appointments.find(appointment => appointment.id === selectedAppointmentId)?.date}</p>
+        <p><strong>Time:</strong> {appointments.find(appointment => appointment.id === selectedAppointmentId)?.time}</p>
       </div>
+    {/if}
+
+     <!-- Dropdown for Cancellation Reason -->
+     <div class="mb-4">
+      <label for="cancellation-reason" class="block text-sm font-medium text-gray-700">Reason for Cancellation</label>
+      <select bind:value={selectedReason} id="cancellation-reason" class="block w-full border border-gray-300 rounded-md shadow-sm p-2">
+        <option value="" disabled>Select a reason</option>
+        <option value="Service no longer needed">Service is no longer needed</option>
+        <option value="Scheduling conflict">Scheduling conflict</option>
+        <option value="Other">Other</option>
+      </select>
     </div>
+
+    <!-- Text input for 'Other' reason if selected -->
+    {#if selectedReason === 'Other'}
+      <div class="mb-4">
+        <label for="other-reason" class="block text-sm font-medium text-gray-700">Specify the reason</label>
+        <input
+          type="text"
+          id="other-reason"
+          bind:value={otherReason}
+          class="block w-full border border-gray-300 rounded-md shadow-sm p-2"
+          placeholder="Enter reason"
+        />
+      </div>
+    {/if}
+
     <div>
       <Button color="red" class="me-2" on:click={requestCancelAppointment}>Yes, Request Cancellation</Button>
       <Button color="alternative" on:click={() => (popupModal = false)}>No, Keep Appointment</Button>
     </div>
   </div>
 </Modal>
+

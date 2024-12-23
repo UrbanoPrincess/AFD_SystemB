@@ -84,23 +84,9 @@
     });
 </script>
 
-<style>
-  .scrollable-container {
-    height: 100%; /* Adjust the height to your needs */
-    overflow-y: auto; /* Enables vertical scrolling */
-    -ms-overflow-style: none;  /* Hides scrollbar in IE and Edge */
-    scrollbar-width: none; /* Hides scrollbar in Firefox */
-}
-
-.scrollable-container::-webkit-scrollbar {
-    display: none; /* Hides scrollbar in WebKit browsers */
-    
-}
 
 
-</style>
 <!-- Main Content -->
-<div class="scrollable-container">
 <div style="padding: 40px; width: 100%; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
     <!-- Header -->
     <div class="flex justify-between items-start mb-4">
@@ -159,5 +145,4 @@
     {/if}
 
    
-</div>
 </div>
