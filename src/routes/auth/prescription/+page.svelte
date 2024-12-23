@@ -158,6 +158,6 @@
         {/if}
     {/if}
 
-    <Button on:click={() => goto('/patientDashboard')}>Back to Dashboard</Button>
+   
 </div>
 </div>

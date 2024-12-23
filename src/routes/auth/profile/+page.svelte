@@ -219,12 +219,7 @@
       <p>Age: {patientProfile.age || "xx"} Gender: {patientProfile.gender || "xxxxx"}</p>
     </div>
 </div>
-<div class="patient-details" style="margin-bottom: 16px;">
-   <h1 class="text-lg font-bold">Patient Details</h1>
-   <p><strong>Email</strong><br> {patientProfile.email}</p>
-   <p><strong>Phone</strong> <br>{patientProfile.phone}</p>
-   <p><strong>Address</strong> <br>{patientProfile.address}</p>
-</div>
+
 <!-- Edit Profile Dropdown Button -->
 <div style="margin-top: 16px;">
         <button 
@@ -437,10 +432,5 @@
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    .patient-details{
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 16px;
-    }
+   
 </style>
