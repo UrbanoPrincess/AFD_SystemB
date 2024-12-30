@@ -5,6 +5,7 @@
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { getAuth, onAuthStateChanged } from "firebase/auth";
     import type { User } from "firebase/auth";
+    import Swal from 'sweetalert2';
 
     // Firebase setup
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
@@ -126,10 +127,20 @@
     // Save patient profile to Firestore
     async function savePatientProfile() {
         if (!currentUser) {
+            Swal.fire({
+            icon: 'error',
+            title: 'Not Logged In',
+            text: 'Please log in to save the profile.'
+        });
             console.log("Please log in to save the profile.");
             return;
         }
         if (!formPatientName || !formAge || !formEmail || !formPhone) {
+            Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Form',
+            text: 'Please fill out all required fields.'
+        });
             console.error("Please fill out all required fields.");
             return;
         }
@@ -148,7 +159,12 @@
                 address: formHomeAddress,
                 id: currentUser.uid
             });
-
+             // Display success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Profile Saved',
+                text: 'Profile updated successfully.'
+            });
             console.log("Patient profile saved/updated successfully.");
 
             // Update local state
@@ -166,6 +182,12 @@
             // Close the editing form
             isEditingProfile = false;
         } catch (error) {
+              // Display error message
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Error saving patient profile.`
+        });
             console.error("Error saving patient profile: ", error);
         }
     }

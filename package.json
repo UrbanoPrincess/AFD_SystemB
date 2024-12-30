@@ -41,6 +41,7 @@
 		"date-fn": "^0.0.2",
 		"date-fns": "^4.1.0",
 		"firebase": "^11.1.0",
-		"svelte-datepicker": "^1.0.0"
+		"svelte-datepicker": "^1.0.0",
+		"sweetalert2": "^11.15.3"
 	}
 }

@@ -9,6 +9,7 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import { Button, Modal, Dropdown, DropdownItem } from 'flowbite-svelte';
 import { ExclamationCircleOutline, CloseOutline,CloseCircleOutline} from 'flowbite-svelte-icons';
 import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+import Swal from 'sweetalert2';
 
 
 
@@ -96,6 +97,11 @@ async function bookAppointment() {
   today.setHours(0, 0, 0, 0);
 
   if (!selectedDate || selectedDate < today) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Invalid Date',
+      text: 'You cannot book an appointment on a past date.',
+    });
     alert("You cannot book an appointment on a past date.");
     return;
   }
@@ -139,22 +145,45 @@ async function bookAppointment() {
           };
           appointments.push(appointment);
 
-          alert(`Appointment request submitted for ${appointment.date} at ${appointment.time}.`);
+          Swal.fire({
+            icon: 'success',
+            title: 'Appointment Booked',
+            text: `Your appointment is set for ${appointment.date} at ${appointment.time}.`,
+          });
+          
           selectedTime = null;
           selectedService = null;
           selectedSubServices = [];
         } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No document found for the new appointment.',
+          });
           console.error("No document found for the new appointment.");
         }
       } else {
         // The patient already has an appointment for the selected date
-        alert("You already have an appointment for this day. Please cancel your existing appointment before booking again.");
+        Swal.fire({
+          icon: 'info',
+          title: 'Appointment Already Exists',
+          text: 'You already have an appointment for this day. Please cancel your existing appointment before booking again.',
+        });
       }
     } catch (e) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: `Something went wrong while booking your appointment.`,
+      });
       console.error("Error adding or fetching document: ", e);
     }
   } else {
-    alert("Please select a time, service, and ensure you're logged in.");
+    Swal.fire({
+      icon: 'warning',
+      title: 'Incomplete Form',
+      text: 'Please select a time, service, and ensure you are logged in.',
+    });
   }
 }
 
