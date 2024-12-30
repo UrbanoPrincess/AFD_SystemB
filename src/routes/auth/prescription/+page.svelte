@@ -5,7 +5,7 @@
     import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
     import { getAuth, onAuthStateChanged } from 'firebase/auth';
     import { goto } from '$app/navigation';
-    import { Button, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+    import { Button } from 'flowbite-svelte';
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
@@ -24,6 +24,12 @@
     let prescriptions: any[] = [];
     let loading: boolean = true;
     let error: string = '';
+
+    // Helper function to format date
+    function formatDate(timestamp: string): string {
+        const date = new Date(timestamp);
+        return date.toISOString().split('T')[0];
+    }
 
     // Fetch patient data based on the current user's ID
     async function fetchPatientData() {
@@ -84,10 +90,8 @@
     });
 </script>
 
-
-
 <!-- Main Content -->
-<div style="padding: 40px; width: 100%; max-width: 50rem; margin: 100px; margin-top: 50px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
+<div style="padding: 30px; width: 200%; max-width: 50rem; margin: 100px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
     <!-- Header -->
     <div class="flex justify-between items-start mb-4">
         <div class="flex items-center">
@@ -118,26 +122,18 @@
             <!-- Prescription Details -->
             <h3 class="mt-4 font-semibold">Prescription Details</h3>
             {#if prescriptions.length > 0}
-                <Table class="mt-2">
-                    <TableHead>
-                        <TableHeadCell>Date Visited</TableHeadCell>
-                        <TableHeadCell>Medication</TableHeadCell>
-                        <TableHeadCell>Instructions</TableHeadCell>
-                        <TableHeadCell>Qty/Refills</TableHeadCell>
-                        <TableHeadCell>Prescriber</TableHeadCell>
-                    </TableHead>
-                    <TableBody>
-                        {#each prescriptions as prescription}
-                            <TableBodyRow>
-                                <TableBodyCell>{prescription.dateVisited || 'Not available'}</TableBodyCell>
-                                <TableBodyCell>{prescription.medication || 'Not available'}</TableBodyCell>
-                                <TableBodyCell>{prescription.instructions || 'Not available'}</TableBodyCell>
-                                <TableBodyCell>{prescription.qtyRefills || 'Not available'}</TableBodyCell>
-                                <TableBodyCell>{prescription.prescriber || 'Not available'}</TableBodyCell>
-                            </TableBodyRow>
-                        {/each}
-                    </TableBody>
-                </Table>
+                <div class="mt-4 max-h-96 overflow-y-auto">
+                    {#each prescriptions as prescription, index}
+                        <div class="p-4 border rounded-lg shadow-md mb-4">
+                            <h4 class="font-bold">Prescription {index + 1}</h4>
+                            <p><strong>Date Visited:</strong> {formatDate(prescription.dateVisited) || 'Not available'}</p>
+                            <p><strong>Medication:</strong> {prescription.medication || 'Not available'}</p>
+                            <p><strong>Instructions:</strong> {prescription.instructions || 'Not available'}</p>
+                            <p><strong>Qty/Refills:</strong> {prescription.qtyRefills || 'Not available'}</p>
+                            <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+                        </div>
+                    {/each}
+                </div>
             {:else}
                 <p>No prescriptions available.</p>
             {/if}
