@@ -234,14 +234,28 @@ async function requestCancelAppointment() {
           : appointment
       );
 
-      alert("Cancellation request submitted.");
+      // Display success message
+      Swal.fire({
+        icon: 'success',
+        title: 'Cancellation Requested',
+        text: 'Your cancellation request has been submitted successfully.',
+      });
       popupModal = false; // Close the modal
     } catch (e) {
       console.error("Error requesting cancellation: ", e);
-      alert("Failed to submit cancellation request.");
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to submit the cancellation request. Please try again later.',
+      });
     }
   } else {
-    alert("Please select a reason for cancellation.");
+     Swal.fire({
+      icon: 'warning',
+      title: 'Reason Required',
+      text: 'Please select a reason for cancellation.',
+    });
   }
 }
 
