@@ -102,7 +102,6 @@ async function bookAppointment() {
       title: 'Invalid Date',
       text: 'You cannot book an appointment on a past date.',
     });
-    alert("You cannot book an appointment on a past date.");
     return;
   }
 
@@ -150,7 +149,7 @@ async function bookAppointment() {
             title: 'Appointment Booked',
             text: `Your appointment is set for ${appointment.date} at ${appointment.time}.`,
           });
-          
+
           selectedTime = null;
           selectedService = null;
           selectedSubServices = [];
