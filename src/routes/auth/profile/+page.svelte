@@ -356,7 +356,8 @@ onMount(() => {
 
                         <!-- Prescription Details or No Prescription for This Visit -->
                         <td class="border border-gray-300 px-4 py-2">
-                            {#if prescriptions && prescriptions.length > 0}
+                            {#if prescriptions && prescriptions.filter(prescription => prescription.appointmentId === appointment.id).length > 0}
+                                <!-- If prescription exists for this appointment -->
                                 {#each prescriptions.filter(prescription => prescription.appointmentId === appointment.id) as prescription}
                                     <div>
                                         <h3 class="text-lg font-bold">Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
@@ -367,7 +368,8 @@ onMount(() => {
                                     </div>
                                 {/each}
                             {:else}
-                                <p>No prescription issued for this visit.</p>
+                                <!-- If no prescription exists for this appointment -->
+                                <p class="italic text-gray-600">No prescription issued for this visit.</p>
                             {/if}
                         </td>
                     </tr>
@@ -376,6 +378,7 @@ onMount(() => {
         </table>
     {/if}
 </div>
+
 
 
 </div>
