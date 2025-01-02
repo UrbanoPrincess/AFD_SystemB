@@ -77,20 +77,52 @@
 
     // Generate PDF for a prescription
     function generatePDF(prescription: any, index: number) {
-        const doc = new jsPDF();
-        doc.setFontSize(12);
-        doc.text("AF Dominic Dental Clinic", 10, 10);
-        doc.text("#46 12th Street, Corner Gordon Ave New Kalalake", 10, 20);
-        doc.text("afdominicdentalclinic@gmail.com | 0932 984 9554", 10, 30);
-        doc.text(`Prescription ${index + 1}`, 10, 50);
-        doc.text(`Date Visited: ${formatDate(prescription.dateVisited) || 'Not available'}`, 10, 60);
-        doc.text(`Medication: ${prescription.medication || 'Not available'}`, 10, 70);
-        doc.text(`Instructions: ${prescription.instructions || 'Not available'}`, 10, 80);
-        doc.text(`Qty/Refills: ${prescription.qtyRefills || 'Not available'}`, 10, 90);
-        doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 10, 100);
+    // Initialize jsPDF in landscape orientation
+    const doc = new jsPDF({ orientation: "landscape" });
 
-        doc.save(`Prescription_${index + 1}.pdf`);
-    }
+    // Set the font and size
+    doc.setFont("helvetica", "normal");
+    
+    // Header
+    doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust the path, format, and dimensions as needed
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("AF DOMINIC", 50, 15); // Clinic name
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("DENTAL CLINIC", 50, 20);
+    doc.text("#46 12th Street, Corner Gordon Ave, New Kalalake", 50, 25);
+    doc.text("afdominicdentalclinic@gmail.com", 50, 30);
+    doc.text("0932 984 9554", 50, 35);
+    doc.line(20, 40, 277, 40); // Horizontal line
+
+    // Prescription Title
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Prescription", 20, 48);
+
+    // Patient Details
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Date: ${formatDate(prescription.dateVisited) || 'Not available'}`, 20, 55);
+    doc.text(`Patient Name: ${name.toUpperCase()} ${lastName.toUpperCase()}`, 20, 62);
+
+    // Prescription Details
+    doc.setFontSize(11);
+    doc.text(`Medication: ${prescription.medication || 'Not available'}`, 20, 77);
+    doc.text(`Instructions: ${prescription.instructions || 'Not available'}`, 20, 85);
+    doc.text(`Qty/Refills: ${prescription.qtyRefills || 'Not available'}`, 20, 93);
+    doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 20, 101);
+
+    // Footer
+    doc.line(20, 190, 277, 190); // Footer line
+    doc.setFontSize(12);
+    doc.text("Promoting Healthy Teeth & Smiles", 148.5, 200, { align: "center" });
+
+    // Save the PDF
+    doc.save(`Prescription_${index + 1}.pdf`);
+}
+
 
     onMount(() => {
         onAuthStateChanged(auth, (user) => {
