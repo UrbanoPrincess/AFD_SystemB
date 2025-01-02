@@ -21,7 +21,7 @@
     let formPhone = "";
     let formHomeAddress = "";
 
-    let isPrescriptionDropdownOpen = false;
+    let isPrescriptionDropdownOpen = true;
     let prescriptions: any[] = [];
 
     // Define the type for patientProfile
@@ -51,7 +51,7 @@
     let currentUser: User | null = null;
     let isEditingProfile = false; // Toggle for edit profile
     let doneAppointments: any[] = [];
-    let isDropdownOpen = false;
+    let isDropdownOpen = true;
 
     // Monitor auth state changes
     onMount(() => {

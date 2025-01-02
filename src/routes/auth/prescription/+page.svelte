@@ -5,6 +5,7 @@
     import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
     import { getAuth, onAuthStateChanged } from 'firebase/auth';
     import { goto } from '$app/navigation';
+    import jsPDF from 'jspdf';
     import { Button } from 'flowbite-svelte';
 
     // Initialize Firebase
@@ -36,12 +37,10 @@
         try {
             loading = true;
 
-            // Fetch the current authenticated user's ID
             const user = auth.currentUser;
             if (user) {
                 patientId = user.uid;
 
-                // Fetch patient data from Firestore
                 const patientDocRef = doc(db, "patientProfiles", patientId);
                 const patientDoc = await getDoc(patientDocRef);
 
@@ -58,7 +57,6 @@
                     error = "No such patient found!";
                 }
 
-                // Fetch all prescriptions for the patient
                 const prescriptionsQuery = query(collection(db, "prescriptions"), where("patientId", "==", patientId));
                 const prescriptionDocs = await getDocs(prescriptionsQuery);
 
@@ -77,7 +75,23 @@
         }
     }
 
-    // Fetch patient and prescription data when the component mounts
+    // Generate PDF for a prescription
+    function generatePDF(prescription: any, index: number) {
+        const doc = new jsPDF();
+        doc.setFontSize(12);
+        doc.text("AF Dominic Dental Clinic", 10, 10);
+        doc.text("#46 12th Street, Corner Gordon Ave New Kalalake", 10, 20);
+        doc.text("afdominicdentalclinic@gmail.com | 0932 984 9554", 10, 30);
+        doc.text(`Prescription ${index + 1}`, 10, 50);
+        doc.text(`Date Visited: ${formatDate(prescription.dateVisited) || 'Not available'}`, 10, 60);
+        doc.text(`Medication: ${prescription.medication || 'Not available'}`, 10, 70);
+        doc.text(`Instructions: ${prescription.instructions || 'Not available'}`, 10, 80);
+        doc.text(`Qty/Refills: ${prescription.qtyRefills || 'Not available'}`, 10, 90);
+        doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 10, 100);
+
+        doc.save(`Prescription_${index + 1}.pdf`);
+    }
+
     onMount(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -90,9 +104,7 @@
     });
 </script>
 
-<!-- Main Content -->
 <div style="padding: 30px; width: 200%; max-width: 50rem; margin: 100px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
-    <!-- Header -->
     <div class="flex justify-between items-start mb-4">
         <div class="flex items-center">
             <img src="/images/logo(landing).png" alt="Sun with dental logo" class="w-24 h-18 mr-4" />
@@ -106,20 +118,18 @@
         </div>
     </div>
 
-    <!-- Patient Profile Information -->
     {#if loading}
         <p>Loading...</p>
     {:else}
         {#if error}
             <p style="color: red;">{error}</p>
         {:else}
-            <h2><strong>Name:</strong> {name} {lastName}</h2> 
+            <h2><strong>Name:</strong> {name} {lastName}</h2>
             <p><strong>Address:</strong> {address || 'Not available'}</p>
             <p><strong>Age:</strong> {age || 'Not available'} years old</p>
             <p><strong>Gender:</strong> {gender || 'Not available'}</p>
             <p><strong>Phone:</strong> {phone || 'Not available'}</p>
-            
-            <!-- Prescription Details -->
+
             <h3 class="mt-4 font-semibold">Prescription Details</h3>
             {#if prescriptions.length > 0}
                 <div class="mt-4 max-h-96 overflow-y-auto">
@@ -131,6 +141,9 @@
                             <p><strong>Instructions:</strong> {prescription.instructions || 'Not available'}</p>
                             <p><strong>Qty/Refills:</strong> {prescription.qtyRefills || 'Not available'}</p>
                             <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+                            <button on:click={() => generatePDF(prescription, index)} class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Download PDF
+                            </button>
                         </div>
                     {/each}
                 </div>
@@ -139,6 +152,4 @@
             {/if}
         {/if}
     {/if}
-
-   
 </div>
