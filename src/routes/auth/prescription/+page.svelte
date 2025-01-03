@@ -7,7 +7,6 @@
     import { goto } from '$app/navigation';
     import { Button } from 'flowbite-svelte';
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
