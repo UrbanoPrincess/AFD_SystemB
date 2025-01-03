@@ -5,6 +5,7 @@
     import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
     import { getAuth, onAuthStateChanged } from 'firebase/auth';
     import { goto } from '$app/navigation';
+    import jsPDF from 'jspdf';
     import { Button } from 'flowbite-svelte';
 
     const app = initializeApp(firebaseConfig);
@@ -35,12 +36,10 @@
         try {
             loading = true;
 
-            // Fetch the current authenticated user's ID
             const user = auth.currentUser;
             if (user) {
                 patientId = user.uid;
 
-                // Fetch patient data from Firestore
                 const patientDocRef = doc(db, "patientProfiles", patientId);
                 const patientDoc = await getDoc(patientDocRef);
 
@@ -57,7 +56,6 @@
                     error = "No such patient found!";
                 }
 
-                // Fetch all prescriptions for the patient
                 const prescriptionsQuery = query(collection(db, "prescriptions"), where("patientId", "==", patientId));
                 const prescriptionDocs = await getDocs(prescriptionsQuery);
 
@@ -76,7 +74,59 @@
         }
     }
 
-    // Fetch patient and prescription data when the component mounts
+    function generatePDF(prescription: any, index: number) {
+    // Initialize jsPDF in landscape orientation
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    // Set the font and size
+    doc.setFont("helvetica", "normal");
+
+    // Header
+    doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust the path, format, and dimensions as needed
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("AF DOMINIC", 50, 15); // Clinic name
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("DENTAL CLINIC", 50, 20);
+    doc.text("#46 12th Street, Corner Gordon Ave, New Kalalake", 50, 25);
+    doc.text("afdominicdentalclinic@gmail.com", 50, 30);
+    doc.text("0932 984 9554", 50, 35);
+    doc.line(20, 40, 277, 40); // Horizontal line
+
+    // Prescription Title
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Prescription", 20, 48);
+
+    // Patient Details
+    const patientFirstName = name.toUpperCase(); // Make sure `name` is available in scope
+    const patientLastName = lastName.toUpperCase(); // Make sure `lastName` is available in scope
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(`Date: ${formatDate(prescription.dateVisited) || 'Not available'}`, 20, 55);
+    doc.text(`Patient Name: ${patientFirstName} ${patientLastName}`, 20, 62);
+
+    // Prescription Details
+    doc.setFontSize(11);
+    doc.text(`Medication: ${prescription.medication || 'Not available'}`, 20, 77);
+    doc.text(`Instructions: ${prescription.instructions || 'Not available'}`, 20, 85);
+    doc.text(`Qty/Refills: ${prescription.qtyRefills || 'Not available'}`, 20, 93);
+    doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 20, 101);
+
+    // Footer
+    doc.line(20, 190, 277, 190); // Footer line
+    doc.setFontSize(12);
+    doc.text("Promoting Healthy Teeth & Smiles", 148.5, 200, { align: "center" });
+
+    // Save the PDF with the patient's name
+    const filename = `${patientFirstName}_${patientLastName}_Prescription_${index + 1}.pdf`;
+    doc.save(filename);
+}
+
+
+
     onMount(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -89,9 +139,7 @@
     });
 </script>
 
-<!-- Main Content -->
 <div style="padding: 30px; width: 200%; max-width: 50rem; margin: 100px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
-    <!-- Header -->
     <div class="flex justify-between items-start mb-4">
         <div class="flex items-center">
             <img src="/images/logo(landing).png" alt="Sun with dental logo" class="w-24 h-18 mr-4" />
@@ -105,20 +153,18 @@
         </div>
     </div>
 
-    <!-- Patient Profile Information -->
     {#if loading}
         <p>Loading...</p>
     {:else}
         {#if error}
             <p style="color: red;">{error}</p>
         {:else}
-            <h2><strong>Name:</strong> {name} {lastName}</h2> 
+            <h2><strong>Name:</strong> {name} {lastName}</h2>
             <p><strong>Address:</strong> {address || 'Not available'}</p>
             <p><strong>Age:</strong> {age || 'Not available'} years old</p>
             <p><strong>Gender:</strong> {gender || 'Not available'}</p>
             <p><strong>Phone:</strong> {phone || 'Not available'}</p>
-            
-            <!-- Prescription Details -->
+
             <h3 class="mt-4 font-semibold">Prescription Details</h3>
             {#if prescriptions.length > 0}
                 <div class="mt-4 max-h-96 overflow-y-auto">
@@ -130,6 +176,9 @@
                             <p><strong>Instructions:</strong> {prescription.instructions || 'Not available'}</p>
                             <p><strong>Qty/Refills:</strong> {prescription.qtyRefills || 'Not available'}</p>
                             <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+                            <button on:click={() => generatePDF(prescription, index)} class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Download PDF
+                            </button>
                         </div>
                     {/each}
                 </div>
@@ -138,6 +187,4 @@
             {/if}
         {/if}
     {/if}
-
-   
 </div>

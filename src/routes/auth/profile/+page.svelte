@@ -21,8 +21,9 @@
     let formPhone = "";
     let formHomeAddress = "";
 
-    let isPrescriptionDropdownOpen = false;
+    let isPrescriptionDropdownOpen = true;
     let prescriptions: any[] = [];
+
 
     // Define the type for patientProfile
     type PatientProfile = {
@@ -51,78 +52,93 @@
     let currentUser: User | null = null;
     let isEditingProfile = false; // Toggle for edit profile
     let doneAppointments: any[] = [];
-    let isDropdownOpen = false;
+    let isDropdownOpen = true;
 
-    // Monitor auth state changes
-    onMount(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                console.log("User is logged in: ", currentUser);
+ // Monitor auth state changes
+onMount(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            console.log("User is logged in: ", currentUser);
 
-                try {
-                    // Fetch user profile from Firestore
-                    const patientRef = doc(db, "patientProfiles", currentUser.uid);
-                    const patientDoc = await getDoc(patientRef);
+            try {
+                // Fetch user profile from Firestore
+                const patientRef = doc(db, "patientProfiles", currentUser.uid);
+                const patientDoc = await getDoc(patientRef);
 
-                    if (patientDoc.exists()) {
-                        patientProfile = patientDoc.data() as PatientProfile;
-                        console.log("Loaded patient profile from Firestore: ", patientProfile);
-                    } else {
-                        console.log("No profile found for this user. Using default values.");
-                        patientProfile = {
-                            name: '',
-                            lastName: '',
-                            id: currentUser.uid,
-                            age: '',
-                            gender: '',
-                            email: '',
-                            phone: '',
-                            address: ''
-                        };
-                    }
+                if (patientDoc.exists()) {
+                    patientProfile = patientDoc.data() as PatientProfile;
+                    console.log("Loaded patient profile from Firestore: ", patientProfile);
+                } else {
+                    console.log("No profile found for this user. Using default values.");
+                    patientProfile = {
+                        name: '',
+                        lastName: '',
+                        id: currentUser.uid,
+                        age: '',
+                        gender: '',
+                        email: '',
+                        phone: '',
+                        address: ''
+                    };
+                }
 
-                    // Fetch prescriptions
+                // Get appointments where status is "Completed"
+                const appointmentsRef = collection(db, "appointments");
+                const qAppointments = query(
+                    appointmentsRef,
+                    where("patientId", "==", currentUser.uid),
+                    where("status", "==", "Completed")
+                );
+                const querySnapshot = await getDocs(qAppointments);
+                doneAppointments = querySnapshot.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id // Ensure each appointment includes its Firestore document ID
+                }));
+                console.log("Loaded done appointments: ", doneAppointments); // Debugging log
+
+                // Check if appointmentId exists before proceeding
+                const appointmentIds = doneAppointments
+                    .filter(appointment => appointment.id) // Filter out appointments without an id
+                    .map(appointment => appointment.id);
+
+                if (appointmentIds.length > 0) {
                     const prescriptionsRef = collection(db, "prescriptions");
-                    const q = query(prescriptionsRef, where("patientId", "==", currentUser.uid));
-                    const prescriptionsSnapshot = await getDocs(q);
+                    const qPrescriptions = query(
+                        prescriptionsRef,
+                        where("appointmentId", "in", appointmentIds) // Filter by appointmentId
+                    );
+                    const prescriptionsSnapshot = await getDocs(qPrescriptions);
                     prescriptions = prescriptionsSnapshot.docs.map(doc => doc.data());
                     console.log("Loaded prescriptions: ", prescriptions);
-
-                    // Get appointments where status is "Completed"
-                    const appointmentsRef = collection(db, "appointments");
-                    const qAppointments = query(
-                        appointmentsRef,
-                        where("patientId", "==", currentUser.uid),
-                        where("status", "==", "Completed")
-                    );
-                    const querySnapshot = await getDocs(qAppointments);
-                    doneAppointments = querySnapshot.docs.map((doc) => doc.data());
-                    console.log("Loaded done appointments: ", doneAppointments); // Debugging log
-
-                } catch (error) {
-                    console.error("Error loading data: ", error);
+                } else {
+                    console.log("No valid appointment IDs found.");
                 }
-            } else {
-                currentUser = null;
-                patientProfile = {
-                    name: '',
-                    lastName: '',
-                    id: '',
-                    age: '',
-                    gender: '',
-                    email: '',
-                    phone: '',
-                    address: ''
-                };
-                doneAppointments = [];
-                prescriptions = [];
-                console.log("User is not logged in.");
-            }
-        });
 
-        return () => unsubscribe();
+            } catch (error) {
+                console.error("Error loading data: ", error);
+            }
+        } else {
+            currentUser = null;
+            patientProfile = {
+                name: '',
+                lastName: '',
+                id: '',
+                age: '',
+                gender: '',
+                email: '',
+                phone: '',
+                address: ''
+            };
+            doneAppointments = [];
+            prescriptions = [];
+            console.log("User is not logged in.");
+        }
     });
+
+    return () => unsubscribe();
+});
+
 
     // Save patient profile to Firestore
     async function savePatientProfile() {
@@ -312,93 +328,59 @@
     </div>
 {/if}
 
-<!-- View Past Visits and Prescription History -->
-<div class="flex justify-between">
-    <!-- View Past Visits Dropdown -->
-    <div class="view-past-visits w-1/2 pr-2">
-        <button class="dropdown-btn" on:click={toggleDropdown}>
-            <span class="mr-2">
-                {#if isDropdownOpen}
-                    <i class="fas fa-chevron-up"></i>  
-                {:else}
-                    <i class="fas fa-chevron-right"></i>  
-                {/if}
-            </span>
-            {#if isDropdownOpen}
-                Hide Past Visits
-            {:else}
-                View Past Visits
-            {/if}
-        </button>
-
-        {#if isDropdownOpen}
-        <div class="dropdown-content">
-            {#if doneAppointments.length === 0}
-                <p>No completed appointments available.</p>
-            {:else}
-                <ul class="space-y-4">
-                    {#each doneAppointments as appointment}
-                        <li class="p-4 border border-gray-200 rounded-lg">
-                            <div class="flex justify-between">
-                                <div>
-                                    <h3 class="text-lg font-bold">Date: {appointment.date}</h3>
-                                    <p class="text-sm text-gray-600">Time: {appointment.time}</p>
-                                    <p class="text-sm text-gray-600">Service: {appointment.service}</p>
-                                </div>
-                                <div class="flex flex-col items-end">
-                                    <span class="text-sm text-gray-500">Status: {appointment.status}</span>
-                                </div>
+<!-- Combined View for Past Visits and Prescription History -->
+<div class="combined-history" style="margin-top: 20px;">
+    <h2 class="text-lg font-bold mb-4">Appointment and Prescription History</h2>
+    {#if doneAppointments.length === 0}
+        <p>No past visits available.</p>
+    {:else}
+        <table class="w-full border-collapse border border-gray-300">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="border border-gray-300 px-4 py-2 text-left">Past Visit</th>
+                    <th class="border border-gray-300 px-4 py-2 text-left">Prescription</th>
+                </tr>
+            </thead>
+            <tbody>
+                {#each doneAppointments as appointment (appointment.id)}
+                    <tr>
+                        <!-- Appointment Details -->
+                        <td class="border border-gray-300 px-4 py-2">
+                            <div>
+                                <p><strong>Date:</strong> {appointment.date || "N/A"}</p>
+                                <p><strong>Time:</strong> {appointment.time || "N/A"}</p>
+                                <p><strong>Service:</strong> {appointment.service || "N/A"}</p>
+                                <p><strong>Status:</strong> {appointment.status || "N/A"}</p>
                             </div>
-                        </li>
-                    {/each}
-                </ul>
-            {/if}
-        </div>
-        {/if}
-    </div>
+                        </td>
 
-    <!-- Prescription History Dropdown -->
-    <div class="view-prescriptions w-1/2 pl-2">
-        <button class="dropdown-btn" on:click={togglePrescriptionDropdown}>
-            <span class="mr-2">
-                {#if isPrescriptionDropdownOpen}
-                <i class="fas fa-chevron-up"></i>  
-                {:else}
-                <i class="fas fa-chevron-right"></i>  
-                {/if}
-            </span>
-            {#if isPrescriptionDropdownOpen}
-                Hide Prescription History
-            {:else}
-                View Prescription History
-            {/if}
-        </button>
-
-        {#if isPrescriptionDropdownOpen}
-        <div class="dropdown-content">
-            {#if prescriptions.length === 0}
-                <p>No prescriptions available.</p>
-            {:else}
-                <ul class="space-y-4">
-                    {#each prescriptions as prescription}
-                        <li class="p-4 border border-gray-200 rounded-lg">
-                            <div class="flex justify-between">
-                                <div>
-                                    <h3 class="text-lg font-bold">Date: {prescription.dateVisited}</h3>
-                                    <p class="text-sm text-gray-600">Medications: {prescription.medication}</p>
-                                    <p class="text-sm text-gray-600">Instructions: {prescription.instructions}</p>
-                                    <p class="text-sm text-gray-600">Qty/Refills: {prescription.qtyRefills}</p>
-                                    <p class="text-sm text-gray-600">Prescriber: {prescription.prescriber}</p>
-                                </div>
-                            </div>
-                        </li>
-                    {/each}
-                </ul>
-            {/if}
-        </div>
-        {/if}
-    </div>
+                        <!-- Prescription Details or No Prescription for This Visit -->
+                        <td class="border border-gray-300 px-4 py-2">
+                            {#if prescriptions && prescriptions.filter(prescription => prescription.appointmentId === appointment.id).length > 0}
+                                <!-- If prescription exists for this appointment -->
+                                {#each prescriptions.filter(prescription => prescription.appointmentId === appointment.id) as prescription}
+                                    <div>
+                                        <h3 class="text-lg font-bold">Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
+                                        <p class="text-sm text-gray-600">Medications: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; dosage: number }) => `${med.medicine} (${med.dosage} mg)`).join(", ") : 'N/A'}</p>
+                                        <p class="text-sm text-gray-600">Instructions: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; instructions: string; dosage: number }) => med.instructions).join(", ") : 'N/A'}</p>
+                                        <p class="text-sm text-gray-600">Qty/Refills: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; instructions: string; dosage: number }) => med.dosage).join(", ") : 'N/A'}</p>
+                                        <p class="text-sm text-gray-600">Prescriber: {prescription.prescriber || 'N/A'}</p>
+                                    </div>
+                                {/each}
+                            {:else}
+                                <!-- If no prescription exists for this appointment -->
+                                <p class="italic text-gray-600">No prescription issued for this visit.</p>
+                            {/if}
+                        </td>
+                    </tr>
+                {/each}
+            </tbody>
+        </table>
+    {/if}
 </div>
+
+
+
 </div>
 
 <!-- Styling for the dropdown -->
