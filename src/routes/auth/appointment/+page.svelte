@@ -25,7 +25,7 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'Approved' | 'Decline' | 'requested' | null;
-  status: "pending" | "Decline" | "confirmed" | "completed" | "cancelled" | "Accepted" | "cancellationRequested" | "";
+  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "cancellationRequested" | "";
 };
 
 let selectedDate = new Date();
@@ -449,25 +449,19 @@ function fetchAppointments() {
   :global(.content) {
        
         overflow: auto;
-        margin-left: -10rem;
+       
      
        
     }
+
 
 </style>
 
 
 <header style="
-  position: sticky;
-  top: 3%;
-  margin: 0 auto; /* Centers the container horizontally */
-  z-index: 10;
-  background-color: white;
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  max-width: 1000px;
-  border-radius: 8px; /* Added rounded corners for a softer look */
+  
+  margin-top: 3%;
+  
 ">
   <div class="flex justify-between items-center">
     <div class="flex items-center">
@@ -485,7 +479,7 @@ function fetchAppointments() {
         <p class="text-sm text-gray-600">0932 984 9554</p>
       </div>
     </div>
-  </div>
+
 </header>
 
 
@@ -493,14 +487,16 @@ function fetchAppointments() {
   style="
     display: flex; 
     justify-content: space-between; 
-    gap: 40px; 
+    gap: 20px; 
     padding: 40px; 
     width: 100%; 
     max-width: 1200px; 
-    margin: 50px auto 50px; 
-    margin top: 10%;
+    margin: 50px auto; 
+    margin-top: 3%; 
+    margin-bottom: 50px; 
     max-height: 85vh; 
     flex-wrap: wrap;"
+    
 >
 <div
   style="
@@ -636,7 +632,7 @@ function fetchAppointments() {
       margin-bottom: 0px; /* No margin-bottom here */
     "
   >
-    <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">Your Appointments</h3>
+    <h3 style="font-size: 18px; font-weight: bold; ">Your Appointments</h3>
   
   <!-- Right Section (Appointments Table) -->
   <div style="flex: 1 1 45%; min-width: 300px; margin-top: 10px; ">
@@ -644,26 +640,26 @@ function fetchAppointments() {
       <div style=" margin-bottom: 20px;">
         <Table shadow style="width: 100%; table-layout: auto; border-collapse: collapse;">
           <TableHead>
-            <TableHeadCell style="font-weight: bold; padding: 5px;">Date</TableHeadCell>
+            <TableHeadCell style="font-weight: bold; padding: 10px;">Date</TableHeadCell>
             <TableHeadCell style="font-weight: bold; padding: 5px;">Time</TableHeadCell>
             <TableHeadCell style="font-weight: bold; padding: 5px;">Service</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px;">Status</TableHeadCell>
+            <TableHeadCell style="font-weight: bold; padding: 10px;">Status</TableHeadCell>
             <TableHeadCell style="font-weight: bold; padding: 5px;">Actions</TableHeadCell>
           </TableHead>
           
           <TableBody tableBodyClass="divide-y">
             {#each appointments as appointment}
-              <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 5px;">
-                <TableBodyCell style="padding: 0px; word-wrap: break-word; white-space: normal;">
+              <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
+                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
                   {appointment.date}
                 </TableBodyCell>
-                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                <TableBodyCell style="padding: 5px;">
                   {appointment.time}
                 </TableBodyCell>
-                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
                   {appointment.service}
                 </TableBodyCell>
-                <TableBodyCell style="padding: 5px;">
+                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
                   {#if appointment.cancellationStatus === 'requested'}
                     <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
                   {:else if appointment.cancellationStatus === 'Approved'}
@@ -674,10 +670,12 @@ function fetchAppointments() {
                     <span class="text-green-600 font-semibold">Accepted</span>
                   {:else if appointment.status === 'confirmed'}
                     <span class="text-blue-600 font-semibold">Confirmed</span>
-                  {:else if appointment.status === 'completed'}
+                  {:else if appointment.status === 'Completed'}
                     <span class="text-blue-600 font-semibold">Completed</span>
                   {:else if appointment.status === 'Decline'}
                     <span class="text-red-600 font-semibold">Declined</span>
+                    {:else if appointment.status === 'Missed'}
+                    <span class="text-red-600 font-semibold">Missed</span>
                   {:else if appointment.status === 'pending'}
                     <span class="text-gray-600 font-semibold">Pending</span>
                  
