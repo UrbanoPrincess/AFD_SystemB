@@ -341,7 +341,7 @@ function toggleEditProfile() {
     </div>
 {/if}
 
-<div class="combined-history">
+<!-- <div class="combined-history">
     <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
         Appointment and Prescription History
     </h2>
@@ -371,9 +371,9 @@ function toggleEditProfile() {
                                         <div>
                                             <h3>Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
                                             <ul>
-                                                <li><strong>Medications:</strong> {prescription.medicines.map(m => `${m.medicine} (${m.dosage} mg)`).join(", ")}</li>
-                                                <li><strong>Instructions:</strong> {prescription.medicines.map(m => m.instructions).join(", ")}</li>
-                                                <li><strong>Qty/Refills:</strong> {prescription.medicines.map(m => m.dosage).join(", ")}</li>
+                                                <li><strong>Medications:</strong> {prescription.medicines.map((m: { medicine: any; dosage: any; }) => `${m.medicine} (${m.dosage} mg)`).join(", ")}</li>
+                                                <li><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</li>
+                                                <li><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</li>
                                                 <li><strong>Prescriber:</strong> {prescription.prescriber || 'N/A'}</li>
                                             </ul>
                                         </div>
@@ -388,7 +388,36 @@ function toggleEditProfile() {
             </table>
         </div>
     {/if}
+</div> -->
+
+<div class="combined-history">
+    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
+        Appointment and Prescription History
+    </h2>
+    {#if doneAppointments.length === 0}
+        <p class="text-gray-500 italic">No past visits available.</p>
+    {:else}
+        <div class="card-container">
+            {#each doneAppointments as appointment (appointment.id)}
+                <div class="card">
+                    <p><strong>Date Visited:</strong> {appointment.date} {appointment.time}</p>
+                    <p><strong>Service/Subservice:</strong> {appointment.service} ({appointment.status})</p>
+                    {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
+                        {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
+                            <p><strong>Medication:</strong> {prescription.medicines.map((m: { medicine: any; dosage: any; }) => `${m.medicine} (${m.dosage} mg)`).join(", ")}</p>
+                            <p><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</p>
+                            <p><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</p>
+                            <p><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
+                        {/each}
+                    {:else}
+                        <p class="italic text-gray-500">No prescription issued for this visit.</p>
+                    {/if}
+                </div>
+            {/each}
+        </div>
+    {/if}
 </div>
+
 </div>
 <!-- Styling for the dropdown -->
 <style>
@@ -417,48 +446,65 @@ function toggleEditProfile() {
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-   /* Table Styling */
-    table {
-        width: 100%;
-        border-collapse: collapse;
+    
+    /* Card Styling */
+    .card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    justify-content: center;
     }
 
-    th, td {
-        padding: 15px;
-        text-align: left;
-        font-size: 1rem;
-        border-bottom: 1px solid #ddd;
-    }
-
-    th {
-        background-color: #08B8F3; /* Bright blue for table headers */
-        color: white;
-        font-weight: bold;
-    }
-
-    /* Alternate Row Colors */
-    tr:nth-child(odd) {
-        background-color: #ffffff;
-    }
-
-    tr:nth-child(even) {
-        background-color: #f0f8ff; /* Soft blue for alternate rows */
-    }
-
-    /* Hover Effect on Rows */
-    tr:hover {
-        background-color: #f1f1f1;
-        cursor: pointer;
-    }
-
-    .combined-history {
-        margin-top: 20px;
-    }
-
-    .table-container {
-        overflow-x: auto;
+    .card {
+        background-color: #fff;
         border: 1px solid #ddd;
         border-radius: 8px;
-        background-color: #fff;
+        padding: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
     }
+
+    /* Solid Box-Shadow Effect on Top */
+    .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px; /* Height of the solid bar */
+        background-color: #08B8F3; /* Bright blue for the top bar */
+    }
+
+    /* Hover Effect */
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .card p {
+        margin-bottom: 8px;
+        font-size: 1rem;
+        color: #333;
+    }
+
+    .card p strong {
+        color: #08B8F3; /* Bright blue for labels */
+    }
+
+    .card .italic {
+        color: red;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .card-container {
+            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+            gap: 12px;
+        }
+    }
+
+
+
 </style>
