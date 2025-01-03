@@ -75,14 +75,13 @@
         }
     }
 
-    // Generate PDF for a prescription
     function generatePDF(prescription: any, index: number) {
     // Initialize jsPDF in landscape orientation
     const doc = new jsPDF({ orientation: "landscape" });
 
     // Set the font and size
     doc.setFont("helvetica", "normal");
-    
+
     // Header
     doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust the path, format, and dimensions as needed
     doc.setFont("helvetica", "bold");
@@ -102,10 +101,13 @@
     doc.text("Prescription", 20, 48);
 
     // Patient Details
+    const patientFirstName = name.toUpperCase(); // Make sure `name` is available in scope
+    const patientLastName = lastName.toUpperCase(); // Make sure `lastName` is available in scope
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.text(`Date: ${formatDate(prescription.dateVisited) || 'Not available'}`, 20, 55);
-    doc.text(`Patient Name: ${name.toUpperCase()} ${lastName.toUpperCase()}`, 20, 62);
+    doc.text(`Patient Name: ${patientFirstName} ${patientLastName}`, 20, 62);
 
     // Prescription Details
     doc.setFontSize(11);
@@ -119,9 +121,11 @@
     doc.setFontSize(12);
     doc.text("Promoting Healthy Teeth & Smiles", 148.5, 200, { align: "center" });
 
-    // Save the PDF
-    doc.save(`Prescription_${index + 1}.pdf`);
+    // Save the PDF with the patient's name
+    const filename = `${patientFirstName}_${patientLastName}_Prescription_${index + 1}.pdf`;
+    doc.save(filename);
 }
+
 
 
     onMount(() => {
