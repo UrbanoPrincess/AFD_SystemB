@@ -20,7 +20,7 @@
     let formEmail = "";
     let formPhone = "";
     let formHomeAddress = "";
-
+    let formBirthday="";
     let isPrescriptionDropdownOpen = true;
     let prescriptions: any[] = [];
 
@@ -35,6 +35,7 @@
         email: string;
         phone: string;
         address: string;
+        birthday:string;
     };
 
     // Initialize patientProfile with default values
@@ -46,7 +47,8 @@
         gender: '',
         email: '',
         phone: '',
-        address: ''
+        address: '',
+        birthday:''
     };
 
     let currentUser: User | null = null;
@@ -79,7 +81,8 @@ onMount(() => {
                         gender: '',
                         email: '',
                         phone: '',
-                        address: ''
+                        address: '',
+                        birthday: ''
                     };
                 }
 
@@ -128,7 +131,8 @@ onMount(() => {
                 gender: '',
                 email: '',
                 phone: '',
-                address: ''
+                address: '',
+                birthday:''
             };
             doneAppointments = [];
             prescriptions = [];
@@ -139,99 +143,102 @@ onMount(() => {
     return () => unsubscribe();
 });
 
-
-    // Save patient profile to Firestore
-    async function savePatientProfile() {
-        if (!currentUser) {
-            Swal.fire({
+// Save patient profile to Firestore
+async function savePatientProfile() {
+    if (!currentUser) {
+        Swal.fire({
             icon: 'error',
             title: 'Not Logged In',
             text: 'Please log in to save the profile.'
         });
-            console.log("Please log in to save the profile.");
-            return;
-        }
-        if (!formPatientName || !formAge || !formEmail || !formPhone) {
-            Swal.fire({
+        console.log("Please log in to save the profile.");
+        return;
+    }
+    if (!formPatientName || !formAge || !formEmail || !formPhone || !formBirthday) {
+        Swal.fire({
             icon: 'warning',
             title: 'Incomplete Form',
             text: 'Please fill out all required fields.'
         });
-            console.error("Please fill out all required fields.");
-            return;
-        }
+        console.error("Please fill out all required fields.");
+        return;
+    }
 
-        try {
-            // Reference to the collection "patientProfiles"
-            const patientRef = doc(db, "patientProfiles", currentUser.uid);
+    try {
+        // Reference to the collection "patientProfiles"
+        const patientRef = doc(db, "patientProfiles", currentUser.uid);
 
-            await setDoc(patientRef, {
-                name: formPatientName,
-                lastName: formLastName,
-                age: formAge,
-                gender: formGender,
-                email: formEmail,
-                phone: formPhone,
-                address: formHomeAddress,
-                id: currentUser.uid
-            });
-             // Display success message
-            Swal.fire({
-                icon: 'success',
-                title: 'Profile Saved',
-                text: 'Profile updated successfully.'
-            });
-            console.log("Patient profile saved/updated successfully.");
+        await setDoc(patientRef, {
+            name: formPatientName,
+            lastName: formLastName,
+            age: formAge,
+            birthday: formBirthday, // Added birthday
+            gender: formGender,
+            email: formEmail,
+            phone: formPhone,
+            address: formHomeAddress,
+            id: currentUser.uid
+        });
+        // Display success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Profile Saved',
+            text: 'Profile updated successfully.'
+        });
+        console.log("Patient profile saved/updated successfully.");
 
-            // Update local state
-            patientProfile = {
-                name: formPatientName,
-                lastName: formLastName,
-                age: formAge,
-                gender: formGender,
-                email: formEmail,
-                phone: formPhone,
-                address: formHomeAddress,
-                id: currentUser.uid
-            };
+        // Update local state
+        patientProfile = {
+            name: formPatientName,
+            lastName: formLastName,
+            age: formAge,
+            birthday: formBirthday, // Added birthday
+            gender: formGender,
+            email: formEmail,
+            phone: formPhone,
+            address: formHomeAddress,
+            id: currentUser.uid
+        };
 
-            // Close the editing form
-            isEditingProfile = false;
-        } catch (error) {
-              // Display error message
+        // Close the editing form
+        isEditingProfile = false;
+    } catch (error) {
+        // Display error message
         Swal.fire({
             icon: 'error',
             title: 'Error',
             text: `Error saving patient profile.`
         });
-            console.error("Error saving patient profile: ", error);
-        }
+        console.error("Error saving patient profile: ", error);
     }
+}
 
-    // Toggle edit profile
-    function toggleEditProfile() {
-        isEditingProfile = !isEditingProfile; // Toggle edit state
+// Toggle edit profile
+function toggleEditProfile() {
+    isEditingProfile = !isEditingProfile; // Toggle edit state
 
-        if (isEditingProfile) {
-            // Initialize form fields with existing profile data when editing starts
-            formPatientName = patientProfile.name;
-            formLastName = patientProfile.lastName;
-            formAge = patientProfile.age;
-            formGender = patientProfile.gender;
-            formEmail = patientProfile.email;
-            formPhone = patientProfile.phone;
-            formHomeAddress = patientProfile.address;
-        } else {
-            // Reset form fields when editing is canceled
-            formPatientName = "";
-            formLastName = "";
-            formAge = "";
-            formGender = "";
-            formEmail = "";
-            formPhone = "";
-            formHomeAddress = "";
-        }
+    if (isEditingProfile) {
+        // Initialize form fields with existing profile data when editing starts
+        formPatientName = patientProfile.name;
+        formLastName = patientProfile.lastName;
+        formAge = patientProfile.age;
+        formBirthday = patientProfile.birthday; // Added birthday
+        formGender = patientProfile.gender;
+        formEmail = patientProfile.email;
+        formPhone = patientProfile.phone;
+        formHomeAddress = patientProfile.address;
+    } else {
+        // Reset form fields when editing is canceled
+        formPatientName = "";
+        formLastName = "";
+        formAge = "";
+        formBirthday = ""; // Reset birthday
+        formGender = "";
+        formEmail = "";
+        formPhone = "";
+        formHomeAddress = "";
     }
+}
 
     // Toggle prescription history dropdown
     function togglePrescriptionDropdown() {
@@ -303,7 +310,13 @@ onMount(() => {
                     <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
                     <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
                 </div>
+                <div>
+                    <label for="birthday" class="block text-sm font-medium text-gray-700">Birth Date</label>
+                    <input id="birthday" type="date" bind:value={formBirthday} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                </div>
                 <div class="grid grid-cols-2 gap-4">
+                   
+                    
                     <div>
                         <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
                         <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
@@ -328,61 +341,55 @@ onMount(() => {
     </div>
 {/if}
 
-<!-- Combined View for Past Visits and Prescription History -->
-<div class="combined-history" style="margin-top: 20px;">
-    <h2 class="text-lg font-bold mb-4">Appointment and Prescription History</h2>
+<div class="combined-history">
+    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
+        Appointment and Prescription History
+    </h2>
     {#if doneAppointments.length === 0}
-        <p>No past visits available.</p>
+        <p class="text-gray-500 italic">No past visits available.</p>
     {:else}
-        <table class="w-full border-collapse border border-gray-300">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="border border-gray-300 px-4 py-2 text-left">Past Visit</th>
-                    <th class="border border-gray-300 px-4 py-2 text-left">Prescription</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#each doneAppointments as appointment (appointment.id)}
+        <div class="table-container">
+            <table>
+                <thead>
                     <tr>
-                        <!-- Appointment Details -->
-                        <td class="border border-gray-300 px-4 py-2">
-                            <div>
+                        <th>Past Visit</th>
+                        <th>Prescription</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each doneAppointments as appointment (appointment.id)}
+                        <tr>
+                            <td>
                                 <p><strong>Date:</strong> {appointment.date || "N/A"}</p>
                                 <p><strong>Time:</strong> {appointment.time || "N/A"}</p>
                                 <p><strong>Service:</strong> {appointment.service || "N/A"}</p>
                                 <p><strong>Status:</strong> {appointment.status || "N/A"}</p>
-                            </div>
-                        </td>
-
-                        <!-- Prescription Details or No Prescription for This Visit -->
-                        <td class="border border-gray-300 px-4 py-2">
-                            {#if prescriptions && prescriptions.filter(prescription => prescription.appointmentId === appointment.id).length > 0}
-                                <!-- If prescription exists for this appointment -->
-                                {#each prescriptions.filter(prescription => prescription.appointmentId === appointment.id) as prescription}
-                                    <div>
-                                        <h3 class="text-lg font-bold">Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
-                                        <p class="text-sm text-gray-600">Medications: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; dosage: number }) => `${med.medicine} (${med.dosage} mg)`).join(", ") : 'N/A'}</p>
-                                        <p class="text-sm text-gray-600">Instructions: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; instructions: string; dosage: number }) => med.instructions).join(", ") : 'N/A'}</p>
-                                        <p class="text-sm text-gray-600">Qty/Refills: {prescription.medicines.length > 0 ? prescription.medicines.map((med: { medicine: string; instructions: string; dosage: number }) => med.dosage).join(", ") : 'N/A'}</p>
-                                        <p class="text-sm text-gray-600">Prescriber: {prescription.prescriber || 'N/A'}</p>
-                                    </div>
-                                {/each}
-                            {:else}
-                                <!-- If no prescription exists for this appointment -->
-                                <p class="italic text-gray-600">No prescription issued for this visit.</p>
-                            {/if}
-                        </td>
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
+                            </td>
+                            <td>
+                                {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
+                                    {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
+                                        <div>
+                                            <h3>Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
+                                            <ul>
+                                                <li><strong>Medications:</strong> {prescription.medicines.map(m => `${m.medicine} (${m.dosage} mg)`).join(", ")}</li>
+                                                <li><strong>Instructions:</strong> {prescription.medicines.map(m => m.instructions).join(", ")}</li>
+                                                <li><strong>Qty/Refills:</strong> {prescription.medicines.map(m => m.dosage).join(", ")}</li>
+                                                <li><strong>Prescriber:</strong> {prescription.prescriber || 'N/A'}</li>
+                                            </ul>
+                                        </div>
+                                    {/each}
+                                {:else}
+                                    <p class="italic text-gray-500">No prescription issued for this visit.</p>
+                                {/if}
+                            </td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
+        </div>
     {/if}
 </div>
-
-
-
 </div>
-
 <!-- Styling for the dropdown -->
 <style>
    /* Main container to make it scrollable */
@@ -404,37 +411,54 @@ onMount(() => {
     height: 100%;
 }
 
-.dropdown-btn {
-    display: flex;                /* Enable flexbox layout */
-    align-items: center;          
-    padding: 10px;
-    background-color: #d7dad7;
-    color: black;
-    border: none;
-    cursor: pointer;
-    text-align: right;             /* Align text to the left */
-    width: 100%;
-    font-size: 16px;
-    border-radius: 5px;
-    margin-top: 10px;
-}
 
-.dropdown-btn:hover {
-    background-color: #098ED0;
-    
-}
-
-.dropdown-content {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
     .profile-form-container{
         background-color: white;
     border-radius: 12px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-   
+   /* Table Styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 15px;
+        text-align: left;
+        font-size: 1rem;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #08B8F3; /* Bright blue for table headers */
+        color: white;
+        font-weight: bold;
+    }
+
+    /* Alternate Row Colors */
+    tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f0f8ff; /* Soft blue for alternate rows */
+    }
+
+    /* Hover Effect on Rows */
+    tr:hover {
+        background-color: #f1f1f1;
+        cursor: pointer;
+    }
+
+    .combined-history {
+        margin-top: 20px;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #fff;
+    }
 </style>

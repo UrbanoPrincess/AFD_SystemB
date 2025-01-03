@@ -449,11 +449,7 @@ function fetchAppointments() {
   :global(.content) {
        
         overflow: auto;
-       
-     
-       
     }
-
 
 </style>
 
@@ -495,7 +491,8 @@ function fetchAppointments() {
     margin-top: 3%; 
     margin-bottom: 50px; 
     max-height: 85vh; 
-    flex-wrap: wrap;"
+    flex-wrap: wrap;
+    "
     
 >
 <div
