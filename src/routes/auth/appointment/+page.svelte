@@ -453,6 +453,7 @@ function fetchAppointments() {
     }*/
 
 </style>
+<div style="max-height: 100vh; overflow-y: auto;">
 
 
 <header style="
@@ -719,6 +720,7 @@ function fetchAppointments() {
       </div>
     {/if}
   </div>
+</div>
 </div>
 </div>
 

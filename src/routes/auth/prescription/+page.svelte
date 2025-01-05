@@ -183,8 +183,8 @@ function generatePDF(prescription: any, index: number) {
         });
     });
 </script>
-
-<div style="padding: 30px; width: 200%; max-width: 50rem; margin: 100px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
+<div style="max-height: 100vh; overflow-y: auto;">
+<div style="padding: 30px; width: 1000px; max-width: 1000px; margin: 10px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
     <div class="flex justify-between items-start mb-4">
         <div class="flex items-center">
             <img src="/images/logo(landing).png" alt="Sun with dental logo" class="w-24 h-18 mr-4" />
@@ -212,7 +212,7 @@ function generatePDF(prescription: any, index: number) {
 
             <h3 class="mt-4 font-semibold">Prescription Details</h3>
             {#if prescriptions.length > 0}
-                <div class="mt-4 max-h-96 overflow-y-auto">
+                <div class="mt-4 max-h-auto overflow-y-hidden">
                     {#each prescriptions as prescription, index}
                         <div class="p-4 border rounded-lg shadow-md mb-4">
                             <h4 class="font-bold">Prescription {index + 1}</h4>
@@ -240,4 +240,5 @@ function generatePDF(prescription: any, index: number) {
             
         {/if}
     {/if}
+</div>
 </div>
