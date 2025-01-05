@@ -266,6 +266,12 @@
                 </a>
             </li>
             <li>
+                <a href="./appointment">
+                    <img class="icon" src="/images/icon-appointment.png" alt="Dashboard Icon" />
+                    <span class="text">Appointment</span>
+                </a>
+            </li>
+            <li>
                 <a href="./prescription">
                     <img class="icon" src="/images/icon-prescriptions.png" alt="Medicines Icon" />
                     <span class="text">Prescriptions</span>
@@ -277,12 +283,7 @@
                     <span class="text">Medicines List</span>
                 </a>
             </li>
-            <li>
-                <a href="./appointment">
-                    <img class="icon" src="/images/icon-appointment.png" alt="Dashboard Icon" />
-                    <span class="text">Appointment</span>
-                </a>
-            </li>
+           
         </ul>
 
         <!-- Logout Button -->

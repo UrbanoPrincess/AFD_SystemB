@@ -446,10 +446,11 @@ function fetchAppointments() {
       padding: 8px 12px; /* Adjust padding for smaller buttons */
     }
   }
+  /*
   :global(.content) {
        
         overflow: auto;
-    }
+    }*/
 
 </style>
 

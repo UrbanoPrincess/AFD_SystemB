@@ -26,55 +26,92 @@
     let error: string = '';
 
     // Helper function to format date
-    function formatDate(timestamp: string): string {
-        const date = new Date(timestamp);
-        return date.toISOString().split('T')[0];
+    function formatDate(date: string | number | Date) {
+    const parsedDate = new Date(date);
+    if (parsedDate.getTime()) {
+        return parsedDate.toISOString();  // or use your preferred date formatting method
+    } else {
+        return "Invalid date"; // return a fallback value for invalid dates
     }
+}
+
 
     // Fetch patient data based on the current user's ID
     async function fetchPatientData() {
-        try {
-            loading = true;
+    try {
+        loading = true;
 
-            const user = auth.currentUser;
-            if (user) {
-                patientId = user.uid;
+        const user = auth.currentUser;
+        if (user) {
+            patientId = user.uid;
 
-                const patientDocRef = doc(db, "patientProfiles", patientId);
-                const patientDoc = await getDoc(patientDocRef);
+            // Fetch patient profile
+            const patientDocRef = doc(db, "patientProfiles", patientId);
+            const patientDoc = await getDoc(patientDocRef);
 
-                if (patientDoc.exists()) {
-                    const patient = patientDoc.data();
-                    name = patient.name || 'No name available';
-                    lastName = patient.lastName || 'No last name available';
-                    address = patient.address || '';
-                    age = patient.age || 0;
-                    email = patient.email || '';
-                    gender = patient.gender || '';
-                    phone = patient.phone || '';
-                } else {
-                    error = "No such patient found!";
-                }
-
-                const prescriptionsQuery = query(collection(db, "prescriptions"), where("patientId", "==", patientId));
-                const prescriptionDocs = await getDocs(prescriptionsQuery);
-
-                prescriptions = prescriptionDocs.docs.map(doc => doc.data());
-                if (prescriptions.length === 0) {
-                    error = "No prescriptions found for this patient!";
-                }
+            if (patientDoc.exists()) {
+                const patient = patientDoc.data();
+                name = patient.name || 'No name available';
+                lastName = patient.lastName || 'No last name available';
+                address = patient.address || '';
+                age = patient.age || 0;
+                email = patient.email || '';
+                gender = patient.gender || '';
+                phone = patient.phone || '';
             } else {
-                error = "No authenticated user found!";
+                error = "No such patient found!";
             }
-        } catch (err) {
-            console.error(err);
-            error = "An error occurred while fetching data.";
-        } finally {
-            loading = false;
-        }
-    }
 
-    function generatePDF(prescription: any, index: number) {
+            // Fetch completed appointments for the patient
+            const appointmentsRef = collection(db, "appointments");
+            const qAppointments = query(
+                appointmentsRef,
+                where("patientId", "==", patientId),
+                where("status", "==", "Completed")
+            );
+            const querySnapshot = await getDocs(qAppointments);
+            const doneAppointments = querySnapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id // Include Firestore document ID
+            }));
+            console.log("Loaded done appointments: ", doneAppointments); // Debugging log
+
+            // Check if appointmentId exists before proceeding
+            const appointmentIds = doneAppointments
+                .filter(appointment => appointment.id) // Filter out appointments without an id
+                .map(appointment => appointment.id);
+
+            // Fetch prescriptions based on appointmentIds
+            if (appointmentIds.length > 0) {
+                const prescriptionsRef = collection(db, "prescriptions");
+                const qPrescriptions = query(
+                    prescriptionsRef,
+                    where("appointmentId", "in", appointmentIds) // Filter prescriptions by appointmentId
+                );
+                const prescriptionsSnapshot = await getDocs(qPrescriptions);
+                prescriptions = prescriptionsSnapshot.docs.map(doc => ({
+                    appointmentId: doc.data().appointmentId,
+                    createdAt: doc.data().createdAt,
+                    medicines: doc.data().medicines,
+                    prescriber: doc.data().prescriber
+                }));
+                console.log("Loaded prescriptions: ", prescriptions); // Debugging log
+            } else {
+                console.log("No valid appointment IDs found.");
+            }
+        } else {
+            error = "No authenticated user found!";
+        }
+    } catch (err) {
+        console.error("Error loading data: ", err);
+        error = "An error occurred while fetching data.";
+    } finally {
+        loading = false;
+    }
+}
+
+
+function generatePDF(prescription: any, index: number) {
     // Initialize jsPDF in landscape orientation
     const doc = new jsPDF({ orientation: "landscape" });
 
@@ -105,15 +142,23 @@
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
-    doc.text(`Date: ${formatDate(prescription.dateVisited) || 'Not available'}`, 20, 55);
+    doc.text(`Date: ${formatDate(prescription.createdAt) || 'Not available'}`, 20, 55);
     doc.text(`Patient Name: ${patientFirstName} ${patientLastName}`, 20, 62);
 
-    // Prescription Details
-    doc.setFontSize(11);
-    doc.text(`Medication: ${prescription.medication || 'Not available'}`, 20, 77);
-    doc.text(`Instructions: ${prescription.instructions || 'Not available'}`, 20, 85);
-    doc.text(`Qty/Refills: ${prescription.qtyRefills || 'Not available'}`, 20, 93);
-    doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 20, 101);
+    // Prescription Details (Loop through medicines array)
+    let yPosition = 77; // Start position for prescription details
+
+    // Loop through medicines array to list all medicines
+    prescription.medicines.forEach((medicine: any, medicineIndex: number) => {
+        doc.setFontSize(11);
+        doc.text(`Medicine: ${medicine.medicine || 'Not available'}`, 20, yPosition);
+        doc.text(` Qty/Refills ${medicine.dosage || 'Not available'}`, 20, yPosition + 8);
+        doc.text(`Instructions: ${medicine.instructions || 'Not available'}`, 20, yPosition + 16);
+        yPosition += 24; // Adjust space for next medicine
+    });
+
+    // Add prescriber info after medicines
+    doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 20, yPosition + 8);
 
     // Footer
     doc.line(20, 190, 277, 190); // Footer line
@@ -171,10 +216,17 @@
                     {#each prescriptions as prescription, index}
                         <div class="p-4 border rounded-lg shadow-md mb-4">
                             <h4 class="font-bold">Prescription {index + 1}</h4>
-                            <p><strong>Date Visited:</strong> {formatDate(prescription.dateVisited) || 'Not available'}</p>
-                            <p><strong>Medication:</strong> {prescription.medication || 'Not available'}</p>
-                            <p><strong>Instructions:</strong> {prescription.instructions || 'Not available'}</p>
-                            <p><strong>Qty/Refills:</strong> {prescription.qtyRefills || 'Not available'}</p>
+                            <p><strong>Date Visited:</strong> {formatDate(prescription.createdAt) || 'Not available'}</p>
+            
+                            <h5 class="font-semibold mt-2">Medication Details:</h5>
+                            {#each prescription.medicines as medicine, medicineIndex}
+                                <div class="mt-2">
+                                    <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
+                                    <p><strong> Qty/Refills</strong> {medicine.dosage || 'Not available'}</p>
+                                    <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
+                                </div>
+                            {/each}
+            
                             <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
                             <button on:click={() => generatePDF(prescription, index)} class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
                                 Download PDF
@@ -185,6 +237,7 @@
             {:else}
                 <p>No prescriptions available.</p>
             {/if}
+            
         {/if}
     {/if}
 </div>

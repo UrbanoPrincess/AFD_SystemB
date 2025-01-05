@@ -400,11 +400,12 @@ function toggleEditProfile() {
         <div class="card-container">
             {#each doneAppointments as appointment (appointment.id)}
                 <div class="card">
-                    <p><strong>Date Visited:</strong> {appointment.date} {appointment.time}</p>
+                    <p><strong>Date Visited:</strong> {appointment.date} at {appointment.time}</p>
                     <p><strong>Service/Subservice:</strong> {appointment.service} ({appointment.status})</p>
                     {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
                         {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
-                            <p><strong>Medication:</strong> {prescription.medicines.map((m: { medicine: any; dosage: any; }) => `${m.medicine} (${m.dosage} mg)`).join(", ")}</p>
+                        <p><strong>Medication:</strong> {prescription.medicines.map((m: { medicine: any }) => `${m.medicine}`).join(", ")}</p>
+
                             <p><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</p>
                             <p><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</p>
                             <p><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
