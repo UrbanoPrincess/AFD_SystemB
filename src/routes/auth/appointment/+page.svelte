@@ -492,32 +492,92 @@ function fetchAppointments() {
   border-color: darkblue; /* Darker border to match */
 }
 
+.header-section {
+        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00,#eaee00, #08B8F3, #08B8F3, #005b80); /* Gradient background */
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
+        height: 168px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301); /* Subtle shadow for depth */
+    }
+
+    .logo {
+        width: 10rem; /* Increased logo size */
+        height: 10rem; /* Increased logo size */
+        border-radius: 50%;
+        margin-right: 16px;
+        object-fit: cover; /* Ensure the logo fits well */
+    }
+
+
+    .header-info {
+      
+    color: #000000; /* Darker text color for better readability */
+}
+
+.patient-name {
+    font-size: 1.3rem; /* Larger font size for the name */
+    font-weight: bold;
+    margin: 0; /* Remove default margin */
+}
+
+.patient-details {
+    margin: 2px 0; /* Reduced space between details */
+    font-size: 1rem; /* Consistent font size for details */
+    color: #000000; /* Darker color for details */
+    line-height: 1.2; /* Adjust line height for tighter spacing */
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .header-section {
+        flex-direction: column; /* Stack items vertically on smaller screens */
+        align-items: flex-start; /* Align items to the start */
+        padding: 12px; /* Adjust padding */
+    }
+
+    .logo {
+        width: 8rem; /* Smaller logo size for mobile */
+        height: 8rem; /* Smaller logo size for mobile */
+        margin-bottom: 12px; /* Space below logo */
+    }
+
+    .patient-name {
+        font-size: 1.25rem; /* Smaller font size for mobile */
+    }
+
+    .patient-details {
+        font-size: 0.875rem; /* Smaller font size for details on mobile */
+    }
+}
 </style>
 <div style="max-height: 100vh; overflow-y: auto;">
 
 
 <header style="
-  
-  margin-top: 3%;
+    padding-top: 1rem;
+
+  padding-left: 1rem;
   
 ">
-  <div class="flex justify-between items-center">
-    <div class="flex items-center">
+<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
+  <div class="flex items-center">
       <img 
-        src="/images/logo(landing).png" 
-        alt="Sun with dental logo" 
-        class="w-24 h-18 mr-4" 
-        style="max-width: 100%; height: auto;" 
+          src="/images/logo(landing).png" 
+          alt="Sun with dental logo" 
+          class="logo" 
       />
-      <div>
-        <h1 class="font-bold text-lg text-indigo-600">AFDomingo</h1>
-        <p class="text-sm text-gray-700">DENTAL CLINIC</p>
-        <p class="text-sm text-gray-600">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-        <p class="text-sm text-gray-600">afdominicdentalclinic@gmail.com</p>
-        <p class="text-sm text-gray-600">0932 984 9554</p>
+      <div class="header-info">
+          <h1 class="patient-name">AFDomingo</h1>
+          <p class="patient-details">DENTAL CLINIC</p>
+          <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+          <p class="patient-details">afdominicdentalclinic@gmail.com</p>
+          <p class="patient-details">0932 984 9554</p>
       </div>
-    </div>
-
+  </div>
+</div>
 </header>
 
 

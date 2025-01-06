@@ -60,23 +60,25 @@
 onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
-            currentUser = user;
-            console.log("User is logged in: ", currentUser);
+            currentUser  = user;
+            console.log("User  is logged in: ", currentUser );
 
             try {
                 // Fetch user profile from Firestore
-                const patientRef = doc(db, "patientProfiles", currentUser.uid);
+                const patientRef = doc(db, "patientProfiles", currentUser .uid);
                 const patientDoc = await getDoc(patientRef);
 
                 if (patientDoc.exists()) {
                     patientProfile = patientDoc.data() as PatientProfile;
+                    // Ensure the ID is numeric
+                    patientProfile.id = patientProfile.id.replace(/\D/g, ''); // Keep only numbers
                     console.log("Loaded patient profile from Firestore: ", patientProfile);
                 } else {
                     console.log("No profile found for this user. Using default values.");
                     patientProfile = {
                         name: '',
                         lastName: '',
-                        id: currentUser.uid,
+                        id: currentUser .uid.replace(/\D/g, ''), // Keep only numbers
                         age: '',
                         gender: '',
                         email: '',
@@ -142,6 +144,22 @@ onMount(() => {
 
     return () => unsubscribe();
 });
+function calculateAge(birthday: string) {
+        const birthDate = new Date(birthday);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDifference = today.getMonth() - birthDate.getMonth();
+        if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
+
+    function updateAge(event: Event) {
+        const target = event.target as HTMLInputElement;
+        formBirthday = target.value;
+        formAge = calculateAge(formBirthday).toString(); // Update formAge based on birthday
+    }
 
 // Save patient profile to Firestore
 async function savePatientProfile() {
@@ -253,142 +271,86 @@ function toggleEditProfile() {
 
 
 <div class="main-container">
-<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
-    <img src="/images/logo(landing).png" 
-         alt="Decorative logo" class="logo" style="width: 80px; height: 80px; border-radius: 50%; margin-right: 16px;" />
-    <div style="color: white;">
-      <h1 class="text-lg font-bold" style="font-size: 1.25rem; font-weight: bold;">
-        {`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}
-      </h1>
-      <p>Patient ID: {patientProfile.id || "xxxxxx"}</p>
-      <p>Age: {patientProfile.age || "xx"} Gender: {patientProfile.gender || "xxxxx"}</p>
+    <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
+        <img src="/images/logo(landing).png" 
+             alt="Decorative logo" class="logo"/>
+        <div style="color: black;">
+          <h1 class="text-lg font-bold" style="font-size: 1.25rem; font-weight: bold;">
+            {`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}
+          </h1>
+          <p>Patient ID: {patientProfile.id || "xxxxxx"}</p>
+          <p>Age: {patientProfile.age || "xx"}</p>
+          <p>Gender: {patientProfile.gender || "xxxxx"}</p> <!-- Moved gender to a new paragraph -->
+        </div>
     </div>
-</div>
 
 <!-- Edit Profile Dropdown Button -->
 <div style="margin-top: 16px;">
-        <button 
-            on:click={toggleEditProfile}
-            class="bg-blue-500 text-white font-bold py-2 px-4 rounded-md shadow-md hover:bg-blue-600 flex items-center">
-            
-            <!-- Arrow Icon (Left when not editing, Right when editing) -->
-            <span class="mr-2">
-                {#if isEditingProfile}
-                <i class="fas fa-chevron-up"></i>  
-                {:else}
-                <i class="fas fa-chevron-right"></i>  
-                {/if}
-            </span>
-            
-            <!-- Button Text -->
-            {isEditingProfile ? "Cancel Edit" : "Edit Profile"}
-        </button>
+    <button on:click={toggleEditProfile} class="professional-button">
+        <span class="icon">
+            {#if isEditingProfile}
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon-chevron" viewBox="0 0 24 24"><path d="M12 16l-4-4h8z"/></svg>
+            {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon-chevron" viewBox="0 0 24 24"><path d="M12 8l4 4h-8z"/></svg>
+            {/if}
+        </span>
+        <span class="button-text">{isEditingProfile ? 'Update Profile' : 'Update Profile'}</span>
+    </button>
 </div>
 
 <!-- Form Section -->
 {#if isEditingProfile}
-    <div class="profile-form-container" style="padding: 20px; background-color: #f9fafb; border-radius: 8px; margin-top: 20px;">
-        <form class="space-y-6" on:submit|preventDefault={savePatientProfile}>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
-                    <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div>
-                    <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div>
-                    <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                    <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
-                    <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div>
-                    <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
-                    <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div>
-                    <label for="birthday" class="block text-sm font-medium text-gray-700">Birth Date</label>
-                    <input id="birthday" type="date" bind:value={formBirthday} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                   
-                    
+        <div class="profile-form-container" style="padding: 20px; background-color: #f9fafb; border-radius: 8px; margin-top: 20px;">
+            <form class="space-y-6" on:submit|preventDefault={savePatientProfile}>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
-                        <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                        <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
+                        <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
                     </div>
                     <div>
-                        <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                        <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
-                            <option value="">Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div>
+                        <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
+                        <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
+                        <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div>
+                        <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
+                        <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div>
+                        <label for="birthday" class="block text-sm font-medium text-gray-700">Birth Date</label>
+                        <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
+                            <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" readonly />
+                        </div>
+                        <div>
+                            <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
+                            <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
+                                <option value="">Select</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="flex justify-end">
-                <button type="submit" class="bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-md hover:bg-blue-600">
-                    Save
-                </button>
-            </div>
-        </form>
-    </div>
-{/if}
-
-<!-- <div class="combined-history">
-    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
-        Appointment and Prescription History
-    </h2>
-    {#if doneAppointments.length === 0}
-        <p class="text-gray-500 italic">No past visits available.</p>
-    {:else}
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Past Visit</th>
-                        <th>Prescription</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each doneAppointments as appointment (appointment.id)}
-                        <tr>
-                            <td>
-                                <p><strong>Date:</strong> {appointment.date || "N/A"}</p>
-                                <p><strong>Time:</strong> {appointment.time || "N/A"}</p>
-                                <p><strong>Service:</strong> {appointment.service || "N/A"}</p>
-                                <p><strong>Status:</strong> {appointment.status || "N/A"}</p>
-                            </td>
-                            <td>
-                                {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
-                                    {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
-                                        <div>
-                                            <h3>Date: {prescription.createdAt ? new Date(prescription.createdAt).toLocaleDateString() : 'N/A'}</h3>
-                                            <ul>
-                                                <li><strong>Medications:</strong> {prescription.medicines.map((m: { medicine: any; dosage: any; }) => `${m.medicine} (${m.dosage} mg)`).join(", ")}</li>
-                                                <li><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</li>
-                                                <li><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</li>
-                                                <li><strong>Prescriber:</strong> {prescription.prescriber || 'N/A'}</li>
-                                            </ul>
-                                        </div>
-                                    {/each}
-                                {:else}
-                                    <p class="italic text-gray-500">No prescription issued for this visit.</p>
-                                {/if}
-                            </td>
-                        </tr>
-                    {/each}
-                </tbody>
-            </table>
+                <div class="flex justify-end">
+                    <button type="submit" class="professional-button">
+                        Save
+                    </button>
+                </div>
+            </form>
         </div>
     {/if}
-</div> -->
 
 <div class="combined-history">
     <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
@@ -429,7 +391,7 @@ function toggleEditProfile() {
 <!-- Styling for the dropdown -->
 <style>
    /* Main container to make it scrollable */
-.main-container {
+   .main-container {
     height: calc(100vh - 168px); /* Subtract the header height */
     overflow-y: auto; /* Allow vertical scrolling */
     padding: 16px;  /* Optional padding for spacing */
@@ -447,7 +409,80 @@ function toggleEditProfile() {
     height: 100%;
 }
 
+    .header-section {
+        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00,#eaee00, #08B8F3, #08B8F3, #005b80); /* Gradient background */
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
+        height: 168px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301); /* Subtle shadow for depth */
+    }
 
+    .logo {
+        width: 10rem; /* Increased logo size */
+        height: 10rem; /* Increased logo size */
+        border-radius: 50%;
+        margin-right: 16px;
+        object-fit: cover; /* Ensure the logo fits well */
+    }
+
+    .header-info {
+        color: #333; /* Darker text color for better readability */
+    }
+
+    .patient-name {
+        font-size: 1.5rem; /* Larger font size for the name */
+        font-weight: bold;
+        margin: 0; /* Remove default margin */
+    }
+
+    .patient-details {
+        margin: 4px 0; /* Space between details */
+        font-size: 1rem; /* Consistent font size for details */
+        color: #555; /* Slightly lighter color for details */
+    }
+
+.professional-button {
+        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
+        color: rgb(255, 255, 255);
+        font-family: 'Roboto', sans-serif; /* Professional font */
+        font-weight: 550; /* Slightly lighter font weight */
+        padding: 0.5rem 1rem; /* Smaller padding for a more compact button */
+        border-radius: 0.3rem; /* More rounded corners */
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.582); /* Subtle shadow for depth */
+        display: flex;
+        align-items: center;
+        transition: background 0.3s ease, transform 0.2s ease; /* Smooth transitions */
+        border: none;
+        cursor: pointer;
+        outline: none; /* Remove outline */
+    }
+
+    .professional-button:hover {
+        background: linear-gradient(90deg, #005b80, #08B8F3); /* Reverse gradient on hover */
+        transform: translateY(2px); /* Slight lift effect */
+    }
+
+    .icon {
+        margin-right: 0.5rem; /* Space between icon and text */
+        display: flex;
+        align-items: center;
+    }
+
+    .icon-chevron {
+        margin-left: -0.6rem;
+        width: 24px;
+        height: 24px;
+        fill: rgb(255, 255, 255);
+    }
+
+    .button-text {
+        margin-left: -0.4rem;
+        font-size: 1rem; /* Adjust font size as needed */
+    }
+    
     .profile-form-container{
         background-color: white;
     border-radius: 12px;
@@ -481,7 +516,7 @@ function toggleEditProfile() {
         left: 0;
         width: 100%;
         height: 6px; /* Height of the solid bar */
-        background-color: #08B8F3; /* Bright blue for the top bar */
+        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
     }
 
     /* Hover Effect */

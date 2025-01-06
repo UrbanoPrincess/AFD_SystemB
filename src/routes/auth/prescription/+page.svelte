@@ -211,63 +211,261 @@ function generatePDF(prescription: any, index: number) {
     });
 </script>
 <div style="max-height: 100vh; overflow-y: auto;">
-<div style="padding: 30px; width: 1000px; max-width: 1000px; margin: 10px; margin-top: 40px; border-radius: 0.5rem; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); background-color: white;">
-    <div class="flex justify-between items-start mb-4">
-        <div class="flex items-center">
-            <img src="/images/logo(landing).png" alt="Sun with dental logo" class="w-24 h-18 mr-4" />
-            <div>
-                <h1 class="font-bold text-lg">AFDomingo</h1>
-                <p class="text-sm">DENTAL CLINIC</p>
-                <p class="text-sm">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-                <p class="text-sm">afdominicdentalclinic@gmail.com</p>
-                <p class="text-sm">0932 984 9554</p>
-            </div>
-        </div>
+    <header style="
+    padding-top: 1rem;
+
+  padding-left: 1rem;
+  
+">
+<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
+  <div class="flex items-center">
+      <img 
+          src="/images/logo(landing).png" 
+          alt="Sun with dental logo" 
+          class="logo" 
+      />
+      <div class="header-info">
+          <h1 class="patient-name">AFDomingo</h1>
+          <p class="patient-details">DENTAL CLINIC</p>
+          <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+          <p class="patient-details">afdominicdentalclinic@gmail.com</p>
+          <p class="patient-details">0932 984 9554</p>
+      </div>
+  </div>
+</div>
+</header>
+<div class="container">
+    <div class="header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
+            <path d="M10 5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z"/>
+            <path d="M0 14s1-3 7-3 7 3 7 3v1H0v-1z"/>
+        </svg>
+        <h2><strong>Name: {name} {lastName}</strong></h2>
     </div>
 
     {#if loading}
-        <p>Loading...</p>
+    <p class="loading">Loading...</p>
+{:else}
+    {#if error}
+        <p class="error">{error}</p>
     {:else}
-        {#if error}
-            <p style="color: red;">{error}</p>
-        {:else}
-            <h2><strong>Name:</strong> {name} {lastName}</h2>
-            <p><strong>Address:</strong> {address || 'Not available'}</p>
-            <p><strong>Age:</strong> {age || 'Not available'} years old</p>
-            <p><strong>Gender:</strong> {gender || 'Not available'}</p>
-            <p><strong>Phone:</strong> {phone || 'Not available'}</p>
-            <p><strong>Birthday:</strong> {birthday || 'Not available'}</p>
+        <div class="info"><strong>Address:</strong> {address || 'Not available'}</div>
+        <div class="info"><strong>Age:</strong> {age || 'Not available'} years old</div>
+        <div class="info"><strong>Gender:</strong> {gender || 'Not available'}</div>
+        <div class="info"><strong>Phone:</strong> {phone || 'Not available'}</div>
+        <div class="info"><strong>Birthday:</strong> {birthday || 'Not available'}</div>
 
-            <h3 class="mt-4 font-semibold">Prescription Details</h3>
-            {#if prescriptions.length > 0}
-                <div class="mt-4 max-h-auto overflow-y-hidden">
-                    {#each prescriptions as prescription, index}
-                        <div class="p-4 border rounded-lg shadow-md mb-4">
-                            <h4 class="font-bold">Prescription {index + 1}</h4>
-                            <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
+        <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>        {#if prescriptions.length > 0}
+    <div class="mt-4">
+        {#each prescriptions as prescription, index}
+            <div class="card">
+                <h4 class="font-bold">Prescription {index + 1}</h4>
+                <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
 
-            
-                            <h5 class="font-semibold mt-2">Medication Details:</h5>
-                            {#each prescription.medicines as medicine, medicineIndex}
-                                <div class="mt-2">
-                                    <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
-                                    <p><strong> Qty/Refills</strong> {medicine.dosage || 'Not available'}</p>
-                                    <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
-                                </div>
-                            {/each}
-            
-                            <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
-                            <button on:click={() => generatePDF(prescription, index)} class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                Download PDF
-                            </button>
-                        </div>
-                    {/each}
-                </div>
-            {:else}
-                <p>No prescriptions available.</p>
-            {/if}
-            
-        {/if}
+                <h5 class="font-bold mt-2">Medication Details:</h5>
+                {#each prescription.medicines as medicine, medicineIndex}
+                    <div class="mt-2">
+                        <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
+                        <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
+                        <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
+                    </div>
+                {/each}
+
+                <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+                <button on:click={() => generatePDF(prescription, index)} class="button">
+                    Download PDF
+                </button>
+            </div>
+        {/each}
+    </div>
+{:else}
+    <p>No prescriptions available.</p>
+{/if}
     {/if}
+{/if}
 </div>
 </div>
+<style>
+    .card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px; /* Height of the solid bar */
+    background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+.card h4, h5 {
+    margin-bottom: 0.6rem;
+    font-size: 1.1rem;
+    color: #005b80;
+}
+
+.card p {
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+.card p strong {
+    color: #08B8F3; /* Bright blue for labels */
+}
+
+.card .italic {
+    color: red;
+}
+.prescription-header {
+    font-size: 1.5rem; /* Larger font size for emphasis */
+    color: #000000; /* Use the same color as the gradient for consistency */
+    margin-bottom: 16px; /* Space below the header */
+    text-align: center; /* Center the header text */
+    border-bottom: 2px solid #ddd; /* Underline effect */
+    padding-bottom: 8px; /* Space between text and underline */
+    text-transform: uppercase; /* Make the text uppercase for emphasis */
+}
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .card-container {
+        grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+        gap: 12px;
+    }
+}
+    .container {
+        margin-top: 0.5rem;
+        max-width: 100%;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .header h2 {
+        padding-bottom: -2rem;
+        margin-left: 10px;
+    }
+    .info {
+        margin-top: 2rem;
+        margin: 2px 0; /* Reduced margin to bring elements closer */
+        font-size: 16px;
+    }
+    .prescription {
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    .prescription h4 {
+        margin-bottom: 10px;
+    }
+    .prescription p {
+        margin: 5px 0;
+    }
+    .button {
+        background: linear-gradient(90deg, #08B8F3, #005b80);
+        color: rgb(255, 255, 255);
+        font-family: 'Roboto', sans-serif;
+        font-weight: 550;
+        padding: 0.5rem 1rem;
+        border-radius: 0.3rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.582);
+        display: flex;
+        align-items: center;
+        transition: background 0.3s ease, transform 0.2s ease;
+        border: none;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .button:hover {
+        background: linear-gradient(90deg, #005b80, #08B8F3);
+        transform: translateY(2px);
+    }
+
+    .error {
+        color: red;
+    }
+    .loading {
+        font-style: italic;
+    }
+
+    .header-section {
+        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
+        height: 168px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
+    }
+
+    .logo {
+        width: 10rem;
+        height: 10rem;
+        border-radius: 50%;
+        margin-right: 16px;
+        object-fit: cover;
+    }
+
+    .header-info {
+        color: #000000;
+    }
+
+    .patient-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .patient-details {
+        margin: 2px 0;
+        font-size: 1rem;
+        color: #000000;
+        line-height: 1.2;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .header-section {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 12px;
+        }
+
+        .logo {
+            width: 8rem;
+            height: 8rem;
+            margin-bottom: 12px;
+        }
+
+        .patient-name {
+            font-size: 1.25rem;
+        }
+
+        .patient-details {
+            font-size: 0.875rem;
+        }
+    }
+</style>
