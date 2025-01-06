@@ -21,23 +21,30 @@
     let email: string = '';
     let gender: string = '';
     let phone: string = '';
+    let birthday: string = '';
     let prescriptions: any[] = [];
     let loading: boolean = true;
     let error: string = '';
 
-    // Helper function to format date
-    function formatDate(date: string | number | Date) {
+   // Helper function to format date
+function formatDate(date: string | number | Date) {
     const parsedDate = new Date(date);
     if (parsedDate.getTime()) {
-        return parsedDate.toISOString();  // or use your preferred date formatting method
+        // Format the date as MM/DD/YYYY or customize as needed
+        const day = String(parsedDate.getDate()).padStart(2, '0');
+        const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+        const year = parsedDate.getFullYear();
+        
+        return `${month}/${day}/${year}`;  // Format as MM/DD/YYYY
     } else {
-        return "Invalid date"; // return a fallback value for invalid dates
+        return "Invalid date";  // Return a fallback value for invalid dates
     }
 }
 
 
+
     // Fetch patient data based on the current user's ID
-    async function fetchPatientData() {
+async function fetchPatientData() {
     try {
         loading = true;
 
@@ -58,6 +65,7 @@
                 email = patient.email || '';
                 gender = patient.gender || '';
                 phone = patient.phone || '';
+                birthday = patient.birthday || '';
             } else {
                 error = "No such patient found!";
             }
@@ -72,7 +80,8 @@
             const querySnapshot = await getDocs(qAppointments);
             const doneAppointments = querySnapshot.docs.map(doc => ({
                 ...doc.data(),
-                id: doc.id // Include Firestore document ID
+                id: doc.id, // Include Firestore document ID
+                date: doc.data().date // Add the appointment date here
             }));
             console.log("Loaded done appointments: ", doneAppointments); // Debugging log
 
@@ -89,12 +98,17 @@
                     where("appointmentId", "in", appointmentIds) // Filter prescriptions by appointmentId
                 );
                 const prescriptionsSnapshot = await getDocs(qPrescriptions);
-                prescriptions = prescriptionsSnapshot.docs.map(doc => ({
-                    appointmentId: doc.data().appointmentId,
-                    createdAt: doc.data().createdAt,
-                    medicines: doc.data().medicines,
-                    prescriber: doc.data().prescriber
-                }));
+                prescriptions = prescriptionsSnapshot.docs.map(doc => {
+                    const appointmentId = doc.data().appointmentId;
+                    // Find the corresponding appointment date from the completed appointments
+                    const appointment = doneAppointments.find(app => app.id === appointmentId);
+                    return {
+                        appointmentId: appointmentId,
+                        appointmentDate: appointment ? appointment.date : null, // Use appointment date
+                        medicines: doc.data().medicines,
+                        prescriber: doc.data().prescriber
+                    };
+                });
                 console.log("Loaded prescriptions: ", prescriptions); // Debugging log
             } else {
                 console.log("No valid appointment IDs found.");
@@ -109,6 +123,7 @@
         loading = false;
     }
 }
+
 
 
 function generatePDF(prescription: any, index: number) {
@@ -142,7 +157,7 @@ function generatePDF(prescription: any, index: number) {
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
-    doc.text(`Date: ${formatDate(prescription.createdAt) || 'Not available'}`, 20, 55);
+    doc.text(`Date: ${formatDate(prescription.appointmentDate) || 'Not available'}`, 20, 55);
     doc.text(`Patient Name: ${patientFirstName} ${patientLastName}`, 20, 62);
 
     // Prescription Details (Loop through medicines array)
@@ -209,6 +224,7 @@ function generatePDF(prescription: any, index: number) {
             <p><strong>Age:</strong> {age || 'Not available'} years old</p>
             <p><strong>Gender:</strong> {gender || 'Not available'}</p>
             <p><strong>Phone:</strong> {phone || 'Not available'}</p>
+            <p><strong>Birthday:</strong> {birthday || 'Not available'}</p>
 
             <h3 class="mt-4 font-semibold">Prescription Details</h3>
             {#if prescriptions.length > 0}
@@ -216,7 +232,8 @@ function generatePDF(prescription: any, index: number) {
                     {#each prescriptions as prescription, index}
                         <div class="p-4 border rounded-lg shadow-md mb-4">
                             <h4 class="font-bold">Prescription {index + 1}</h4>
-                            <p><strong>Date Visited:</strong> {formatDate(prescription.createdAt) || 'Not available'}</p>
+                            <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
+
             
                             <h5 class="font-semibold mt-2">Medication Details:</h5>
                             {#each prescription.medicines as medicine, medicineIndex}

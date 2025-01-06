@@ -279,7 +279,7 @@
             </li>
             <li>
                 <a href="./medicine-list">
-                    <img class="icon" src="/images/icon-medicine.png" alt="Prescriptions Icon" />
+                    <img class="icon" src="/images/medicinelist.png" alt="Prescriptions Icon" />
                     <span class="text">Medicines List</span>
                 </a>
             </li>
