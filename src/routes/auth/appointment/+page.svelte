@@ -24,7 +24,7 @@ type Appointment = {
   patientId: string;
   service: string;
   subServices: string[];
-  cancellationStatus?: 'pending' | 'Approved' | 'Decline' | 'requested' | null;
+  cancellationStatus?: 'pending' | 'Approved' | 'Declined' | 'requested' | null;
   status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "cancellationRequested" | "";
 };
 
@@ -504,11 +504,11 @@ function fetchAppointments() {
     display: flex; 
     justify-content: space-between; 
     gap: 20px; 
-    padding: 40px; 
+    padding: 10px; 
     width: 100%; 
     max-width: 1200px; 
     margin: 50px auto; 
-    margin-top: 3%; 
+    margin-top: 5%; 
     margin-bottom: 50px; 
     max-height: 85vh; 
     flex-wrap: wrap;
@@ -645,7 +645,7 @@ function fetchAppointments() {
   <div
     style="
       flex: 1; 
-      padding: 10px; 
+      padding: 20px; 
       margin-top: -40px;
       border: 1px solid #ddd; 
       border-radius: 0.5rem; 
@@ -658,7 +658,7 @@ function fetchAppointments() {
     <h3 style="font-size: 18px; font-weight: bold; ">Your Appointments</h3>
   
   <!-- Right Section (Appointments Table) -->
-  <div style="flex: 1 1 45%; min-width: 300px; margin-top: 10px; ">
+  <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px; ">
     {#if appointments.length > 0}
       <div style=" margin-bottom: 20px;">
         <Table shadow style="width: 100%; table-layout: auto; border-collapse: collapse;">
@@ -687,7 +687,7 @@ function fetchAppointments() {
                     <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
                   {:else if appointment.cancellationStatus === 'Approved'}
                     <span class="text-red-600 font-semibold">Cancelled</span>
-                  {:else if appointment.cancellationStatus === 'Decline'}
+                  {:else if appointment.cancellationStatus === 'Declined'}
                     <span class="text-red-600 font-semibold">Cancellation Declined</span>
                   {:else if appointment.status === 'Accepted'}
                     <span class="text-green-600 font-semibold">Accepted</span>
@@ -697,11 +697,10 @@ function fetchAppointments() {
                     <span class="text-blue-600 font-semibold">Completed</span>
                   {:else if appointment.status === 'Decline'}
                     <span class="text-red-600 font-semibold">Declined</span>
-                    {:else if appointment.status === 'Missed'}
+                  {:else if appointment.status === 'Missed'}
                     <span class="text-red-600 font-semibold">Missed</span>
                   {:else if appointment.status === 'pending'}
                     <span class="text-gray-600 font-semibold">Pending</span>
-                 
                   {:else if appointment.status === 'cancellationRequested'}
                     <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
                   {:else}
@@ -710,26 +709,22 @@ function fetchAppointments() {
                 </TableBodyCell>
                 
                 <TableBodyCell style="padding: 5px;">
-                  {#if appointment.cancellationStatus !== 'requested'}
-                  <Button
-                  on:click={() => openCancelModal(appointment.id)}
-                  style="
-                    
-                  "
-                  class="cancel-button"
-                >
-                   <CloseCircleOutline 
-                     class="w-6 h-6" 
-                          style="color: red;" 
-                             />
-
-                </Button>
-                
+                  {#if appointment.status === 'pending' || appointment.status === 'Accepted'}
+                    <Button
+                      on:click={() => openCancelModal(appointment.id)}
+                      class="cancel-button"
+                    >
+                      <CloseCircleOutline 
+                        class="w-6 h-6" 
+                        style="color: red;" 
+                      />
+                    </Button>
                   {/if}
                 </TableBodyCell>
               </TableBodyRow>
             {/each}
           </TableBody>
+          
         </Table>
         
       </div>

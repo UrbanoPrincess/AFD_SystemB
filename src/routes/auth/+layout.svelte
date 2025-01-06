@@ -261,25 +261,25 @@
         <ul class="sidebar-menu">
             <li>
                 <a href="./profile">
-                    <img class="icon" src="/images/icon-patient.png" alt="Patient Icon" />
+                    <img class="icon" src="/images/profile1.png" alt="Patient Icon" />
                     <span class="text">Profile</span>
                 </a>
             </li>
             <li>
                 <a href="./appointment">
-                    <img class="icon" src="/images/icon-appointment.png" alt="Dashboard Icon" />
+                    <img class="icon" src="/images/book.png" alt="Dashboard Icon" />
                     <span class="text">Appointment</span>
                 </a>
             </li>
             <li>
                 <a href="./prescription">
-                    <img class="icon" src="/images/icon-prescriptions.png" alt="Medicines Icon" />
-                    <span class="text">Prescriptions</span>
+                    <img class="icon" src="/images/history.png" alt="Medicines Icon" />
+                    <span class="text">History</span>
                 </a>
             </li>
             <li>
                 <a href="./medicine-list">
-                    <img class="icon" src="/images/icon-medicines.png" alt="Prescriptions Icon" />
+                    <img class="icon" src="/images/icon-medicine.png" alt="Prescriptions Icon" />
                     <span class="text">Medicines List</span>
                 </a>
             </li>

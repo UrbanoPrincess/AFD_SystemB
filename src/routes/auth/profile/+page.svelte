@@ -397,28 +397,34 @@ function toggleEditProfile() {
     {#if doneAppointments.length === 0}
         <p class="text-gray-500 italic">No past visits available.</p>
     {:else}
-        <div class="card-container">
-            {#each doneAppointments as appointment (appointment.id)}
-                <div class="card">
-                    <p><strong>Date Visited:</strong> {appointment.date} at {appointment.time}</p>
-                    <p><strong>Service/Subservice:</strong> {appointment.service} ({appointment.status})</p>
-                    {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
-                        {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
+    <div class="card-container">
+        {#each doneAppointments as appointment (appointment.id)}
+            <div class="card">
+                <p><strong>Date Visited:</strong> {appointment.date} at {appointment.time}</p>
+                <p><strong>Service/Subservice:</strong> {appointment.service} ({appointment.status})</p>
+                
+                {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
+                    {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
                         <p><strong>Medication:</strong> {prescription.medicines.map((m: { medicine: any }) => `${m.medicine}`).join(", ")}</p>
-
-                            <p><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</p>
-                            <p><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</p>
-                            <p><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
-                        {/each}
-                    {:else}
-                        <p class="italic text-gray-500">No prescription issued for this visit.</p>
-                    {/if}
-                </div>
-            {/each}
-        </div>
+                        <p><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</p>
+                        <p><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</p>
+                        <p><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
+                    {/each}
+                {:else}
+                    <p class="italic text-gray-500">No prescription issued for this visit.</p>
+                {/if}
+                
+                <!-- New Remarks Section -->
+                {#if appointment.remarks}
+                    <p><strong>Remarks:</strong> {appointment.remarks}</p>
+                {:else}
+                    <p class="italic text-gray-500">No remarks for this visit.</p>
+                {/if}
+            </div>
+        {/each}
+    </div>
     {/if}
 </div>
-
 </div>
 <!-- Styling for the dropdown -->
 <style>
