@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox, Datepicker } from 'flowbite-svelte';
+  import { Checkbox} from 'flowbite-svelte';
 import { onMount } from "svelte";
 import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where, updateDoc, getDoc, onSnapshot, } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
@@ -28,7 +28,7 @@ type Appointment = {
   status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "cancellationRequested" | "";
 };
 
-let selectedDate = new Date();
+let selectedDate = new Date().toISOString().split('T')[0]; // Initialize with today's date in YYYY-MM-DD format
 let selectedTime: string | null = null;
 let selectedService: string | null = null;
 let selectedSubServices: string[] = []; // Array to hold selected sub-services
@@ -96,7 +96,10 @@ async function bookAppointment() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (!selectedDate || selectedDate < today) {
+  // Convert selectedDate from string to Date object
+  const selectedDateObj = new Date(selectedDate);
+
+  if (!selectedDate || selectedDateObj < today) {
     Swal.fire({
       icon: 'warning',
       title: 'Invalid Date',
@@ -111,7 +114,7 @@ async function bookAppointment() {
       const q = query(
         collection(db, "appointments"),
         where("patientId", "==", patientId),
-        where("date", "==", selectedDate.toLocaleDateString()),
+        where("date", "==", selectedDate), // Use selectedDate directly as it's already in YYYY-MM-DD format
         where("cancellationStatus", "==", '')  // Only check appointments that are not canceled
       );
       
@@ -121,7 +124,7 @@ async function bookAppointment() {
         // No appointment found for the selected date, so allow booking
         const docRef = await addDoc(collection(db, "appointments"), {
           patientId: patientId,
-          date: selectedDate.toLocaleDateString(),
+          date: selectedDate, // Use selectedDate directly
           time: selectedTime,
           service: selectedService,
           subServices: selectedSubServices,
@@ -186,7 +189,14 @@ async function bookAppointment() {
   }
 }
 
-
+function getMinDate(): string {
+  const today = new Date();
+  today.setDate(today.getDate() + 3); // Add 3 days to today's date
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
+}
 
 function getAppointments() {
   if (patientId) {
@@ -287,9 +297,10 @@ onMount(async () => {
     console.error("Error fetching appointment data: ", e);
   }
 });
-function isTimeSlotAvailable(slot: string, date: Date): boolean {
+
+function isTimeSlotAvailable(slot: string, date: string): boolean {
   const currentDate = new Date();
-  const selectedDate = new Date(date);
+  const selectedDate = new Date(date); // Convert the string date to a Date object
   
   if (selectedDate < currentDate) {
     return false;
@@ -312,6 +323,13 @@ function isTimeSlotAvailable(slot: string, date: Date): boolean {
   }
   
   return true;
+}
+function getTodayDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
 }
 
 function isTimePassed(time: string): boolean {
@@ -521,13 +539,18 @@ function fetchAppointments() {
       margin-top: -10px; /* Reduced margin to better space elements */
     "
   >
-    <!-- Datepicker Section -->
-    <div class="mb-4">
-      <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
-      <div id="datepicker-wrapper">
-        <Datepicker bind:value={selectedDate} color="red" />
-      </div>
-    </div>
+<!-- Datepicker Section -->
+<div class="mb-4">
+  <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
+  <div id="datepicker-wrapper">
+    <input 
+      type="date" 
+      id="datepicker" 
+      bind:value={selectedDate} 
+      class="block w-full border border-gray-700 rounded-md shadow-sm p-2" 
+      min={getMinDate()}    />
+  </div>
+</div>
 
     <!-- Service Selection Dropdown -->
     <div class="mb-4">
@@ -569,15 +592,15 @@ function fetchAppointments() {
       <div class="slots-container">
         <div class="grid grid-cols-4 gap-4">
           {#each morningSlots as slot}
-            <button
-              class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
-              class:booked={!isTimeSlotAvailable(slot, selectedDate)}
-              on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
-              disabled={!isTimeSlotAvailable(slot, selectedDate)}
-              style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
-            >
-              {slot}
-            </button>
+          <button
+          class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
+          class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+          on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+          disabled={!isTimeSlotAvailable(slot, selectedDate)}
+          style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
+        >
+          {slot}
+        </button>
           {/each}
         </div>
       </div>
@@ -594,15 +617,16 @@ function fetchAppointments() {
 
         <div class="grid grid-cols-4 gap-4">
           {#each afternoonSlots as slot}
-            <button
-              class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
-              class:booked={!isTimeSlotAvailable(slot, selectedDate)}
-              on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
-              disabled={!isTimeSlotAvailable(slot, selectedDate)}
-              style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
-            >
-              {slot}
-            </button>
+          <button
+          class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
+          class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+          on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+          disabled={!isTimeSlotAvailable(slot, selectedDate)}
+          style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
+        >
+          {slot}
+        </button>
+
           {/each}
         </div>
       </div>
