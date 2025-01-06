@@ -109,6 +109,19 @@ async function bookAppointment() {
 
   if (selectedTime && patientId && selectedService) {
     try {
+      // Check if the user has submitted their profile in the patientProfiles db
+      const profileDocRef = doc(db, "patientProfiles", patientId);
+      const profileDocSnap = await getDoc(profileDocRef);
+
+      if (!profileDocSnap.exists()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Profile Not Found',
+          text: 'You must submit your profile before booking an appointment.',
+        });
+        return; // Stop the function if profile does not exist
+      }
+
       // Check if the patient already has an appointment for the selected date and time
       const q = query(
         collection(db, "appointments"),
@@ -133,7 +146,7 @@ async function bookAppointment() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const appointmentData = docSnap.data();
-          const appointment: Appointment = {
+          const appointment = {
             id: docRef.id,
             date: appointmentData.date,
             time: appointmentData.time,
@@ -187,6 +200,7 @@ async function bookAppointment() {
     });
   }
 }
+
 
 function getMinDate(): string {
   const today = new Date();
