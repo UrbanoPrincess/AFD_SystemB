@@ -137,7 +137,13 @@ function generatePDF(prescription: any, index: number) {
     doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust the path, format, and dimensions as needed
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("AF DOMINIC", 50, 15); // Clinic name
+
+    // Set text color to indigo-600 (approximately RGB: 67, 56, 202)
+    doc.setTextColor(67, 56, 202);
+    doc.text("AFDomingo", 50, 15); // Clinic name
+
+    // Reset text color to black for subsequent text
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text("DENTAL CLINIC", 50, 20);
@@ -145,6 +151,7 @@ function generatePDF(prescription: any, index: number) {
     doc.text("afdominicdentalclinic@gmail.com", 50, 30);
     doc.text("0932 984 9554", 50, 35);
     doc.line(20, 40, 277, 40); // Horizontal line
+
 
     // Prescription Title
     doc.setFontSize(12);
@@ -172,8 +179,13 @@ function generatePDF(prescription: any, index: number) {
         yPosition += 24; // Adjust space for next medicine
     });
 
-    // Add prescriber info after medicines
-    doc.text(`Prescriber: ${prescription.prescriber || 'Not available'}`, 20, yPosition + 8);
+    // Add prescriber info on the right side
+    const prescriberText = `Prescriber: ${prescription.prescriber || 'Not available'}`;
+    const pageWidth = doc.internal.pageSize.width; // Get the page width dynamically
+    const prescriberX = pageWidth - 70; // Adjust for right alignment
+    const prescriberY = 175; // Position it just above the footer
+    doc.text(prescriberText, prescriberX, prescriberY);
+
 
     // Footer
     doc.line(20, 190, 277, 190); // Footer line
@@ -204,7 +216,7 @@ function generatePDF(prescription: any, index: number) {
         <div class="flex items-center">
             <img src="/images/logo(landing).png" alt="Sun with dental logo" class="w-24 h-18 mr-4" />
             <div>
-                <h1 class="font-bold text-lg">AF DOMINIC</h1>
+                <h1 class="font-bold text-lg">AFDomingo</h1>
                 <p class="text-sm">DENTAL CLINIC</p>
                 <p class="text-sm">#46 12th Street, Corner Gordon Ave New Kalalake</p>
                 <p class="text-sm">afdominicdentalclinic@gmail.com</p>
