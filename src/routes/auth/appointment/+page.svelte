@@ -190,7 +190,7 @@ async function bookAppointment() {
 
 function getMinDate(): string {
   const today = new Date();
-  today.setDate(today.getDate() + 1); // Add 3 days to today's date
+  today.setDate(today.getDate() + 3); // Add 3 days to today's date
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
   const day = String(today.getDate()).padStart(2, '0');
