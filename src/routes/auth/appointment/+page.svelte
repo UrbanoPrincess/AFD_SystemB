@@ -480,6 +480,17 @@ function fetchAppointments() {
        
         overflow: auto;
     }*/
+.selected {
+  background-color: blue; /* Blue background for selected slot */
+  color: white; /* White text */
+  border-color: blue; /* Matching border color */
+  cursor: default; /* Prevent hover change when selected */
+  transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
+}
+.selected:hover {
+  background-color: darkblue; /* Darker blue when hovered */
+  border-color: darkblue; /* Darker border to match */
+}
 
 </style>
 <div style="max-height: 100vh; overflow-y: auto;">
@@ -606,6 +617,7 @@ function fetchAppointments() {
           <button
           class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
           class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+          class:selected={selectedTime === slot}
           on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
           disabled={!isTimeSlotAvailable(slot, selectedDate)}
           style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
@@ -631,6 +643,7 @@ function fetchAppointments() {
           <button
           class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
           class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+          class:selected={selectedTime === slot}
           on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
           disabled={!isTimeSlotAvailable(slot, selectedDate)}
           style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
