@@ -485,7 +485,7 @@ function fetchAppointments() {
         style="max-width: 100%; height: auto;" 
       />
       <div>
-        <h1 class="font-bold text-lg text-indigo-600">AF DOMINIC</h1>
+        <h1 class="font-bold text-lg text-indigo-600">AFDomingo</h1>
         <p class="text-sm text-gray-700">DENTAL CLINIC</p>
         <p class="text-sm text-gray-600">#46 12th Street, Corner Gordon Ave New Kalalake</p>
         <p class="text-sm text-gray-600">afdominicdentalclinic@gmail.com</p>
