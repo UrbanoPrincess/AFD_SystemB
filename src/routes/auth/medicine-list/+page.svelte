@@ -249,7 +249,6 @@
                     {/if}
                     <div class="medicine-name">{medicine.name}</div>
                     <div class="medicine-description">{medicine.description}</div>
-                    <div class="medicine-quantity">Quantity: {medicine.quantity}</div>
                 </div>
             {/each}
         </div>
