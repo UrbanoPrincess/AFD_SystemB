@@ -152,7 +152,6 @@ function generatePDF(prescription: any, index: number) {
     doc.text("0932 984 9554", 50, 35);
     doc.line(20, 40, 277, 40); // Horizontal line
 
-
     // Prescription Title
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -186,6 +185,13 @@ function generatePDF(prescription: any, index: number) {
     const prescriberY = 175; // Position it just above the footer
     doc.text(prescriberText, prescriberX, prescriberY);
 
+    // Add signature image
+    const signaturePath = '/images/signature.jpg'; // Update with the correct path to the signature image
+    const signatureWidth = 50; // Adjust width as needed
+    const signatureHeight = 20; // Adjust height as needed
+    const signatureX = pageWidth - 70; // Position it near the right margin
+    const signatureY = 150; // Position just above the footer
+    doc.addImage(signaturePath, 'JPG', signatureX, signatureY, signatureWidth, signatureHeight);
 
     // Footer
     doc.line(20, 190, 277, 190); // Footer line
@@ -196,6 +202,7 @@ function generatePDF(prescription: any, index: number) {
     const filename = `${patientFirstName}_${patientLastName}_Prescription_${index + 1}.pdf`;
     doc.save(filename);
 }
+
 
 
 
