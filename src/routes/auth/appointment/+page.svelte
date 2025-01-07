@@ -573,7 +573,7 @@ function fetchAppointments() {
           <h1 class="patient-name">AFDomingo</h1>
           <p class="patient-details">DENTAL CLINIC</p>
           <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-          <p class="patient-details">afdominicdentalclinic@gmail.com</p>
+          <p class="patient-details">afdomingodentalclinic@gmail.com</p>
           <p class="patient-details">0932 984 9554</p>
       </div>
   </div>

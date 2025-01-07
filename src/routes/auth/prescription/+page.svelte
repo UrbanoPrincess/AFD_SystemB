@@ -148,7 +148,7 @@ function generatePDF(prescription: any, index: number) {
     doc.setFontSize(10);
     doc.text("DENTAL CLINIC", 50, 20);
     doc.text("#46 12th Street, Corner Gordon Ave, New Kalalake", 50, 25);
-    doc.text("afdominicdentalclinic@gmail.com", 50, 30);
+    doc.text("afdomingodentalclinic@gmail.com", 50, 30);
     doc.text("0932 984 9554", 50, 35);
     doc.line(20, 40, 277, 40); // Horizontal line
 
@@ -235,7 +235,7 @@ function generatePDF(prescription: any, index: number) {
           <h1 class="patient-name">AFDomingo</h1>
           <p class="patient-details">DENTAL CLINIC</p>
           <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-          <p class="patient-details">afdominicdentalclinic@gmail.com</p>
+          <p class="patient-details">afdomingodentalclinic@gmail.com</p>
           <p class="patient-details">0932 984 9554</p>
       </div>
   </div>
