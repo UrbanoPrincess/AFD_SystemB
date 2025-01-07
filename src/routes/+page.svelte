@@ -1,4 +1,3 @@
-
 <style>
     /* Make sure the body and html fill the entire viewport and prevent scrolling */
     html, body {
@@ -45,7 +44,6 @@
         flex: 1; 
         max-width: 50%;
         overflow: hidden; /* Prevent overflow */
-
     }
 
     .left-section h1 {
@@ -71,10 +69,26 @@
         max-width: 100%; /* Ensure image fits within the section */
         max-height: 80%; 
         object-fit: contain; 
-        margin-left: 10rem; /* Remove left margin */
-        margin-top: -1rem; /* Remove top margin */
+        margin-left: 10rem; /* Adjusted left margin */
+        margin-top: -1rem; /* Adjusted top margin */
+        animation: fadeInBounce 2s ease-out; /* Add animation */
     }
 
+    /* Keyframes for the fade-in and bounce effect */
+    @keyframes fadeInBounce {
+        0% {
+            opacity: 0;
+            transform: scale(0.8) translateY(-50px);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.05) translateY(10px);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
 </style>
 
 <header>
