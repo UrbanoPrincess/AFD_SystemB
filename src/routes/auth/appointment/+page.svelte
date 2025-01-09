@@ -92,10 +92,11 @@ function selectTime(time: string) {
   selectedTime = time;
 }
 
-async function bookAppointment() {
+async function bookAppointment() { 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Convert selectedDate from string to Date object
   const selectedDateObj = new Date(selectedDate);
 
   if (!selectedDate || selectedDateObj < today) {
@@ -122,25 +123,26 @@ async function bookAppointment() {
         return; // Stop the function if profile does not exist
       }
 
-      // Check if the patient already has an appointment for the selected date and time
+      // Check if the patient already has an appointment for the selected date
       const q = query(
         collection(db, "appointments"),
-        where("date", "==", selectedDate), // Check for the selected date
-        where("time", "==", selectedTime) // Check for the selected time
+        where("patientId", "==", patientId),
+        where("date", "==", selectedDate), // Use selectedDate directly as it's already in YYYY-MM-DD format
+        where("cancellationStatus", "==", '')  // Only check appointments that are not canceled
       );
-
+      
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // No appointment found for the selected date and time, so allow booking
+        // No appointment found for the selected date, so allow booking
         const docRef = await addDoc(collection(db, "appointments"), {
           patientId: patientId,
-          date: selectedDate,
+          date: selectedDate, // Use selectedDate directly
           time: selectedTime,
           service: selectedService,
           subServices: selectedSubServices,
-          status: 'pending',
-          cancellationStatus: '',
+          status: 'pending', // Explicitly set the status
+          cancellationStatus: '', // Optional field for cancellations
         });
 
         const docSnap = await getDoc(docRef);
@@ -176,15 +178,14 @@ async function bookAppointment() {
           console.error("No document found for the new appointment.");
         }
       } else {
-        // An appointment already exists for the selected date and time
+        // The patient already has an appointment for the selected date
         Swal.fire({
           icon: 'info',
-          title: 'Time Slot Unavailable',
-          text: 'This time slot is already booked. Please choose a different time.',
+          title: 'Appointment Already Exists',
+          text: 'You already have an appointment for this day. Please cancel your existing appointment before booking again.',
         });
       }
     } catch (e) {
-      // Handle errors
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -200,6 +201,7 @@ async function bookAppointment() {
     });
   }
 }
+
 
 
 function getMinDate(): string {
@@ -480,7 +482,7 @@ function fetchAppointments() {
        
         overflow: auto;
     }*/
-.selected {
+    .selected {
   background-color: blue; /* Blue background for selected slot */
   color: white; /* White text */
   border-color: blue; /* Matching border color */
@@ -491,93 +493,32 @@ function fetchAppointments() {
   background-color: darkblue; /* Darker blue when hovered */
   border-color: darkblue; /* Darker border to match */
 }
-
-.header-section {
-        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00,#eaee00, #08B8F3, #08B8F3, #005b80); /* Gradient background */
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 16px;
-        height: 168px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301); /* Subtle shadow for depth */
-    }
-
-    .logo {
-        width: 10rem; /* Increased logo size */
-        height: 10rem; /* Increased logo size */
-        border-radius: 50%;
-        margin-right: 16px;
-        object-fit: cover; /* Ensure the logo fits well */
-    }
-
-
-    .header-info {
-      
-    color: #000000; /* Darker text color for better readability */
-}
-
-.patient-name {
-    font-size: 1.3rem; /* Larger font size for the name */
-    font-weight: bold;
-    margin: 0; /* Remove default margin */
-}
-
-.patient-details {
-    margin: 2px 0; /* Reduced space between details */
-    font-size: 1rem; /* Consistent font size for details */
-    color: #000000; /* Darker color for details */
-    line-height: 1.2; /* Adjust line height for tighter spacing */
-}
-
-/* Responsive Styles */
-@media (max-width: 768px) {
-    .header-section {
-        flex-direction: column; /* Stack items vertically on smaller screens */
-        align-items: flex-start; /* Align items to the start */
-        padding: 12px; /* Adjust padding */
-    }
-
-    .logo {
-        width: 8rem; /* Smaller logo size for mobile */
-        height: 8rem; /* Smaller logo size for mobile */
-        margin-bottom: 12px; /* Space below logo */
-    }
-
-    .patient-name {
-        font-size: 1.25rem; /* Smaller font size for mobile */
-    }
-
-    .patient-details {
-        font-size: 0.875rem; /* Smaller font size for details on mobile */
-    }
-}
 </style>
 <div style="max-height: 100vh; overflow-y: auto;">
 
 
 <header style="
-    padding-top: 1rem;
-
-  padding-left: 1rem;
+  
+  margin-top: 3%;
   
 ">
-<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
-  <div class="flex items-center">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center">
       <img 
-          src="/images/logo(landing).png" 
-          alt="Sun with dental logo" 
-          class="logo" 
+        src="/images/logo(landing).png" 
+        alt="Sun with dental logo" 
+        class="w-24 h-18 mr-4" 
+        style="max-width: 100%; height: auto;" 
       />
-      <div class="header-info">
-          <h1 class="patient-name">AFDomingo</h1>
-          <p class="patient-details">DENTAL CLINIC</p>
-          <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-          <p class="patient-details">afdomingodentalclinic@gmail.com</p>
-          <p class="patient-details">0932 984 9554</p>
+      <div>
+        <h1 class="font-bold text-lg text-indigo-600">AFDomingo</h1>
+        <p class="text-sm text-gray-700">DENTAL CLINIC</p>
+        <p class="text-sm text-gray-600">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+        <p class="text-sm text-gray-600">afdomingodentalclinic@gmail.com</p>
+        <p class="text-sm text-gray-600">0932 984 9554</p>
       </div>
-  </div>
-</div>
+    </div>
+
 </header>
 
 
@@ -858,6 +799,5 @@ function fetchAppointments() {
       </div>
     </div>
   </Modal>
-
 
 

@@ -67,7 +67,7 @@ async function fetchPatientData() {
                 phone = patient.phone || '';
                 birthday = patient.birthday || '';
             } else {
-                error = "No such patient found!";
+                error = "No Patient Information Found!";
             }
 
             // Fetch completed appointments for the patient
