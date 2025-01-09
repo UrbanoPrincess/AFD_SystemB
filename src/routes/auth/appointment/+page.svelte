@@ -493,33 +493,89 @@ function fetchAppointments() {
   background-color: darkblue; /* Darker blue when hovered */
   border-color: darkblue; /* Darker border to match */
 }
+.header-section {
+        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
+        height: 168px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
+    }
+
+    .logo {
+        width: 10rem;
+        height: 10rem;
+        border-radius: 50%;
+        margin-right: 16px;
+        object-fit: cover;
+    }
+
+    .header-info {
+        color: #000000;
+    }
+
+    .patient-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .patient-details {
+        margin: 2px 0;
+        font-size: 1rem;
+        color: #000000;
+        line-height: 1.2;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .header-section {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 12px;
+        }
+
+        .logo {
+            width: 8rem;
+            height: 8rem;
+            margin-bottom: 12px;
+        }
+
+        .patient-name {
+            font-size: 1.25rem;
+        }
+
+        .patient-details {
+            font-size: 0.875rem;
+        }
+    }
 </style>
 <div style="max-height: 100vh; overflow-y: auto;">
+  <header style="
+  padding-top: 1rem;
 
+padding-left: 1rem;
 
-<header style="
-  
-  margin-top: 3%;
-  
 ">
-  <div class="flex justify-between items-center">
-    <div class="flex items-center">
-      <img 
-        src="/images/logo(landing).png" 
-        alt="Sun with dental logo" 
-        class="w-24 h-18 mr-4" 
-        style="max-width: 100%; height: auto;" 
-      />
-      <div>
-        <h1 class="font-bold text-lg text-indigo-600">AFDomingo</h1>
-        <p class="text-sm text-gray-700">DENTAL CLINIC</p>
-        <p class="text-sm text-gray-600">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-        <p class="text-sm text-gray-600">afdomingodentalclinic@gmail.com</p>
-        <p class="text-sm text-gray-600">0932 984 9554</p>
+<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
+          <div class="flex items-center">
+              <img 
+                  src="/images/logo(landing).png" 
+                  alt="Sun with dental logo" 
+                  class="logo" 
+              />
+              <div class="header-info">
+                  <h1 class="patient-name">AFDomingo</h1>
+                  <p class="patient-details">DENTAL CLINIC</p>
+                  <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+                  <p class="patient-details">afdomingodentalclinic@gmail.com</p>
+                  <p class="patient-details">0932 984 9554</p>
+              </div>
+          </div>
       </div>
-    </div>
-
-</header>
+  </header>
 
 
 <div
