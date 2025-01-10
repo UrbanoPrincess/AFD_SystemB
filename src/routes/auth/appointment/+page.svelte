@@ -452,6 +452,10 @@ function fetchAppointments() {
       text-align: center;
     }
 
+    .w-24 {
+      width: 100px; /* Adjust logo size on small screens */
+    }
+
     .text-lg {
       font-size: 18px; /* Adjust font size for headings */
     }

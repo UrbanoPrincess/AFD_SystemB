@@ -428,6 +428,22 @@ function toggleEditProfile() {
         object-fit: cover; /* Ensure the logo fits well */
     }
 
+    .header-info {
+        color: #333; /* Darker text color for better readability */
+    }
+
+    .patient-name {
+        font-size: 1.5rem; /* Larger font size for the name */
+        font-weight: bold;
+        margin: 0; /* Remove default margin */
+    }
+
+    .patient-details {
+        margin: 4px 0; /* Space between details */
+        font-size: 1rem; /* Consistent font size for details */
+        color: #555; /* Slightly lighter color for details */
+    }
+
 .professional-button {
         background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
         color: rgb(255, 255, 255);
