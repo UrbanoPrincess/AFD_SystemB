@@ -814,7 +814,7 @@ padding-left: 1rem;
                 </TableBodyCell>
                 
                 <TableBodyCell style="padding: 5px;">
-                  {#if appointment.status !== 'Accepted'}
+                  {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
                     <Button
                       on:click={() => openCancelModal(appointment.id)}
                       class="cancel-button"
@@ -826,6 +826,7 @@ padding-left: 1rem;
                     </Button>
                   {/if}
                 </TableBodyCell>
+                
               </TableBodyRow>
             {/each}
           </TableBody>
@@ -879,5 +880,4 @@ padding-left: 1rem;
       </div>
     </div>
   </Modal>
-
 
