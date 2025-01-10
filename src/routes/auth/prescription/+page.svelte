@@ -217,142 +217,127 @@ function generatePDF(prescription: any, index: number) {
         });
     });
 </script>
-<div style="max-height: 100vh; overflow-y: auto;">
-    <header style="
-    padding-top: 1rem;
-
-  padding-left: 1rem;
-  
-">
-<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
-  <div class="flex items-center">
-      <img 
-          src="/images/logo(landing).png" 
-          alt="Sun with dental logo" 
-          class="logo" 
-      />
-      <div class="header-info">
-          <h1 class="patient-name">AFDomingo</h1>
-          <p class="patient-details">DENTAL CLINIC</p>
-          <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-          <p class="patient-details">afdomingodentalclinic@gmail.com</p>
-          <p class="patient-details">0932 984 9554</p>
-      </div>
-  </div>
-</div>
-</header>
-<div class="container">
-    <div class="header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-            <path d="M10 5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z"/>
-            <path d="M0 14s1-3 7-3 7 3 7 3v1H0v-1z"/>
-        </svg>
-        <h2><strong>Name: {name} {lastName}</strong></h2>
-    </div>
-
-    {#if loading}
-    <p class="loading">Loading...</p>
-{:else}
-    {#if error}
-        <p class="error">{error}</p>
-    {:else}
-        <div class="info"><strong>Address:</strong> {address || 'Not available'}</div>
-        <div class="info"><strong>Age:</strong> {age || 'Not available'} years old</div>
-        <div class="info"><strong>Gender:</strong> {gender || 'Not available'}</div>
-        <div class="info"><strong>Phone:</strong> {phone || 'Not available'}</div>
-        <div class="info"><strong>Birthday:</strong> {birthday || 'Not available'}</div>
-
-        <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>        {#if prescriptions.length > 0}
-    <div class="mt-4">
-        {#each prescriptions as prescription, index}
-            <div class="card">
-                <h4 class="font-bold">Prescription {index + 1}</h4>
-                <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
-
-                <h5 class="font-bold mt-2">Medication Details:</h5>
-                {#each prescription.medicines as medicine, medicineIndex}
-                    <div class="mt-2">
-                        <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
-                        <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
-                        <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
-                    </div>
-                {/each}
-
-                <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
-                <button on:click={() => generatePDF(prescription, index)} class="button">
-                    Download PDF
-                </button>
+<div style="max-height: 100vh; overflow: hidden;">
+    <header style="padding-top: 1rem; padding-left: 1rem;">
+        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 68rem;">
+            <div class="flex items-center">
+                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" />
+                <div class="header-info">
+                    <h1 class="patient-name">AFDomingo</h1>
+                    <p class="patient-details">DENTAL CLINIC</p>
+                    <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+                    <p class="patient-details">afdomingodentalclinic@gmail.com</p>
+                    <p class="patient-details">0932 984 9554</p>
+                </div>
             </div>
-        {/each}
+        </div>
+    </header>
+    <div class="container" style="overflow-y: auto; max-height: calc(100vh - 168px);"> <!-- Adjust height based on header -->
+        <div class="header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
+                <path d="M10 5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z"/>
+                <path d="M0 14s1-3 7-3 7 3 7 3v1H0v-1z"/>
+            </svg>
+            <h2><strong>Name: {name} {lastName}</strong></h2>
+        </div>
+
+        {#if loading}
+            <p class="loading">Loading...</p>
+        {:else}
+            {#if error}
+                <p class="error">{error}</p>
+            {:else}
+                <div class="info"><strong>Address:</strong> {address || 'Not available'}</div>
+                <div class="info"><strong>Age:</strong> {age || 'Not available'} years old</div>
+                <div class="info"><strong>Gender:</strong> {gender || 'Not available'}</div>
+                <div class="info"><strong>Phone:</strong> {phone || 'Not available'}</div>
+                <div class="info"><strong>Birthday:</strong> {birthday || 'Not available'}</div>
+
+                <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>
+                {#if prescriptions.length > 0}
+                    <div class="mt-4">
+                        {#each prescriptions as prescription, index}
+                            <div class="card">
+                                <h4 class="font-bold">Prescription {index + 1}</h4>
+                                <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
+
+                                <h5 class="font-bold mt-2">Medication Details:</h5>
+                                {#each prescription.medicines as medicine, medicineIndex}
+                                    <div class="mt-2">
+                                        <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
+                                        <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
+                                        <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
+                                    </div>
+                                {/each}
+
+                                <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+                                <button on:click={() => generatePDF(prescription, index)} class="button">
+                                    Download PDF
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+                {:else}
+                    <p>No prescriptions available.</p>
+                {/if}
+            {/if}
+        {/if}
     </div>
-{:else}
-    <p>No prescriptions available.</p>
-{/if}
-    {/if}
-{/if}
-</div>
 </div>
 <style>
     .card {
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 6px; /* Height of the solid bar */
-    background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
-}
-.card h4, h5 {
-    margin-bottom: 0.6rem;
-    font-size: 1.1rem;
-    color: #005b80;
-}
-
-.card p {
-    margin-bottom: 0.2rem;
-    font-size: 1rem;
-    color: #333;
-}
-
-.card p strong {
-    color: #08B8F3; /* Bright blue for labels */
-}
-
-.card .italic {
-    color: red;
-}
-.prescription-header {
-    font-size: 1.5rem; /* Larger font size for emphasis */
-    color: #000000; /* Use the same color as the gradient for consistency */
-    margin-bottom: 16px; /* Space below the header */
-    text-align: center; /* Center the header text */
-    border-bottom: 2px solid #ddd; /* Underline effect */
-    padding-bottom: 8px; /* Space between text and underline */
-    text-transform: uppercase; /* Make the text uppercase for emphasis */
-}
-/* Responsive Styles */
-@media (max-width: 768px) {
-    .card-container {
-        grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
-        gap: 12px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
     }
-}
+
+    .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px; /* Height of the solid bar */
+        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    }
+    .card h4, h5 {
+        margin-bottom: 0.6rem;
+        font-size: 1.1rem;
+        color: #005b80;
+    }
+
+    .card p {
+        margin-bottom: 0.2rem;
+        font-size: 1rem;
+        color: #333;
+    }
+
+    .card p strong {
+        color: #08B8F3; /* Bright blue for labels */
+    }
+
+    .card .italic {
+        color: red;
+    }
+    .prescription-header {
+        font-size: 1.5rem; /* Larger font size for emphasis */
+        color: #000000; /* Use the same color as the gradient for consistency */
+        margin-bottom: 16px; /* Space below the header */
+        text-align: center; /* Center the header text */
+        border-bottom: 2px solid #ddd; /* Underline effect */
+        padding-bottom: 8px; /* Space between text and underline */
+        text-transform: uppercase; /* Make the text uppercase for emphasis */
+    }
     .container {
         margin-top: 0.5rem;
         max-width: 100%;
@@ -360,6 +345,37 @@ function generatePDF(prescription: any, index: number) {
         background-color: #f9f9f9;
         border-radius: 8px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        overflow-y: auto; /* Allow vertical scrolling */
+        max-height: calc(100vh - 168px); /* Adjust height based on header */
+    }
+
+    /* Ensure no fixed positioning is applied to the header */
+    .header-section {
+        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .container::-webkit-scrollbar {
+        display: none; /* Hide scrollbar */
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .container {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+    }
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .card-container {
+            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+            gap: 12px;
+        }
     }
     .header {
         display: flex;
@@ -386,6 +402,7 @@ function generatePDF(prescription: any, index: number) {
     .prescription h4 {
         margin-bottom: 10px;
     }
+
     .prescription p {
         margin: 5px 0;
     }
@@ -422,7 +439,6 @@ function generatePDF(prescription: any, index: number) {
         border-top-left-radius: 8px;
         border-top-right-radius: 8px;
         padding: 16px;
-        height: 168px;
         display: flex;
         align-items: center;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);

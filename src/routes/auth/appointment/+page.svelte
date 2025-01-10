@@ -559,8 +559,8 @@ function fetchAppointments() {
 padding-left: 1rem;
 
 ">
-<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 1000px; margin-top: 10px;">
-          <div class="flex items-center">
+<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 68rem;">
+  <div class="flex items-center">
               <img 
                   src="/images/logo(landing).png" 
                   alt="Sun with dental logo" 
