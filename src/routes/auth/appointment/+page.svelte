@@ -91,7 +91,6 @@ const afternoonSlots = [
 function selectTime(time: string) {
   selectedTime = time;
 }
-
 async function bookAppointment() { 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -123,25 +122,60 @@ async function bookAppointment() {
         return; // Stop the function if profile does not exist
       }
 
-      // Check if the patient already has an appointment for the selected date and time
+      // Check if the patient already has an appointment on the selected date
       const q = query(
+        collection(db, "appointments"),
+        where("patientId", "==", patientId), // Filter by patientId to check for any existing appointments
+        where("date", "==", selectedDate), // Check for the selected date
+        where("cancellationStatus", "==", '') // Only check appointments that are not canceled
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      // If there's already an appointment on the selected date, block the booking
+      if (!querySnapshot.empty) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Already Booked',
+          text: 'You already have an appointment on this day. You can only book one appointment per day.',
+        });
+        return; // Stop if the patient already has an appointment for the day
+      }
+
+      // Check if there is an "accepted" or "pending" appointment already booked for the selected date and time
+      const qTimeSlot = query(
         collection(db, "appointments"),
         where("date", "==", selectedDate), // Check for the selected date
         where("time", "==", selectedTime), // Check for the selected time
         where("cancellationStatus", "==", '') // Only check appointments that are not canceled
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshotTimeSlot = await getDocs(qTimeSlot);
 
-      if (querySnapshot.empty) {
-        // No appointment found for the selected date and time, so allow booking
+      // Check if there is an "accepted" or "pending" appointment for the selected time slot
+      const existingAppointment = querySnapshotTimeSlot.docs.find(doc => 
+        doc.data().status === "Accepted" || doc.data().status === "pending"
+      );
+
+      if (existingAppointment) {
+        // If there is an accepted or pending appointment for the selected date and time
+        Swal.fire({
+          icon: 'info',
+          title: 'Time Slot Unavailable',
+          text: 'This time slot is already booked or pending. Please choose a different time.',
+        });
+        return; // Stop if the time slot is unavailable
+      }
+
+      // If no "accepted" or "pending" appointment found, allow booking
+      if (querySnapshotTimeSlot.empty) {
         const docRef = await addDoc(collection(db, "appointments"), {
           patientId: patientId,
           date: selectedDate,
           time: selectedTime,
           service: selectedService,
           subServices: selectedSubServices,
-          status: 'pending',
+          status: 'pending', // Set the status to 'pending' initially
           cancellationStatus: '',
         });
 
@@ -162,8 +196,8 @@ async function bookAppointment() {
 
           Swal.fire({
             icon: 'success',
-            title: 'Appointment Booked',
-            text: `Your appointment is set for ${appointment.date} at ${appointment.time}.`,
+            title: 'Appointment Pending',
+            text: `Your appointment is pending for ${appointment.date} at ${appointment.time}. Please wait for confirmation.`,
           });
 
           selectedTime = null;
@@ -177,13 +211,6 @@ async function bookAppointment() {
           });
           console.error("No document found for the new appointment.");
         }
-      } else {
-        // An appointment already exists for the selected date and time
-        Swal.fire({
-          icon: 'info',
-          title: 'Time Slot Unavailable',
-          text: 'This time slot is already booked. Please choose a different time.',
-        });
       }
     } catch (e) {
       Swal.fire({
@@ -201,8 +228,6 @@ async function bookAppointment() {
     });
   }
 }
-
-
 
 
 function getMinDate(): string {
@@ -789,7 +814,7 @@ padding-left: 1rem;
                 </TableBodyCell>
                 
                 <TableBodyCell style="padding: 5px;">
-                  {#if appointment.status === 'pending' || appointment.status === 'Accepted'}
+                  {#if appointment.status !== 'Accepted'}
                     <Button
                       on:click={() => openCancelModal(appointment.id)}
                       class="cancel-button"
