@@ -25,7 +25,7 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'Approved' | 'Declined' | 'requested' | null;
-  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "cancellationRequested" | "";
+  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "cancellationRequested" | "";
 };
 
 let selectedDate = new Date().toISOString().split('T')[0]; // Initialize with today's date in YYYY-MM-DD format
@@ -41,6 +41,9 @@ let reasonNotAvailable = false;
   let rescheduleModal: boolean = false;
   let newDate: string = "";
   let newTime: string = "";
+  let currentSchedule = { date: "", time: "" };
+  let currentAppointment: Appointment | null = null;
+
 
   // Collect the selected reasons into an array
   function getSelectedReasons() {
@@ -434,12 +437,21 @@ function toggleSubService(subService: string) {
     selectedSubServices.push(subService);
   }
 }
+
 function openRescheduleModal(appointmentId: string): void {
-    selectedAppointmentId = appointmentId;
-    rescheduleModal = true;
+  // Find the appointment details by ID
+  currentAppointment = appointments.find(appointment => appointment.id === appointmentId) || null;
+
+  if (currentAppointment) {
+    newDate = currentAppointment.date; // Set the current date as default
+    newTime = currentAppointment.time; // Set the current time as default
   }
 
-  async function rescheduleAppointment(newDate: string, newTime: string): Promise<void> {
+  selectedAppointmentId = appointmentId;
+  rescheduleModal = true;
+}
+
+async function rescheduleAppointment(newDate: string, newTime: string): Promise<void> {
   if (!newDate || !newTime) {
     Swal.fire({
       icon: "warning",
@@ -454,15 +466,27 @@ function openRescheduleModal(appointmentId: string): void {
     return;
   }
 
+  // Check if currentAppointment is not null before accessing its properties
+  if (currentAppointment && currentAppointment.date === newDate && currentAppointment.time === newTime) {
+    Swal.fire({
+      icon: "warning",
+      title: "No Change Detected",
+      text: "The selected date and time are the same as your current schedule. Please choose a different date or time.",
+    });
+    return;
+  }
+
   const selectedDateObj = new Date(newDate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  if (selectedDateObj < today) {
+  // Block selecting past dates
+  const currentAppointmentDate = new Date(currentAppointment?.date || '');
+  if (selectedDateObj < today || selectedDateObj < currentAppointmentDate) {
     Swal.fire({
       icon: "warning",
       title: "Invalid Date",
-      text: "You cannot reschedule to a past date.",
+      text: "You cannot reschedule to a past date or a date before your current appointment.",
     });
     return;
   }
@@ -515,6 +539,7 @@ function openRescheduleModal(appointmentId: string): void {
     });
   }
 }
+
 
 </script>
 
@@ -737,6 +762,8 @@ padding-left: 1rem;
                     <span class="text-red-600 font-semibold">Cancelled</span>
                   {:else if appointment.cancellationStatus === 'Declined'}
                     <span class="text-red-600 font-semibold">Cancellation Declined</span>
+                    {:else if appointment.status === 'Reschedule Requested'}
+                    <span class="text-purple-600 font-semibold">Reschedule Requested</span>
                   {:else if appointment.status === 'Accepted'}
                     <span class="text-green-600 font-semibold">Accepted</span>
                   {:else if appointment.status === 'confirmed'}
@@ -782,27 +809,42 @@ padding-left: 1rem;
           </TableBody>
           
         </Table>
+
         {#if rescheduleModal}
-        <div class="modal">
-          <div class="modal-content">
-            <h2>Request Reschedule</h2>
-      
-            <label for="newDate">Select a new date:</label>
-            <input type="date" id="newDate" min={getMinDate()} bind:value={newDate} />
-      
-            <label for="newTime">Select a new time:</label>
-            <select id="newTime" bind:value={newTime}>
-              <option value="" disabled selected>Select a time</option>
-              {#each availableSlots as slot}
-                <option value={slot}>{slot}</option>
-              {/each}
-            </select>
-      
-            <button on:click={() => rescheduleAppointment(newDate, newTime)}>Request Reschedule</button>
-            <button on:click={() => (rescheduleModal = false)}>Cancel</button>
-          </div>
-        </div>
+  <div class="modal reschedule-modal">
+    <div class="modal-content">
+      <h2>Request Reschedule</h2>
+
+      <!-- Show Current Appointment Details -->
+      {#if currentAppointment}
+        <p><strong>Current Schedule:</strong></p>
+        <p>Date: {currentAppointment.date}</p>
+        <p>Time: {currentAppointment.time}</p>
       {/if}
+
+      <!-- Select New Date -->
+      <label for="newDate">Select a new date:</label>
+      <input type="date" id="newDate" min={getMinDate()} bind:value={newDate} />
+
+      <!-- Select New Time -->
+      <label for="newTime">Select a new time:</label>
+      <select id="newTime" bind:value={newTime}>
+        <option value="" disabled selected>Select a time</option>
+        {#each availableSlots as slot}
+          <option value={slot}>{slot}</option>
+        {/each}
+      </select>
+
+      <button class="btn btn-primary" on:click={() => rescheduleAppointment(newDate, newTime)}>
+        Request Reschedule
+      </button>
+      <button class="btn btn-secondary" on:click={() => (rescheduleModal = false)}>
+        Cancel
+      </button>
+    </div>
+  </div>
+{/if}
+        
       
       
       </div>
@@ -1019,4 +1061,132 @@ padding-left: 1rem;
     height: 20px;
     margin-right: 10px; /* Space between the icon and text */
   }
+/* Scoped styles for reschedule modal */
+.reschedule-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.reschedule-modal .modal-content {
+  background: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  text-align: center;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
+  opacity: 0;
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.reschedule-modal h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.reschedule-modal p {
+  font-size: 1.1rem;
+  color: #444; /* Darker color for better contrast */
+  font-weight: 500; /* Slightly bolder text for emphasis */
+  line-height: 1.6; /* Improve readability */
+}
+
+.reschedule-modal label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  text-align: left;
+  color: #444;
+  font-size: 1.1rem;
+}
+
+.reschedule-modal input[type="date"],
+.reschedule-modal select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 50px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+  transition: border 0.2s ease;
+}
+
+.reschedule-modal input[type="date"]:focus,
+.reschedule-modal select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.reschedule-modal button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
+  margin-top: 0.75rem;
+}
+
+.reschedule-modal .btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.reschedule-modal .btn-primary:hover {
+  background: #0056b3;
+}
+
+.reschedule-modal .btn-secondary {
+  background: #f7f7f7;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.reschedule-modal .btn-secondary:hover {
+  background: #e0e0e0;
+}
+
+.reschedule-modal .btn-primary:focus,
+.reschedule-modal .btn-secondary:focus {
+  outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .reschedule-modal .modal-content {
+    padding: 2rem 1.5rem;
+    width: 95%;
+    max-width: 380px;
+  }
+  
+  .reschedule-modal h2 {
+    font-size: 1.6rem;
+  }
+
+  .reschedule-modal label {
+    font-size: 1rem;
+  }
+}
+
   </style>
