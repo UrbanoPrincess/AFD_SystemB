@@ -123,26 +123,26 @@ async function bookAppointment() {
         return; // Stop the function if profile does not exist
       }
 
-      // Check if the patient already has an appointment for the selected date
+      // Check if the patient already has an appointment for the selected date and time
       const q = query(
         collection(db, "appointments"),
-        where("patientId", "==", patientId),
-        where("date", "==", selectedDate), // Use selectedDate directly as it's already in YYYY-MM-DD format
-        where("cancellationStatus", "==", '')  // Only check appointments that are not canceled
+        where("date", "==", selectedDate), // Check for the selected date
+        where("time", "==", selectedTime), // Check for the selected time
+        where("cancellationStatus", "==", '') // Only check appointments that are not canceled
       );
-      
+
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // No appointment found for the selected date, so allow booking
+        // No appointment found for the selected date and time, so allow booking
         const docRef = await addDoc(collection(db, "appointments"), {
           patientId: patientId,
-          date: selectedDate, // Use selectedDate directly
+          date: selectedDate,
           time: selectedTime,
           service: selectedService,
           subServices: selectedSubServices,
-          status: 'pending', // Explicitly set the status
-          cancellationStatus: '', // Optional field for cancellations
+          status: 'pending',
+          cancellationStatus: '',
         });
 
         const docSnap = await getDoc(docRef);
@@ -178,11 +178,11 @@ async function bookAppointment() {
           console.error("No document found for the new appointment.");
         }
       } else {
-        // The patient already has an appointment for the selected date
+        // An appointment already exists for the selected date and time
         Swal.fire({
           icon: 'info',
-          title: 'Appointment Already Exists',
-          text: 'You already have an appointment for this day. Please cancel your existing appointment before booking again.',
+          title: 'Time Slot Unavailable',
+          text: 'This time slot is already booked. Please choose a different time.',
         });
       }
     } catch (e) {
@@ -201,6 +201,7 @@ async function bookAppointment() {
     });
   }
 }
+
 
 
 
@@ -452,9 +453,7 @@ function fetchAppointments() {
       text-align: center;
     }
 
-    .w-24 {
-      width: 100px; /* Adjust logo size on small screens */
-    }
+   
 
     .text-lg {
       font-size: 18px; /* Adjust font size for headings */
