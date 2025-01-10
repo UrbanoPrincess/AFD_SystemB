@@ -35,8 +35,12 @@ let selectedSubServices: string[] = []; // Array to hold selected sub-services
 let appointments: Appointment[] = [];
 let patientId: string | null = null;
 let reasonNotAvailable = false;
+
   let reasonSchedulingConflict = false;
   let reasonOther = false;
+  let rescheduleModal: boolean = false;
+  let newDate: string = "";
+  let newTime: string = "";
 
   // Collect the selected reasons into an array
   function getSelectedReasons() {
@@ -81,12 +85,40 @@ let popupModal = false; // Modal state for confirmation
 let selectedAppointmentId: string | null = null; // To store the selected appointment for deletion
 
 const morningSlots = [
-  "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", 
-];
+    "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  ];
+  const afternoonSlots = [
+    "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM",
+  ];
 
-const afternoonSlots = [
-  "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM", "4:00 PM","4:30 PM"
-];
+  let availableSlots = [...morningSlots, ...afternoonSlots];
+
+  // Fetch available slots when date changes
+  $: fetchAvailableSlots();
+
+  async function fetchAvailableSlots() {
+    if (!newDate) return;
+
+    try {
+      const q = query(
+        collection(db, "appointments"),
+        where("date", "==", newDate),
+        where("cancellationStatus", "==", "")
+      );
+
+      const querySnapshot = await getDocs(q);
+      const unavailableSlots = querySnapshot.docs
+        .filter((doc) => doc.data().status === "Accepted" || doc.data().status === "pending")
+        .map((doc) => doc.data().time);
+
+      availableSlots = [...morningSlots, ...afternoonSlots].filter(
+        (slot) => !unavailableSlots.includes(slot)
+      );
+    } catch (error) {
+      console.error("Error fetching available slots:", error);
+    }
+  }
+
 
 function selectTime(time: string) {
   selectedTime = time;
@@ -366,14 +398,6 @@ function isTimeSlotAvailable(slot: string, date: string): boolean {
   return true;
 }
 
-function getTodayDate(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
-}
-
 function isTimePassed(time: string): boolean {
   const currentTime = new Date();
   const [slotTime, period] = time.split(' ');
@@ -410,172 +434,91 @@ function toggleSubService(subService: string) {
     selectedSubServices.push(subService);
   }
 }
-function fetchAppointments() {
-  try {
-    const appointmentsRef = collection(db, "appointments");
+function openRescheduleModal(appointmentId: string): void {
+    selectedAppointmentId = appointmentId;
+    rescheduleModal = true;
+  }
 
-    // Set up a real-time listener
-    onSnapshot(appointmentsRef, (querySnapshot) => {
-      appointments = []; // Clear the array before updating
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as Appointment;
-        appointments.push({
-          ...data,
-          id: doc.id,
-          status: data.status || "",
-        });
-      });
-
-      // Log to verify real-time updates
-      console.log("Updated appointments:", appointments);
+  async function rescheduleAppointment(newDate: string, newTime: string): Promise<void> {
+  if (!newDate || !newTime) {
+    Swal.fire({
+      icon: "warning",
+      title: "Incomplete Details",
+      text: "Please select a new date and time for rescheduling.",
     });
+    return;
+  }
+
+  if (!selectedAppointmentId) {
+    console.error("No appointment ID selected for rescheduling.");
+    return;
+  }
+
+  const selectedDateObj = new Date(newDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (selectedDateObj < today) {
+    Swal.fire({
+      icon: "warning",
+      title: "Invalid Date",
+      text: "You cannot reschedule to a past date.",
+    });
+    return;
+  }
+
+  try {
+    // Check if the time slot is already occupied
+    const q = query(
+      collection(db, "appointments"),
+      where("date", "==", newDate),
+      where("time", "==", newTime),
+      where("cancellationStatus", "==", "")
+    );
+
+    const querySnapshot = await getDocs(q);
+    const existingAppointment = querySnapshot.docs.find(
+      (doc) => doc.data().status === "Accepted" || doc.data().status === "pending"
+    );
+
+    if (existingAppointment) {
+      Swal.fire({
+        icon: "info",
+        title: "Time Slot Unavailable",
+        text: "This time slot is already booked or pending. Please choose a different time.",
+      });
+      return;
+    }
+
+    // Mark the appointment as "Reschedule Requested"
+    const appointmentRef = doc(collection(db, "appointments"), selectedAppointmentId);
+
+    await updateDoc(appointmentRef, {
+      status: "Reschedule Requested",
+      requestedDate: newDate,
+      requestedTime: newTime,
+    });
+
+    Swal.fire({
+      icon: "success",
+      title: "Reschedule Requested",
+      text: `Your reschedule request for ${newDate} at ${newTime} has been submitted. Please wait for approval.`,
+    });
+
+    rescheduleModal = false;
   } catch (error) {
-    console.error("Error fetching appointments: ", error);
+    console.error("Error submitting reschedule request:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Failed to submit reschedule request. Please try again.",
+    });
   }
 }
 
 </script>
 
-<style>
-  .booked {
-    background-color: #cbd5e1;
-    cursor: not-allowed;
-  }
 
-  .slot-button {
-    width: 100%;
-  }
-
-  .slots-container {
-    max-height: 300px; /* Adjust the height as needed */
-     /* Enables vertical scrolling */
-  }
-
-  .appointments-section {
-    margin-top: 30px;
-    background-color: #f9fafb;
-    padding: 10px;
-    border-radius: 8px;
-    max-height: 300px; /* Adjust the height as needed */
-    /* Enables vertical scrolling */
-  }
-
-
- 
-  /* Hide the scrollbar */
-  div::-webkit-scrollbar {
-    display: none;
-  }
-
-  div {
-    -ms-overflow-style: none;  /* For Internet Explorer and Edge */
-    scrollbar-width: none;      /* For Firefox */
-  }
-  @media (max-width: 768px) {
-    .flex {
-      flex-direction: column; /* Stack the elements vertically on small screens */
-      align-items: center;
-      text-align: center;
-    }
-
-   
-
-    .text-lg {
-      font-size: 18px; /* Adjust font size for headings */
-    }
-
-    .text-sm {
-      font-size: 14px; /* Adjust font size for smaller text */
-    }
-  }
-  @media (max-width: 768px) {
-    .slots-container .grid {
-      grid-template-columns: repeat(2, 1fr); /* Adjust grid layout on smaller screens */
-    }
-
-    .text-sm {
-      font-size: 14px; /* Smaller text on mobile */
-    }
-
-    .slot-button {
-      padding: 8px 12px; /* Adjust padding for smaller buttons */
-    }
-  }
-  /*
-  :global(.content) {
-       
-        overflow: auto;
-    }*/
-    .selected {
-  background-color: blue; /* Blue background for selected slot */
-  color: white; /* White text */
-  border-color: blue; /* Matching border color */
-  cursor: default; /* Prevent hover change when selected */
-  transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
-}
-.selected:hover {
-  background-color: darkblue; /* Darker blue when hovered */
-  border-color: darkblue; /* Darker border to match */
-}
-.header-section {
-        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 16px;
-        height: 168px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
-    }
-
-    .logo {
-        width: 10rem;
-        height: 10rem;
-        border-radius: 50%;
-        margin-right: 16px;
-        object-fit: cover;
-    }
-
-    .header-info {
-        color: #000000;
-    }
-
-    .patient-name {
-        font-size: 1.3rem;
-        font-weight: bold;
-        margin: 0;
-    }
-
-    .patient-details {
-        margin: 2px 0;
-        font-size: 1rem;
-        color: #000000;
-        line-height: 1.2;
-    }
-
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-        .header-section {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 12px;
-        }
-
-        .logo {
-            width: 8rem;
-            height: 8rem;
-            margin-bottom: 12px;
-        }
-
-        .patient-name {
-            font-size: 1.25rem;
-        }
-
-        .patient-details {
-            font-size: 0.875rem;
-        }
-    }
-</style>
 <div style="max-height: 100vh; overflow-y: auto;">
   <header style="
   padding-top: 1rem;
@@ -814,6 +757,13 @@ padding-left: 1rem;
                 </TableBodyCell>
                 
                 <TableBodyCell style="padding: 5px;">
+                  {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
+                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
+                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
+                    
+                  </Button>
+                {/if}
+
                   {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
                     <Button
                       on:click={() => openCancelModal(appointment.id)}
@@ -832,7 +782,29 @@ padding-left: 1rem;
           </TableBody>
           
         </Table>
-        
+        {#if rescheduleModal}
+        <div class="modal">
+          <div class="modal-content">
+            <h2>Request Reschedule</h2>
+      
+            <label for="newDate">Select a new date:</label>
+            <input type="date" id="newDate" min={getMinDate()} bind:value={newDate} />
+      
+            <label for="newTime">Select a new time:</label>
+            <select id="newTime" bind:value={newTime}>
+              <option value="" disabled selected>Select a time</option>
+              {#each availableSlots as slot}
+                <option value={slot}>{slot}</option>
+              {/each}
+            </select>
+      
+            <button on:click={() => rescheduleAppointment(newDate, newTime)}>Request Reschedule</button>
+            <button on:click={() => (rescheduleModal = false)}>Cancel</button>
+          </div>
+        </div>
+      {/if}
+      
+      
       </div>
     {:else}
       <div class="appointments-section">
@@ -881,3 +853,170 @@ padding-left: 1rem;
     </div>
   </Modal>
 
+  <style>
+    .modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+}
+
+    .booked {
+      background-color: #cbd5e1;
+      cursor: not-allowed;
+    }
+  
+    .slot-button {
+      width: 100%;
+    }
+  
+    .slots-container {
+      max-height: 300px; /* Adjust the height as needed */
+       /* Enables vertical scrolling */
+    }
+  
+    .appointments-section {
+      margin-top: 30px;
+      background-color: #f9fafb;
+      padding: 10px;
+      border-radius: 8px;
+      max-height: 300px; /* Adjust the height as needed */
+      /* Enables vertical scrolling */
+    }
+  
+  
+   
+    /* Hide the scrollbar */
+    div::-webkit-scrollbar {
+      display: none;
+    }
+  
+    div {
+      -ms-overflow-style: none;  /* For Internet Explorer and Edge */
+      scrollbar-width: none;      /* For Firefox */
+    }
+    @media (max-width: 768px) {
+      .flex {
+        flex-direction: column; /* Stack the elements vertically on small screens */
+        align-items: center;
+        text-align: center;
+      }
+  
+     
+  
+      .text-lg {
+        font-size: 18px; /* Adjust font size for headings */
+      }
+  
+      .text-sm {
+        font-size: 14px; /* Adjust font size for smaller text */
+      }
+    }
+    @media (max-width: 768px) {
+      .slots-container .grid {
+        grid-template-columns: repeat(2, 1fr); /* Adjust grid layout on smaller screens */
+      }
+  
+      .text-sm {
+        font-size: 14px; /* Smaller text on mobile */
+      }
+  
+      .slot-button {
+        padding: 8px 12px; /* Adjust padding for smaller buttons */
+      }
+    }
+    /*
+    :global(.content) {
+         
+          overflow: auto;
+      }*/
+      .selected {
+    background-color: blue; /* Blue background for selected slot */
+    color: white; /* White text */
+    border-color: blue; /* Matching border color */
+    cursor: default; /* Prevent hover change when selected */
+    transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
+  }
+  .selected:hover {
+    background-color: darkblue; /* Darker blue when hovered */
+    border-color: darkblue; /* Darker border to match */
+  }
+  .header-section {
+          background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+          border-top-left-radius: 8px;
+          border-top-right-radius: 8px;
+          padding: 16px;
+          height: 168px;
+          display: flex;
+          align-items: center;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
+      }
+  
+      .logo {
+          width: 10rem;
+          height: 10rem;
+          border-radius: 50%;
+          margin-right: 16px;
+          object-fit: cover;
+      }
+  
+      .header-info {
+          color: #000000;
+      }
+  
+      .patient-name {
+          font-size: 1.3rem;
+          font-weight: bold;
+          margin: 0;
+      }
+  
+      .patient-details {
+          margin: 2px 0;
+          font-size: 1rem;
+          color: #000000;
+          line-height: 1.2;
+      }
+  
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+          .header-section {
+              flex-direction: column;
+              align-items: flex-start;
+              padding: 12px;
+          }
+  
+          .logo {
+              width: 8rem;
+              height: 8rem;
+              margin-bottom: 12px;
+          }
+  
+          .patient-name {
+              font-size: 1.25rem;
+          }
+  
+          .patient-details {
+              font-size: 0.875rem;
+          }
+      }
+      .reschedule-icon {
+    width: 20px; /* Adjust the size of the icon */
+    height: 20px;
+    margin-right: 10px; /* Space between the icon and text */
+  }
+  </style>
