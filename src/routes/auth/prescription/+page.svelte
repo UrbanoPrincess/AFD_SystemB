@@ -326,9 +326,7 @@ function generatePDF(prescription: any, index: number) {
         color: #08B8F3; /* Bright blue for labels */
     }
 
-    .card .italic {
-        color: red;
-    }
+   
     .prescription-header {
         font-size: 1.5rem; /* Larger font size for emphasis */
         color: #000000; /* Use the same color as the gradient for consistency */
@@ -371,12 +369,8 @@ function generatePDF(prescription: any, index: number) {
         scrollbar-width: none; /* Firefox */
     }
     /* Responsive Styles */
-    @media (max-width: 768px) {
-        .card-container {
-            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
-            gap: 12px;
-        }
-    }
+   
+       
     .header {
         display: flex;
         align-items: center;
@@ -391,21 +385,9 @@ function generatePDF(prescription: any, index: number) {
         margin: 2px 0; /* Reduced margin to bring elements closer */
         font-size: 16px;
     }
-    .prescription {
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        background-color: #fff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        margin-bottom: 20px;
-    }
-    .prescription h4 {
-        margin-bottom: 10px;
-    }
+    
 
-    .prescription p {
-        margin: 5px 0;
-    }
+   
     .button {
         background: linear-gradient(90deg, #08B8F3, #005b80);
         color: rgb(255, 255, 255);

@@ -24,8 +24,8 @@ type Appointment = {
   patientId: string;
   service: string;
   subServices: string[];
-  cancellationStatus?: 'pending' | 'Approved' | 'Declined' | 'requested' | null;
-  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "cancellationRequested" | "";
+  cancellationStatus?: 'pending' | 'Approved' | 'decline' | 'requested' | null;
+  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "Rescheduled" |"cancellationRequested" | "";
 };
 
 let selectedDate = new Date().toISOString().split('T')[0]; // Initialize with today's date in YYYY-MM-DD format
@@ -730,58 +730,61 @@ padding-left: 1rem;
   >
     <h3 style="font-size: 18px; font-weight: bold; ">Your Appointments</h3>
   
-  <!-- Right Section (Appointments Table) -->
-  <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px; ">
-    {#if appointments.length > 0}
-      <div style=" margin-bottom: 20px;">
-        <Table shadow style="width: 100%; table-layout: auto; border-collapse: collapse;">
-          <TableHead>
-            <TableHeadCell style="font-weight: bold; padding: 10px;">Date</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px;">Time</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px;">Service</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 10px;">Status</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px;">Actions</TableHeadCell>
-          </TableHead>
-          
-          <TableBody tableBodyClass="divide-y">
-            {#each appointments as appointment}
-              <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
-                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
-                  {appointment.date}
-                </TableBodyCell>
-                <TableBodyCell style="padding: 5px;">
-                  {appointment.time}
-                </TableBodyCell>
-                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
-                  {appointment.service}
-                </TableBodyCell>
-                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                  {#if appointment.cancellationStatus === 'requested'}
-                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                  {:else if appointment.cancellationStatus === 'Approved'}
-                    <span class="text-red-600 font-semibold">Cancelled</span>
-                  {:else if appointment.cancellationStatus === 'Declined'}
-                    <span class="text-red-600 font-semibold">Cancellation Declined</span>
+     <!-- Right Section (Appointments Table) -->
+     <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
+      {#if appointments.length > 0}
+        <div style=" margin-bottom: 20px;">
+          <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+            <TableHead>
+              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%;">Date</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%;">Time</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Service</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Status</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Actions</TableHeadCell>
+            </TableHead>
+            
+            <TableBody tableBodyClass="divide-y">
+              {#each appointments as appointment}
+                <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
+                  <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
+                    {appointment.date}
+                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px;">
+                    {appointment.time}
+                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                    {appointment.service}
+                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                    {#if appointment.cancellationStatus === 'requested'}
+                      <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                    {:else if appointment.cancellationStatus === 'Approved'}
+                      <span class="text-red-600 font-semibold">Cancelled</span>
+                    {:else if appointment.cancellationStatus === 'decline'}
+                      <span class="text-red-600 font-semibold">Cancellation Declined</span>
                     {:else if appointment.status === 'Reschedule Requested'}
-                    <span class="text-purple-600 font-semibold">Reschedule Requested</span>
-                  {:else if appointment.status === 'Accepted'}
-                    <span class="text-green-600 font-semibold">Accepted</span>
-                  {:else if appointment.status === 'confirmed'}
-                    <span class="text-blue-600 font-semibold">Confirmed</span>
-                  {:else if appointment.status === 'Completed'}
-                    <span class="text-blue-600 font-semibold">Completed</span>
-                  {:else if appointment.status === 'Decline'}
-                    <span class="text-red-600 font-semibold">Declined</span>
-                  {:else if appointment.status === 'Missed'}
-                    <span class="text-red-600 font-semibold">Missed</span>
-                  {:else if appointment.status === 'pending'}
-                    <span class="text-gray-600 font-semibold">Pending</span>
-                  {:else if appointment.status === 'cancellationRequested'}
-                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                  {:else}
-                    <span class="text-gray-600 font-semibold">Unknown Status</span>
-                  {/if}
-                </TableBodyCell>
+                      <span class="text-purple-600 font-semibold">Reschedule Requested</span>
+                    {:else if appointment.status === 'Rescheduled'}
+                      <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+                    {:else if appointment.status === 'Accepted'}
+                      <span class="text-green-600 font-semibold">Accepted</span>
+                    {:else if appointment.status === 'confirmed'}
+                      <span class="text-blue-600 font-semibold">Confirmed</span>
+                    {:else if appointment.status === 'Completed'}
+                      <span class="text-blue-600 font-semibold">Completed</span>
+                    {:else if appointment.status === 'Decline'}
+                      <span class="text-red-600 font-semibold">Declined</span>
+                    {:else if appointment.status === 'Missed'}
+                      <span class="text-red-600 font-semibold">Missed</span>
+                    {:else if appointment.status === 'pending'}
+                      <span class="text-gray-600 font-semibold">Pending</span>
+                    {:else if appointment.status === 'cancellationRequested'}
+                      <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                    {:else}
+                      <span class="text-gray-600 font-semibold">Unknown Status</span>
+                    {/if}
+                  </TableBodyCell>
+    
                 
                 <TableBodyCell style="padding: 5px;">
                   {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
@@ -810,6 +813,22 @@ padding-left: 1rem;
           
         </Table>
 
+        </div>
+        {:else}
+          <div class="appointments-section">
+            <p style="
+              font-style: italic; 
+              color: #555; 
+              font-size: 16px;
+              text-align: center;
+            ">No appointments found. Book an appointment to see it here!</p>
+          </div>
+        {/if}
+      </div>
+    </div>
+    </div>
+    </div>
+    
         {#if rescheduleModal}
   <div class="modal reschedule-modal">
     <div class="modal-content">
@@ -845,23 +864,7 @@ padding-left: 1rem;
   </div>
 {/if}
         
-      
-      
-      </div>
-    {:else}
-      <div class="appointments-section">
-        <p style="
-          font-style: italic; 
-          color: #555; 
-          font-size: 16px;
-          text-align: center;
-        ">No appointments found. Book an appointment to see it here!</p>
-      </div>
-    {/if}
-  </div>
-</div>
-</div>
-</div>
+     
 
   <!-- Confirmation Modal for CANCELATION Appointment -->
   <Modal bind:open={popupModal} size="xs" autoclose>

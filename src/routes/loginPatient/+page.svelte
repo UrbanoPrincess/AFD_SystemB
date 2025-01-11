@@ -1,56 +1,77 @@
 <script>
     // @ts-nocheck
-    import { Modal } from 'flowbite-svelte';
+    import Swal from 'sweetalert2';
     import { Label, Input } from 'flowbite-svelte';
     import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
     import { firebaseConfig } from "$lib/firebaseConfig";
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { goto } from '$app/navigation';
-    
+    import { onMount } from 'svelte';
+
     // Initialize Firebase app
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     const auth = getAuth(app);
-    
-    let showModal = false;
+
     let email = '';
     let password = '';
-    let loginMessage = ''; // Message for success or error
     let showPassword = false; // State for showing password
     let rememberMe = false; // State for remember me checkbox
 
-    // Load saved email and password from local storage
-    if (localStorage.getItem('rememberMe') === 'true') {
-        email = localStorage.getItem('email') || '';
-        password = localStorage.getItem('password') || '';
-        rememberMe = true;
-    }
+    // Load saved email and password from local storage on the client side
+    onMount(() => {
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('rememberMe') === 'true') {
+            email = localStorage.getItem('email') || '';
+            password = localStorage.getItem('password') || '';
+            rememberMe = true;
+        }
+    });
 
     async function handleLogin() {
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            // Login successful
-            showModal = true;
-            loginMessage = "Login successful! Welcome, " + userCredential.user.email;
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
+        Swal.fire({
+            icon: 'success',
+            title: 'Login Successful',
+            text: `Welcome, ${userCredential.user.email}`,
+            showConfirmButton: false,
+            timer: 2000
+        });
 
-            // Save email and password if remember me is checked
-            if (rememberMe) {
-                localStorage.setItem('email', email);
-                localStorage.setItem('password', password);
-                localStorage.setItem('rememberMe', 'true');
-            } else {
-                localStorage.removeItem('email');
-                localStorage.removeItem('password');
-                localStorage.removeItem('rememberMe');
-            }
-
-            // Redirect to the desired page
-            setTimeout(() => goto('/auth/profile'), 1500); // Adjust the redirect path
-        } catch (error) {
-            // Handle login error
-            showModal = true;
-            loginMessage = "Login failed: " + error.message;
+        if (rememberMe) {
+            localStorage.setItem('email', email);
+            localStorage.setItem('password', password);
+            localStorage.setItem('rememberMe', 'true');
+        } else {
+            localStorage.removeItem('email');
+            localStorage.removeItem('password');
+            localStorage.removeItem('rememberMe');
         }
+
+        setTimeout(() => goto('/auth/profile'), 2000);
+    } catch (error) {
+        console.error('Error during login:', error); // Log the error for debugging
+
+        // Map Firebase errors to user-friendly messages
+        let errorMessage = 'An error occurred. Please try again.';
+        if (error.code === 'auth/invalid-credential') {
+            errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'The email address is not valid.';
+        } else if (error.code === 'auth/user-not-found') {
+            errorMessage = 'No account found with this email.';
+        } else if (error.code === 'auth/wrong-password') {
+            errorMessage = 'Incorrect password. Please try again.';
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Login Failed',
+            text: errorMessage,
+            showConfirmButton: true
+        });
     }
+}
+
 
     function redirectToRegistration() {
         goto('/registerPatient');
@@ -149,14 +170,3 @@
         </div>
     </div>
 </div>
-
-<!-- Modal for success/error -->
-<Modal visible={showModal} on:close={() => showModal = false}>
-    <p>{loginMessage}</p>
-    <button 
-        on:click={() => showModal = false} 
-        class="bg-blue-500 text-white p-2 rounded"
-    >
-        Close
-    </button>
-</Modal>
