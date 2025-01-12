@@ -35,6 +35,9 @@ let selectedSubServices: string[] = []; // Array to hold selected sub-services
 let appointments: Appointment[] = [];
 let patientId: string | null = null;
 let reasonNotAvailable = false;
+let activeTab: 'upcoming' | 'past' = 'upcoming'; // Track the active tab
+  let upcomingAppointments: Appointment[] = [];
+  let pastAppointments: Appointment[] = [];
 
   let reasonSchedulingConflict = false;
   let reasonOther = false;
@@ -44,6 +47,10 @@ let reasonNotAvailable = false;
   let currentSchedule = { date: "", time: "" };
   let currentAppointment: Appointment | null = null;
 
+   // Trigger tab switch
+   function switchTab(tab: 'upcoming' | 'past') {
+    activeTab = tab;
+  }
 
   // Collect the selected reasons into an array
   function getSelectedReasons() {
@@ -269,25 +276,57 @@ function getMinDate(): string {
   return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
 }
 
-function getAppointments() {
+// Function to fetch and categorize appointments
+async function getAppointments() {
   if (patientId) {
     try {
+      const today = new Date();
+      const todayISOString = today.toISOString().split("T")[0]; // Format to YYYY-MM-DD
+      console.log("Today's Date: ", todayISOString); // Log today's date for debugging
+
+      // Query to get appointments for the current patient
       const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
+      const querySnapshot = await getDocs(q);
+      console.log("Appointments Retrieved: ", querySnapshot.size); // Log the number of docs fetched
 
-      // Set up a real-time listener
-      onSnapshot(q, (querySnapshot) => {
-        appointments = []; // Clear the array before updating
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as Appointment;
-          appointments.push({ ...data, id: doc.id });
-        });
+      // Clear previous data
+      upcomingAppointments = [];
+      pastAppointments = [];
 
-        // Log for debugging
-        console.log("Updated appointments for patient:", appointments);
+      // If no appointments are found, exit early
+      if (querySnapshot.size === 0) {
+        console.log("No appointments found for this patient.");
+        return;
+      }
+
+      // Iterate through each appointment and categorize based on the date
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as Appointment; // Get appointment data
+        const appointmentDate = data.date; // Firestore stores this as a string
+
+        console.log("Appointment Date: ", appointmentDate); // Log the appointment date
+
+        // Add appointment with its id
+        const appointmentWithId = { ...data, id: doc.id };
+
+        // Check if the appointment date is upcoming or past
+        if (appointmentDate >= todayISOString) {
+          console.log("Upcoming Appointment:", appointmentWithId);
+          upcomingAppointments.push(appointmentWithId);
+        } else {
+          console.log("Past Appointment:", appointmentWithId);
+          pastAppointments.push(appointmentWithId);
+        }
       });
+
+      // Log the categorized appointments
+      console.log("Upcoming appointments:", upcomingAppointments);
+      console.log("Past appointments:", pastAppointments);
     } catch (e) {
-      console.error("Error fetching appointments: ", e);
+      console.error("Error fetching appointments:", e);
     }
+  } else {
+    console.log("Patient ID not found.");
   }
 }
 
@@ -534,8 +573,6 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
     });
   }
 }
-
-
 </script>
 
 
@@ -587,6 +624,7 @@ padding-left: 1rem;
     padding: 20px; 
     margin-top: -40px; /* Adjusted margin to reduce space on top */
     border: 1px solid #ddd; 
+    border-top: 5px solid #007bff;
     border-radius: 0.75rem; 
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); 
     background-color: #fff;
@@ -710,119 +748,165 @@ padding-left: 1rem;
     </div>
   </div>
 </div>
-  <div
-    style="
-      flex: 1; 
-      padding: 20px; 
-      margin-top: -40px;
-      border: 1px solid #ddd; 
-      border-radius: 0.5rem; 
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
-      background-color: #fff; 
-      overflow: hidden;
-      margin-bottom: 0px; /* No margin-bottom here */
-    "
-  >
-    <h3 style="font-size: 18px; font-weight: bold; ">Your Appointments</h3>
-  
-     <!-- Right Section (Appointments Table) -->
-     <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
-      {#if appointments.length > 0}
-        <div style=" margin-bottom: 20px;">
+
+<div
+style="
+  flex: 1;
+  padding: 20px;
+  margin-top: -40px;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  border-top: 5px solid #007bff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  overflow: hidden;
+  margin-bottom: 0px; /* No margin-bottom here */
+"
+>
+<h3 style="font-size: 18px; font-weight: bold;">Your Appointments</h3>
+
+<!-- Tabs Navigation -->
+<div style="display: flex; margin-top: 20px; border-bottom: 1px solid #ddd;">
+  <button
+  on:click={() => switchTab('upcoming')}
+  class="tab-button"
+  style="flex: 1; padding: 10px; font-weight: regular; border: none; background: none; cursor: pointer;"
+  class:active-tab={activeTab === 'upcoming'}
+>
+  Upcoming
+</button>
+<button
+  on:click={() => switchTab('past')}
+  class="tab-button"
+  style="flex: 1; padding: 10px; font-weight: regular; border: none; background: none; cursor: pointer;"
+  class:active-tab={activeTab === 'past'}
+>
+  Past
+</button>
+</div>
+
+<!-- Tabs Content -->
+<div>
+  {#if activeTab === 'upcoming'}
+    <!-- Upcoming Appointments Section -->
+    <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
+      {#if upcomingAppointments.length > 0}
+        <div style="margin-bottom: 20px;">
+          <!-- Reuse your existing appointments table here -->
+          <!-- Replace "appointments" with "upcomingAppointments" -->
           <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+            <!-- Table Header -->
             <TableHead>
-              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%;">Date</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%;">Time</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Service</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Status</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%;">Actions</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell>
             </TableHead>
-            
+            <!-- Table Body -->
             <TableBody tableBodyClass="divide-y">
-              {#each appointments as appointment}
+              {#each upcomingAppointments as appointment}
+                <!-- Reuse your appointment rows here -->
                 <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
                   <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
                     {appointment.date}
                   </TableBodyCell>
-                  <TableBodyCell style="padding: 5px;">
-                    {appointment.time}
-                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
                   <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
                     {appointment.service}
                   </TableBodyCell>
                   <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    {#if appointment.cancellationStatus === 'requested'}
-                      <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                    {:else if appointment.cancellationStatus === 'Approved'}
-                      <span class="text-red-600 font-semibold">Cancelled</span>
-                    {:else if appointment.cancellationStatus === 'decline'}
-                      <span class="text-red-600 font-semibold">Cancellation Declined</span>
-                    {:else if appointment.status === 'Reschedule Requested'}
-                      <span class="text-purple-600 font-semibold">Reschedule Requested</span>
-                    {:else if appointment.status === 'Rescheduled'}
-                      <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
-                    {:else if appointment.status === 'Accepted'}
+                    <!-- Status Handling -->
+                    {#if appointment.status === 'Accepted'}
                       <span class="text-green-600 font-semibold">Accepted</span>
-                    {:else if appointment.status === 'confirmed'}
-                      <span class="text-blue-600 font-semibold">Confirmed</span>
-                    {:else if appointment.status === 'Completed'}
-                      <span class="text-blue-600 font-semibold">Completed</span>
-                    {:else if appointment.status === 'Decline'}
-                      <span class="text-red-600 font-semibold">Declined</span>
-                    {:else if appointment.status === 'Missed'}
-                      <span class="text-red-600 font-semibold">Missed</span>
-                    {:else if appointment.status === 'pending'}
-                      <span class="text-gray-600 font-semibold">Pending</span>
-                    {:else if appointment.status === 'cancellationRequested'}
-                      <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
                     {:else}
                       <span class="text-gray-600 font-semibold">Unknown Status</span>
                     {/if}
                   </TableBodyCell>
-    
-                
-                <TableBodyCell style="padding: 5px;">
-                  {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
-                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
-                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
-                    
-                  </Button>
-                {/if}
-
-                  {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
-                    <Button
-                      on:click={() => openCancelModal(appointment.id)}
-                      class="cancel-button"
-                    >
-                      <CloseCircleOutline 
-                        class="w-6 h-6" 
-                        style="color: red;" 
-                      />
+                  <TableBodyCell style="padding: 5px;">
+                    <!-- Actions -->
+                    <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
+                      <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
                     </Button>
-                  {/if}
-                </TableBodyCell>
-                
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-          
-        </Table>
-
+                  </TableBodyCell>
+                </TableBodyRow>
+              {/each}
+            </TableBody>
+          </Table>
         </div>
-        {:else}
-          <div class="appointments-section">
-            <p style="
-              font-style: italic; 
-              color: #555; 
+      {:else}
+        <div class="appointments-section">
+          <p
+            style="
+              font-style: italic;
+              color: red;
               font-size: 16px;
               text-align: center;
-            ">No appointments found. Book an appointment to see it here!</p>
-          </div>
-        {/if}
-      </div>
+            "
+          >
+            No upcoming appointments found.
+          </p>
+        </div>
+      {/if}
     </div>
+  {/if}
+
+  {#if activeTab === 'past'}
+    <!-- Past Appointments Section -->
+    <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
+      {#if pastAppointments.length > 0}
+        <div style="margin-bottom: 20px;">
+          <!-- Reuse your existing appointments table here -->
+          <!-- Replace "appointments" with "pastAppointments" -->
+          <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+            <!-- Same table structure as above -->
+            <TableHead>
+              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
+              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell>              
+            </TableHead>
+            <TableBody tableBodyClass="divide-y">
+              {#each pastAppointments as appointment}
+                <!-- Appointment Rows -->
+                <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
+                  <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
+                    {appointment.date}
+                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
+                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                    {appointment.service}
+                  </TableBodyCell>
+                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                    <span class="text-gray-600 font-semibold">Completed</span>
+                  </TableBodyCell>
+                </TableBodyRow>
+              {/each}
+            </TableBody>
+          </Table>
+        </div>
+      {:else}
+        <div class="appointments-section">
+          <p
+            style="
+              font-style: italic;
+              color: red;
+              font-size: 16px;
+              text-align: center;
+            "
+          >
+            No past appointments found.
+          </p>
+        </div>
+      {/if}
     </div>
-    </div>
+  {/if}
+</div>
+</div>
+</div>
+</div>
+
     
         {#if rescheduleModal}
   <div class="modal reschedule-modal">
@@ -1186,5 +1270,27 @@ padding-left: 1rem;
     font-size: 1rem;
   }
 }
+.tab-button {
+    position: relative;
+  }
 
+  .active-tab {
+    font-weight: bold; /* Optional, for highlighting */
+    color: #007bff; /* Optional, color of active tab text */
+  }
+
+  .active-tab::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px; /* Thickness of the underline */
+    background-color: #007bff; /* Color of the underline */
+  }
+
+  /* Optional: Add a transition effect for the underline */
+  .tab-button {
+    transition: color 0.3s ease-in-out;
+  }
   </style>
