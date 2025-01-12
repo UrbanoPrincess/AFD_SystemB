@@ -10,7 +10,7 @@ import { Button, Modal, Dropdown, DropdownItem } from 'flowbite-svelte';
 import { ExclamationCircleOutline, CloseOutline,CloseCircleOutline} from 'flowbite-svelte-icons';
 import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
 import Swal from 'sweetalert2';
-
+import { runTransaction } from "firebase/firestore";
 
 
 const app = initializeApp(firebaseConfig);
@@ -111,7 +111,7 @@ const morningSlots = [
 
       const querySnapshot = await getDocs(q);
       const unavailableSlots = querySnapshot.docs
-        .filter((doc) => doc.data().status === "Accepted" || doc.data().status === "pending")
+        .filter((doc) => doc.data().status === "accepted" || doc.data().status === "pending")
         .map((doc) => doc.data().time);
 
       availableSlots = [...morningSlots, ...afternoonSlots].filter(
@@ -126,13 +126,13 @@ const morningSlots = [
 function selectTime(time: string) {
   selectedTime = time;
 }
-async function bookAppointment() { 
+async function bookAppointment() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Convert selectedDate from string to Date object
   const selectedDateObj = new Date(selectedDate);
 
+  // Validate the selected date
   if (!selectedDate || selectedDateObj < today) {
     Swal.fire({
       icon: 'warning',
@@ -142,125 +142,120 @@ async function bookAppointment() {
     return;
   }
 
-  if (selectedTime && patientId && selectedService) {
-    try {
-      // Check if the user has submitted their profile in the patientProfiles db
-      const profileDocRef = doc(db, "patientProfiles", patientId);
-      const profileDocSnap = await getDoc(profileDocRef);
-
-      if (!profileDocSnap.exists()) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Profile Not Found',
-          text: 'You must submit your profile before booking an appointment.',
-        });
-        return; // Stop the function if profile does not exist
-      }
-
-      // Check if the patient already has an appointment on the selected date
-      const q = query(
-        collection(db, "appointments"),
-        where("patientId", "==", patientId), // Filter by patientId to check for any existing appointments
-        where("date", "==", selectedDate), // Check for the selected date
-        where("cancellationStatus", "==", '') // Only check appointments that are not canceled
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      // If there's already an appointment on the selected date, block the booking
-      if (!querySnapshot.empty) {
-        Swal.fire({
-          icon: 'info',
-          title: 'Already Booked',
-          text: 'You already have an appointment on this day. You can only book one appointment per day.',
-        });
-        return; // Stop if the patient already has an appointment for the day
-      }
-
-      // Check if there is an "accepted" or "pending" appointment already booked for the selected date and time
-      const qTimeSlot = query(
-        collection(db, "appointments"),
-        where("date", "==", selectedDate), // Check for the selected date
-        where("time", "==", selectedTime), // Check for the selected time
-        where("cancellationStatus", "==", '') // Only check appointments that are not canceled
-      );
-
-      const querySnapshotTimeSlot = await getDocs(qTimeSlot);
-
-      // Check if there is an "accepted" or "pending" appointment for the selected time slot
-      const existingAppointment = querySnapshotTimeSlot.docs.find(doc => 
-        doc.data().status === "Accepted" || doc.data().status === "pending"
-      );
-
-      if (existingAppointment) {
-        // If there is an accepted or pending appointment for the selected date and time
-        Swal.fire({
-          icon: 'info',
-          title: 'Time Slot Unavailable',
-          text: 'This time slot is already booked or pending. Please choose a different time.',
-        });
-        return; // Stop if the time slot is unavailable
-      }
-
-      // If no "accepted" or "pending" appointment found, allow booking
-      if (querySnapshotTimeSlot.empty) {
-        const docRef = await addDoc(collection(db, "appointments"), {
-          patientId: patientId,
-          date: selectedDate,
-          time: selectedTime,
-          service: selectedService,
-          subServices: selectedSubServices,
-          status: 'pending', // Set the status to 'pending' initially
-          cancellationStatus: '',
-        });
-
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const appointmentData = docSnap.data();
-          const appointment = {
-            id: docRef.id,
-            date: appointmentData.date,
-            time: appointmentData.time,
-            patientId: appointmentData.patientId,
-            service: appointmentData.service,
-            subServices: appointmentData.subServices,
-            cancellationStatus: appointmentData.cancellationStatus || null,
-            status: appointmentData.status,
-          };
-          appointments.push(appointment);
-
-          Swal.fire({
-            icon: 'success',
-            title: 'Appointment Pending',
-            text: `Your appointment is pending for ${appointment.date} at ${appointment.time}. Please wait for confirmation.`,
-          });
-
-          selectedTime = null;
-          selectedService = null;
-          selectedSubServices = [];
-        } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'No document found for the new appointment.',
-          });
-          console.error("No document found for the new appointment.");
-        }
-      }
-    } catch (e) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: `Something went wrong while booking your appointment.`,
-      });
-      console.error("Error adding or fetching document: ", e);
-    }
-  } else {
+  // Validate required fields
+  if (!selectedTime || !patientId || !selectedService) {
     Swal.fire({
       icon: 'warning',
       title: 'Incomplete Form',
       text: 'Please select a time, service, and ensure you are logged in.',
     });
+    return;
+  }
+
+  try {
+    // Firestore transaction to ensure atomic operations
+    await runTransaction(db, async (transaction) => {
+      // Check if the user already has an appointment for the selected date
+      const existingQuery = query(
+        collection(db, "appointments"),
+        where("patientId", "==", patientId),
+        where("date", "==", selectedDate),
+        where("cancellationStatus", "==", "") // Ensure cancellationStatus is empty
+      );
+
+      const existingSnapshot = await getDocs(existingQuery);
+      if (!existingSnapshot.empty) {
+        throw new Error("Already Booked");
+      }
+
+      // Check if the time slot is available for the selected date and time
+      const slotQuery = query(
+        collection(db, "appointments"),
+        where("date", "==", selectedDate),
+        where("time", "==", selectedTime),
+        where("status", "in", ["pending", "Accepted", "cancellationRequested"]), // Check for all relevant statuses
+        where("cancellationStatus", "==", "") // Ensure cancellationStatus is empty
+      );
+
+      const slotSnapshot = await getDocs(slotQuery);
+      if (!slotSnapshot.empty) {
+        throw new Error("Time Slot Unavailable");
+      }
+
+      // Ensure patientId is a string and not null
+      if (!patientId) {
+        throw new Error("Patient ID is missing or invalid.");
+      }
+
+      // Check if the user's profile exists
+      const profileDocRef = doc(db, "patientProfiles", patientId);
+      const profileDocSnap = await transaction.get(profileDocRef);
+
+      if (!profileDocSnap.exists()) {
+        throw new Error("Profile Not Found");
+      }
+
+      // Create a new appointment
+      const appointmentRef = doc(collection(db, "appointments"));
+      transaction.set(appointmentRef, {
+        patientId: patientId,
+        date: selectedDate,
+        time: selectedTime,
+        service: selectedService,
+        subServices: selectedSubServices || [],
+        status: 'pending',
+        cancellationStatus: '', // Empty cancellation status for new bookings
+      });
+    });
+
+    // Notify the user of success
+    Swal.fire({
+      icon: 'success',
+      title: 'Appointment Pending',
+      text: `Your appointment is pending for ${selectedDate} at ${selectedTime}. Please wait for confirmation.`,
+    });
+
+    // Clear selections after successful booking
+    selectedTime = null;
+    selectedService = null;
+    selectedSubServices = [];
+  } catch (error) {
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message === "Already Booked") {
+        Swal.fire({
+          icon: 'info',
+          title: 'Already Booked',
+          text: 'You already have an appointment on this day. You can only book one appointment per day.',
+        });
+      } else if (error.message === "Time Slot Unavailable") {
+        Swal.fire({
+          icon: 'info',
+          title: 'Time Slot Unavailable',
+          text: 'This time slot has just been booked. Please choose a different time.',
+        });
+      } else if (error.message === "Profile Not Found") {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Profile Not Found',
+          text: 'You must submit your profile before booking an appointment.',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: `Something went wrong while booking your appointment.`,
+        });
+        console.error("Unexpected error during booking:", error);
+      }
+    } else {
+      console.error("Non-error object thrown:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Unknown Error',
+        text: 'An unexpected error occurred. Please try again.',
+      });
+    }
   }
 }
 
