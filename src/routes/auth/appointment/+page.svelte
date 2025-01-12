@@ -104,30 +104,41 @@ const morningSlots = [
   let availableSlots = [...morningSlots, ...afternoonSlots];
 
   // Fetch available slots when date changes
-  $: fetchAvailableSlots();
+ // Fetch available slots when date changes
+$: fetchAvailableSlots();
 
-  async function fetchAvailableSlots() {
-    if (!newDate) return;
+async function fetchAvailableSlots() {
+  if (!newDate) return;
 
-    try {
-      const q = query(
-        collection(db, "appointments"),
-        where("date", "==", newDate),
-        where("cancellationStatus", "==", "")
-      );
+  try {
+    const q = query(
+      collection(db, "appointments"),
+      where("date", "==", newDate),
+      where("cancellationStatus", "==", "")
+    );
 
-      const querySnapshot = await getDocs(q);
-      const unavailableSlots = querySnapshot.docs
-        .filter((doc) => doc.data().status === "accepted" || doc.data().status === "pending")
-        .map((doc) => doc.data().time);
+    const querySnapshot = await getDocs(q);
+    const unavailableSlots = querySnapshot.docs
+      .filter((doc) => {
+        const status = doc.data().status;
+        return (
+          status === "Accepted" ||
+          status === "accepted" ||
+          status === "Pending" ||
+          status === "pending"
+        ); // Filter all four variations of the status
+      })
+      .map((doc) => doc.data().time);
 
-      availableSlots = [...morningSlots, ...afternoonSlots].filter(
-        (slot) => !unavailableSlots.includes(slot)
-      );
-    } catch (error) {
-      console.error("Error fetching available slots:", error);
-    }
+    // Filter out the unavailable slots from the available slots
+    availableSlots = [...morningSlots, ...afternoonSlots].filter(
+      (slot) => !unavailableSlots.includes(slot)
+    );
+  } catch (error) {
+    console.error("Error fetching available slots:", error);
   }
+}
+
 
 
 function selectTime(time: string) {
@@ -180,7 +191,7 @@ async function bookAppointment() {
         collection(db, "appointments"),
         where("date", "==", selectedDate),
         where("time", "==", selectedTime),
-        where("status", "in", ["pending", "Accepted", "cancellationRequested"]), // Check for all relevant statuses
+        where("status", "in", ["pending", "Pending", "accepted", "Accepted", "cancellationRequested"]), // Check all four variations of Pending and Accepted statuses
         where("cancellationStatus", "==", "") // Ensure cancellationStatus is empty
       );
 
@@ -267,6 +278,7 @@ async function bookAppointment() {
 }
 
 
+
 function getMinDate(): string {
   const today = new Date();
   today.setDate(today.getDate() + 3); // Add 3 days to today's date
@@ -277,7 +289,7 @@ function getMinDate(): string {
 }
 
 // Function to fetch and categorize appointments
-async function getAppointments() {
+function getAppointments() {
   if (patientId) {
     try {
       const today = new Date();
@@ -286,50 +298,59 @@ async function getAppointments() {
 
       // Query to get appointments for the current patient
       const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
-      const querySnapshot = await getDocs(q);
-      console.log("Appointments Retrieved: ", querySnapshot.size); // Log the number of docs fetched
 
-      // Clear previous data
-      upcomingAppointments = [];
-      pastAppointments = [];
+      // Set up a real-time listener
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        console.log("Appointments Retrieved: ", querySnapshot.size); // Log the number of docs fetched
 
-      // If no appointments are found, exit early
-      if (querySnapshot.size === 0) {
-        console.log("No appointments found for this patient.");
-        return;
-      }
+        // Clear previous data
+        upcomingAppointments = [];
+        pastAppointments = [];
 
-      // Iterate through each appointment and categorize based on the date
-      querySnapshot.forEach((doc) => {
-        const data = doc.data() as Appointment; // Get appointment data
-        const appointmentDate = data.date; // Firestore stores this as a string
-
-        console.log("Appointment Date: ", appointmentDate); // Log the appointment date
-
-        // Add appointment with its id
-        const appointmentWithId = { ...data, id: doc.id };
-
-        // Check if the appointment date is upcoming or past
-        if (appointmentDate >= todayISOString) {
-          console.log("Upcoming Appointment:", appointmentWithId);
-          upcomingAppointments.push(appointmentWithId);
-        } else {
-          console.log("Past Appointment:", appointmentWithId);
-          pastAppointments.push(appointmentWithId);
+        // If no appointments are found, exit early
+        if (querySnapshot.empty) {
+          console.log("No appointments found for this patient.");
+          return;
         }
+
+        // Iterate through each appointment and categorize based on the date
+        querySnapshot.forEach((doc) => {
+  const data = doc.data() as Appointment; // Cast the document data to the Appointment type
+  const appointmentDate = data.date; // Assuming `date` is a string in the database
+
+  console.log("Appointment Date: ", appointmentDate); // Log the appointment date
+
+  // Add appointment with its id to match the Appointment type
+  const appointmentWithId: Appointment = {
+    ...data, // Include all properties from the fetched data
+    id: doc.id, // Add the id property explicitly
+  };
+
+  // Check if the appointment date is upcoming or past
+  if (appointmentDate >= todayISOString) {
+    console.log("Upcoming Appointment:", appointmentWithId);
+    upcomingAppointments.push(appointmentWithId); // Push a valid Appointment object
+  } else {
+    console.log("Past Appointment:", appointmentWithId);
+    pastAppointments.push(appointmentWithId); // Push a valid Appointment object
+  }
+});
+
+
+        // Log the categorized appointments
+        console.log("Upcoming appointments:", upcomingAppointments);
+        console.log("Past appointments:", pastAppointments);
       });
 
-      // Log the categorized appointments
-      console.log("Upcoming appointments:", upcomingAppointments);
-      console.log("Past appointments:", pastAppointments);
+      // Optional: Return unsubscribe function to allow cleanup
+      return unsubscribe;
     } catch (e) {
-      console.error("Error fetching appointments:", e);
+      console.error("Error setting up real-time listener for appointments:", e);
     }
   } else {
     console.log("Patient ID not found.");
   }
 }
-
 async function requestCancelAppointment() {
   if (selectedAppointmentId && getSelectedReasons().length > 0) {
     try {
@@ -391,29 +412,34 @@ let appointment = {
   status: 'pending'
 };
 
-onMount(async () => {
+onMount(() => {
   try {
     // Check if we have an appointment available before trying to fetch details
     if (upcomingAppointments.length > 0) {
       const appointment = upcomingAppointments[0]; // Use the first upcoming appointment as an example
 
       const appointmentRef = doc(db, "appointments", appointment.id);
-      const docSnap = await getDoc(appointmentRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        // Update the appointment object with the new data
-        appointment.cancellationStatus = data.cancellationStatus;
-        appointment.status = data.status;
-        console.log("Updated appointment:", appointment);
-      } else {
-        console.log("Appointment not found.");
-      }
+      // Listen for real-time updates
+      const unsubscribe = onSnapshot(appointmentRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // Update the appointment object with the new data
+          appointment.cancellationStatus = data.cancellationStatus;
+          appointment.status = data.status;
+          console.log("Updated appointment:", appointment);
+        } else {
+          console.log("Appointment not found.");
+        }
+      });
+
+      // Optional: Cleanup the listener when the component unmounts
+      return () => unsubscribe();
     } else {
       console.log("No upcoming appointments available to fetch details.");
     }
   } catch (e) {
-    console.error("Error fetching appointment data: ", e);
+    console.error("Error setting up real-time listener: ", e);
   }
 });
 
@@ -818,7 +844,7 @@ style="
               {#each upcomingAppointments as appointment}
                 <!-- Reuse your appointment rows here -->
                 <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
-                  <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
+                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
                     {appointment.date}
                   </TableBodyCell>
                   <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
@@ -856,14 +882,29 @@ style="
                 {/if}
 
                   </TableBodyCell>
-                  <TableBodyCell style="padding: 5px;">
-                    <!-- Actions -->
-                    <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
-                      <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
+                <TableBodyCell style="padding: 5px;">
+                  {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
+                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
+                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
+                    
+                  </Button>
+                {/if}
+
+                  {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
+                    <Button
+                      on:click={() => openCancelModal(appointment.id)}
+                      class="cancel-button"
+                    >
+                      <CloseCircleOutline 
+                        class="w-6 h-6" 
+                        style="color: red;" 
+                      />
                     </Button>
-                  </TableBodyCell>
-                </TableBodyRow>
-              {/each}
+                  {/if}
+                </TableBodyCell>
+                
+              </TableBodyRow>
+            {/each}
             </TableBody>
           </Table>
         </div>
