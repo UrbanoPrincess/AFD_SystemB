@@ -393,20 +393,30 @@ let appointment = {
 
 onMount(async () => {
   try {
-    const appointmentRef = doc(db, "appointments", appointment.id);
-    const docSnap = await getDoc(appointmentRef);
+    // Check if we have an appointment available before trying to fetch details
+    if (upcomingAppointments.length > 0) {
+      const appointment = upcomingAppointments[0]; // Use the first upcoming appointment as an example
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      appointment.cancellationStatus = data.cancellationStatus;
-      appointment.status = data.status;
+      const appointmentRef = doc(db, "appointments", appointment.id);
+      const docSnap = await getDoc(appointmentRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        // Update the appointment object with the new data
+        appointment.cancellationStatus = data.cancellationStatus;
+        appointment.status = data.status;
+        console.log("Updated appointment:", appointment);
+      } else {
+        console.log("Appointment not found.");
+      }
     } else {
-      console.log("Appointment not found.");
+      console.log("No upcoming appointments available to fetch details.");
     }
   } catch (e) {
     console.error("Error fetching appointment data: ", e);
   }
 });
+
 
 function isTimeSlotAvailable(slot: string, date: string): boolean {
   const currentDate = new Date();
@@ -816,12 +826,35 @@ style="
                     {appointment.service}
                   </TableBodyCell>
                   <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    <!-- Status Handling -->
-                    {#if appointment.status === 'Accepted'}
-                      <span class="text-green-600 font-semibold">Accepted</span>
-                    {:else}
-                      <span class="text-gray-600 font-semibold">Unknown Status</span>
-                    {/if}
+                   <!-- Status Handling -->
+                  {#if appointment.cancellationStatus === 'requested'}
+                  <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                {:else if appointment.cancellationStatus === 'Approved'}
+                  <span class="text-red-600 font-semibold">Cancelled</span>
+                {:else if appointment.cancellationStatus === 'decline'}
+                  <span class="text-red-600 font-semibold">Cancellation Declined</span>
+                {:else if appointment.status === 'Reschedule Requested'}
+                  <span class="text-purple-600 font-semibold">Reschedule Requested</span>
+                {:else if appointment.status === 'Rescheduled'}
+                  <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+                {:else if appointment.status === 'Accepted'}
+                  <span class="text-green-600 font-semibold">Accepted</span>
+                {:else if appointment.status === 'Completed'}
+                  <span class="text-blue-600 font-semibold">Completed</span>
+                {:else if appointment.status === 'Missed'}
+                  <span class="text-orange-600 font-semibold">Missed</span>
+                {:else if appointment.status === 'Decline'}
+                  <span class="text-red-600 font-semibold">Declined</span>
+                {:else if appointment.status === 'pending'}
+                  <span class="text-yellow-600 font-semibold">Pending</span>
+                {:else if appointment.status === 'confirmed'}
+                  <span class="text-blue-600 font-semibold">Confirmed</span>
+                {:else if appointment.status === 'cancellationRequested'}
+                  <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                {:else}
+                  <span class="text-gray-600 font-semibold">Unknown Status</span>
+                {/if}
+
                   </TableBodyCell>
                   <TableBodyCell style="padding: 5px;">
                     <!-- Actions -->
@@ -852,56 +885,84 @@ style="
   {/if}
 
   {#if activeTab === 'past'}
-    <!-- Past Appointments Section -->
-    <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
-      {#if pastAppointments.length > 0}
-        <div style="margin-bottom: 20px;">
-          <!-- Reuse your existing appointments table here -->
-          <!-- Replace "appointments" with "pastAppointments" -->
-          <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-            <!-- Same table structure as above -->
-            <TableHead>
-              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell>              
-            </TableHead>
-            <TableBody tableBodyClass="divide-y">
-              {#each pastAppointments as appointment}
-                <!-- Appointment Rows -->
-                <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
-                  <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
-                    {appointment.date}
-                  </TableBodyCell>
-                  <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
-                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    {appointment.service}
-                  </TableBodyCell>
-                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    <span class="text-gray-600 font-semibold">Completed</span>
-                  </TableBodyCell>
-                </TableBodyRow>
-              {/each}
-            </TableBody>
-          </Table>
-        </div>
-      {:else}
-        <div class="appointments-section">
-          <p
-            style="
-              font-style: italic;
-              color: red;
-              font-size: 16px;
-              text-align: center;
-            "
-          >
-            No past appointments found.
-          </p>
-        </div>
-      {/if}
-    </div>
-  {/if}
+  <!-- Past Appointments Section -->
+  <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
+    {#if pastAppointments.length > 0}
+      <div style="margin-bottom: 20px;">
+        <!-- Reuse your existing appointments table here -->
+        <!-- Replace "appointments" with "pastAppointments" -->
+        <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
+          <!-- Same table structure as above -->
+          <TableHead>
+            <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
+            <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
+            <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
+            <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
+            <!-- <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell> -->
+          </TableHead>
+          <TableBody tableBodyClass="divide-y">
+            {#each pastAppointments as appointment}
+              <!-- Appointment Rows -->
+              <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
+                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
+                  {appointment.date}
+                </TableBodyCell>
+                <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
+                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                  {appointment.service}
+                </TableBodyCell>
+                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
+                  <!-- Status Handling for Past Appointments -->
+                  {#if appointment.cancellationStatus === 'requested'}
+                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                  {:else if appointment.cancellationStatus === 'Approved'}
+                    <span class="text-red-600 font-semibold">Cancelled</span>
+                  {:else if appointment.cancellationStatus === 'decline'}
+                    <span class="text-red-600 font-semibold">Cancellation Declined</span>
+                  {:else if appointment.status === 'Reschedule Requested'}
+                    <span class="text-purple-600 font-semibold">Reschedule Requested</span>
+                  {:else if appointment.status === 'Rescheduled'}
+                    <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+                  {:else if appointment.status === 'Accepted'}
+                    <span class="text-green-600 font-semibold">Accepted</span>
+                  {:else if appointment.status === 'Completed'}
+                    <span class="text-blue-600 font-semibold">Completed</span>
+                  {:else if appointment.status === 'Missed'}
+                    <span class="text-orange-600 font-semibold">Missed</span>
+                  {:else if appointment.status === 'Decline'}
+                    <span class="text-red-600 font-semibold">Declined</span>
+                  {:else if appointment.status === 'pending'}
+                    <span class="text-yellow-600 font-semibold">Pending</span>
+                  {:else if appointment.status === 'confirmed'}
+                    <span class="text-blue-600 font-semibold">Confirmed</span>
+                  {:else if appointment.status === 'cancellationRequested'}
+                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+                  {:else}
+                    <span class="text-gray-600 font-semibold">Unknown Status</span>
+                  {/if}
+                </TableBodyCell>
+                <!-- <TableBodyCell style="padding: 5px;">
+                 
+                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
+                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
+                  </Button>
+                </TableBodyCell> -->
+              </TableBodyRow>
+            {/each}
+          </TableBody>
+        </Table>
+      </div>
+    {:else}
+      <div class="appointments-section">
+        <p
+          style="font-style: italic; color: red; font-size: 16px; text-align: center;"
+        >
+          No past appointments found.
+        </p>
+      </div>
+    {/if}
+  </div>
+{/if}
 </div>
 </div>
 </div>
