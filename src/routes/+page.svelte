@@ -1,10 +1,6 @@
 <style>
     /* Make sure the body and html fill the entire viewport and prevent scrolling */
-    html, body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden; /* Prevent scrolling */
-    }
+  
 
     header {
         display: flex;

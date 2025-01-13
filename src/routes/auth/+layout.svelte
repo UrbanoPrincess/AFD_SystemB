@@ -8,6 +8,7 @@
     import { initializeApp, getApps, getApp } from "firebase/app";
     import { goto } from '$app/navigation';
     import '@fortawesome/fontawesome-free/css/all.css';
+    import Swal from 'sweetalert2';
 
 
     // Firebase setup
@@ -35,20 +36,33 @@
 
     // Logout function with loading state
     export function logout() {
-        loading.set(true);  // Show loading popup
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to log out.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, log out!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            loading.set(true); // Show loading popup
 
-        signOut(auth)
-            .then(() => {
-                console.log('User signed out');
-                username.set(''); // Clear username on logout
-                goto('/'); // Navigate to the landing page (routes/+page.svelte)
-                loading.set(false);  // Hide loading popup
-            })
-            .catch((error) => {
-                console.error('Error signing out: ', error);
-                loading.set(false);  // Hide loading popup on error
-            });
-    }
+            signOut(auth)
+                .then(() => {
+                    console.log('User signed out');
+                    username.set(''); // Clear username on logout
+                    goto('/'); // Navigate to the landing page
+                    loading.set(false); // Hide loading popup
+                })
+                .catch((error) => {
+                    console.error('Error signing out: ', error);
+                    loading.set(false); // Hide loading popup on error
+                });
+        }
+    });
+}
 
     // Function to toggle the sidebar state
     function toggleSidebar() {
