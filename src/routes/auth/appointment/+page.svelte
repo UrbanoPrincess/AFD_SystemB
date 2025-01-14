@@ -140,10 +140,10 @@ async function fetchAvailableSlots() {
 }
 
 
-
 function selectTime(time: string) {
   selectedTime = time;
 }
+
 async function bookAppointment() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -173,49 +173,13 @@ async function bookAppointment() {
   try {
     // Firestore transaction to ensure atomic operations
     await runTransaction(db, async (transaction) => {
-      // Check if the user has any accepted appointment on the same date
-      const acceptedQuery = query(
-        collection(db, "appointments"),
-        where("patientId", "==", patientId),
-        where("date", "==", selectedDate),
-        where("status", "in", ["Accepted", "accepted"])
-      );
-
-      const acceptedSnapshot = await getDocs(acceptedQuery);
-      if (!acceptedSnapshot.empty) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Already Booked',
-          text: 'You already have an accepted appointment on this date. Please choose another date.',
-        });
-        return;
-      }
-
-      // Check if the user has any pending appointment on the same date
-      const pendingQuery = query(
-        collection(db, "appointments"),
-        where("patientId", "==", patientId),
-        where("date", "==", selectedDate),
-        where("status", "in", ["pending", "Pending"])
-      );
-
-      const pendingSnapshot = await getDocs(pendingQuery);
-      if (!pendingSnapshot.empty) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Already Booked',
-          text: 'You already have a pending appointment on this date. Please wait for confirmation or choose another date.',
-        });
-        return;
-      }
-
-      // Check if the selected time slot is available
+      // Check if the selected time slot is already taken
       const slotQuery = query(
         collection(db, "appointments"),
         where("date", "==", selectedDate),
         where("time", "==", selectedTime),
         where("status", "in", ["pending", "Pending", "Accepted", "accepted"]),
-        where("cancellationStatus", "==", "")
+        where("cancellationStatus", "==", "") // Exclude canceled appointments
       );
 
       const slotSnapshot = await getDocs(slotQuery);
@@ -224,6 +188,24 @@ async function bookAppointment() {
           icon: 'error',
           title: 'Time Slot Unavailable',
           text: 'This time slot is already booked. Please choose a different time.',
+        });
+        return;
+      }
+
+      // Check if the user already has an appointment on the same date
+      const userQuery = query(
+        collection(db, "appointments"),
+        where("patientId", "==", patientId),
+        where("date", "==", selectedDate),
+        where("status", "in", ["pending", "Pending", "Accepted", "accepted"])
+      );
+
+      const userSnapshot = await getDocs(userQuery);
+      if (!userSnapshot.empty) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Already Booked',
+          text: 'You already have an appointment on this date. Please choose another date.',
         });
         return;
       }
@@ -252,7 +234,7 @@ async function bookAppointment() {
       });
 
       // Notify the user of success
-      await Swal.fire({
+      Swal.fire({
         icon: 'success',
         title: 'Appointment Pending',
         text: `Your appointment is pending for ${selectedDate} at ${selectedTime}. Please wait for confirmation.`,
@@ -264,22 +246,16 @@ async function bookAppointment() {
       selectedSubServices = [];
     });
   } catch (error) {
-    if (error instanceof Error) {
-      Swal.fire({
-        icon: 'error',
-        title: error.message || 'Error',
-        text: 'An issue occurred while booking your appointment. Please try again.',
-      });
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Unknown Error',
-        text: 'An unexpected error occurred. Please try again.',
-      });
-    }
+    // Handle errors during booking
+    Swal.fire({
+      icon: 'error',
+      title: (error instanceof Error ? error.message : 'Error'),
+      text: 'An issue occurred while booking your appointment. Please try again.',
+    });
     console.error("Error during booking:", error);
   }
 }
+
 
 
 function getMinDate(): string {
@@ -861,7 +837,7 @@ style="
                 {:else if appointment.cancellationStatus === 'Approved'}
                   <span class="text-red-600 font-semibold">Cancelled</span>
                 {:else if appointment.cancellationStatus === 'decline'}
-                  <span class="text-red-600 font-semibold">Cancellation Declined</span>
+                  <span class="text-red-600 font-semibold">Appointment Declined</span>
                 {:else if appointment.status === 'Reschedule Requested'}
                   <span class="text-purple-600 font-semibold">Reschedule Requested</span>
                 {:else if appointment.status === 'Rescheduled'}
@@ -873,7 +849,7 @@ style="
                 {:else if appointment.status === 'Missed'}
                   <span class="text-orange-600 font-semibold">Missed</span>
                 {:else if appointment.status === 'Decline'}
-                  <span class="text-red-600 font-semibold">Declined</span>
+                  <span class="text-red-600 font-semibold">Cancellation Declined</span>
                 {:else if appointment.status === 'pending'}
                   <span class="text-yellow-600 font-semibold">Pending</span>
                 {:else if appointment.status === 'confirmed'}
