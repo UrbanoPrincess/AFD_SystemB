@@ -495,9 +495,9 @@ function toggleSubService(subService: string) {
   }
 }
 
-function openRescheduleModal(appointmentId: string): void {
+function openRescheduleModal(appointmentId: string): void { 
   // Find the appointment details by ID
-  currentAppointment = appointments.find(appointment => appointment.id === appointmentId) || null;
+  currentAppointment = upcomingAppointments.find(appointment => appointment.id === appointmentId) || null;
 
   if (currentAppointment) {
     newDate = currentAppointment.date; // Set the current date as default
@@ -507,6 +507,8 @@ function openRescheduleModal(appointmentId: string): void {
   selectedAppointmentId = appointmentId;
   rescheduleModal = true;
 }
+
+
 
 async function rescheduleAppointment(newDate: string, newTime: string): Promise<void> {
   if (!newDate || !newTime) {
@@ -596,6 +598,8 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
     });
   }
 }
+
+
 </script>
 
 
