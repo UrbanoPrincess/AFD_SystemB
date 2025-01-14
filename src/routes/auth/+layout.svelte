@@ -23,16 +23,26 @@
 
     // Monitor auth state changes
     onMount(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                username.set(user.displayName ?? user.email ?? '');  // Fallback to empty string if null
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Truncate the username to 15 characters and append "..." if it's too long
+            const maxLength = 15;
+            let displayName = user.displayName ?? user.email ?? '';
+            if (displayName.length > maxLength) {
+                displayName = displayName.substring(0, maxLength) + '...'; // Add "..." for long usernames
+                // Optional: You could set a flag for warning
+                username.set(displayName);
             } else {
-                username.set(''); // Clear username when logged out
+                username.set(displayName);
             }
-        });
-
-        return () => unsubscribe();
+        } else {
+            username.set(''); // Clear username when logged out
+        }
     });
+
+    return () => unsubscribe();
+});
+
 
     // Logout function with loading state
     export function logout() {
@@ -120,13 +130,14 @@
         width: 50px;
         height: 50px;
     }
-
     .sidebar-header span {
-        margin-top: 10px;
-        font-size: 1rem;
-        white-space: nowrap;
-        text-align: center;
-    }
+    margin-top: 10px;
+    font-size: 1rem;
+    text-align: center;
+    overflow-wrap: break-word;
+    white-space: normal; /* Change from nowrap to normal */
+}
+
 
     /* Sidebar Menu */
     .sidebar-menu {

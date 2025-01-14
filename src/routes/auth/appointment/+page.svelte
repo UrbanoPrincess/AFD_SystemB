@@ -173,39 +173,65 @@ async function bookAppointment() {
   try {
     // Firestore transaction to ensure atomic operations
     await runTransaction(db, async (transaction) => {
-      // Check if the user already has an appointment for the selected date
-      const existingQuery = query(
+      // Check if the user has any accepted appointment on the same date
+      const acceptedQuery = query(
         collection(db, "appointments"),
         where("patientId", "==", patientId),
         where("date", "==", selectedDate),
-        where("cancellationStatus", "==", "") // Ensure cancellationStatus is empty
+        where("status", "in", ["Accepted", "accepted"])
       );
 
-      const existingSnapshot = await getDocs(existingQuery);
-      if (!existingSnapshot.empty) {
-        throw new Error("Already Booked");
+      const acceptedSnapshot = await getDocs(acceptedQuery);
+      if (!acceptedSnapshot.empty) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Already Booked',
+          text: 'You already have an accepted appointment on this date. Please choose another date.',
+        });
+        return;
       }
 
-      // Check if the time slot is available for the selected date and time
+      // Check if the user has any pending appointment on the same date
+      const pendingQuery = query(
+        collection(db, "appointments"),
+        where("patientId", "==", patientId),
+        where("date", "==", selectedDate),
+        where("status", "in", ["pending", "Pending"])
+      );
+
+      const pendingSnapshot = await getDocs(pendingQuery);
+      if (!pendingSnapshot.empty) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Already Booked',
+          text: 'You already have a pending appointment on this date. Please wait for confirmation or choose another date.',
+        });
+        return;
+      }
+
+      // Check if the selected time slot is available
       const slotQuery = query(
         collection(db, "appointments"),
         where("date", "==", selectedDate),
         where("time", "==", selectedTime),
-        where("status", "in", ["pending", "Pending", "accepted", "Accepted", "cancellationRequested"]), // Check all four variations of Pending and Accepted statuses
-        where("cancellationStatus", "==", "") // Ensure cancellationStatus is empty
+        where("status", "in", ["pending", "Pending", "Accepted", "accepted"]),
+        where("cancellationStatus", "==", "")
       );
 
       const slotSnapshot = await getDocs(slotQuery);
       if (!slotSnapshot.empty) {
-        throw new Error("Time Slot Unavailable");
+        Swal.fire({
+          icon: 'error',
+          title: 'Time Slot Unavailable',
+          text: 'This time slot is already booked. Please choose a different time.',
+        });
+        return;
       }
 
-      // Ensure patientId is a string and not null
+      // Ensure the patient has a valid profile
       if (!patientId) {
-        throw new Error("Patient ID is missing or invalid.");
+        throw new Error("Patient ID is null");
       }
-
-      // Check if the user's profile exists
       const profileDocRef = doc(db, "patientProfiles", patientId);
       const profileDocSnap = await transaction.get(profileDocRef);
 
@@ -213,7 +239,7 @@ async function bookAppointment() {
         throw new Error("Profile Not Found");
       }
 
-      // Create a new appointment
+      // Create a new appointment entry
       const appointmentRef = doc(collection(db, "appointments"));
       transaction.set(appointmentRef, {
         patientId: patientId,
@@ -224,69 +250,54 @@ async function bookAppointment() {
         status: 'pending',
         cancellationStatus: '', // Empty cancellation status for new bookings
       });
-    });
 
-    // Notify the user of success
-    Swal.fire({
-      icon: 'success',
-      title: 'Appointment Pending',
-      text: `Your appointment is pending for ${selectedDate} at ${selectedTime}. Please wait for confirmation.`,
-    });
+      // Notify the user of success
+      await Swal.fire({
+        icon: 'success',
+        title: 'Appointment Pending',
+        text: `Your appointment is pending for ${selectedDate} at ${selectedTime}. Please wait for confirmation.`,
+      });
 
-    // Clear selections after successful booking
-    selectedTime = null;
-    selectedService = null;
-    selectedSubServices = [];
+      // Clear selections after successful booking
+      selectedTime = null;
+      selectedService = null;
+      selectedSubServices = [];
+    });
   } catch (error) {
-    // Handle specific errors
     if (error instanceof Error) {
-      if (error.message === "Already Booked") {
-        Swal.fire({
-          icon: 'info',
-          title: 'Already Booked',
-          text: 'You already have an appointment on this day. You can only book one appointment per day.',
-        });
-      } else if (error.message === "Time Slot Unavailable") {
-        Swal.fire({
-          icon: 'info',
-          title: 'Time Slot Unavailable',
-          text: 'This time slot has just been booked. Please choose a different time.',
-        });
-      } else if (error.message === "Profile Not Found") {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Profile Not Found',
-          text: 'You must submit your profile before booking an appointment.',
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: `Something went wrong while booking your appointment.`,
-        });
-        console.error("Unexpected error during booking:", error);
-      }
+      Swal.fire({
+        icon: 'error',
+        title: error.message || 'Error',
+        text: 'An issue occurred while booking your appointment. Please try again.',
+      });
     } else {
-      console.error("Non-error object thrown:", error);
       Swal.fire({
         icon: 'error',
         title: 'Unknown Error',
         text: 'An unexpected error occurred. Please try again.',
       });
     }
+    console.error("Error during booking:", error);
   }
 }
-
 
 
 function getMinDate(): string {
   const today = new Date();
   today.setDate(today.getDate() + 3); // Add 3 days to today's date
+
+  // If the resulting day is Saturday (6), skip to Monday
+  if (today.getDay() === 6) {
+    today.setDate(today.getDate() + 2); // Add 2 days to skip to Monday
+  }
+
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
   const day = String(today.getDate()).padStart(2, '0');
+
   return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
 }
+
 
 // Function to fetch and categorize appointments
 function getAppointments() {
@@ -667,124 +678,116 @@ padding-left: 1rem;
     transition: box-shadow 0.3s ease;
   "
 >
-  <!-- Left Section (Form) -->
-  <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333;">Book Appointment</h3>
+<!-- Left Section (Form) -->
+<h3 style="font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333;">Book Appointment</h3>
 
-  <div
-    style="
-      flex: 1 1 45%; 
-      min-width: 300px; 
-      min-height: 400px; 
-      transform: scale(0.95); /* Slightly reduced scale for better fit */
-      margin-top: -10px; /* Reduced margin to better space elements */
-    "
-  >
-<!-- Datepicker Section -->
-<div class="mb-4">
-  <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
-  <div id="datepicker-wrapper">
-    <input 
-      type="date" 
-      id="datepicker" 
-      bind:value={selectedDate} 
-      class="block w-full border border-gray-700 rounded-md shadow-sm p-2" 
-      min={getMinDate()}    />
+<div style="flex: 1 1 45%; min-width: 300px; min-height: 400px; transform: scale(0.95); margin-top: -10px;">
+  <!-- Datepicker Section -->
+  <div class="mb-4">
+    <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
+    <div id="datepicker-wrapper">
+      <input 
+        type="date" 
+        id="datepicker" 
+        bind:value={selectedDate} 
+        class="block w-full border border-gray-700 rounded-md shadow-sm p-2" 
+        min={getMinDate()} 
+      />
+    </div>
   </div>
-</div>
 
-    <!-- Service Selection Dropdown -->
-    <div class="mb-4">
-      <!-- svelte-ignore a11y_label_has_associated_control -->
-      <label class="block text-sm font-medium text-gray-700">Select Service</label>
-      <select bind:value={selectedService} class="block w-full border border-gray-700 rounded-md shadow-sm p-2">
-        <option value="" disabled>Select a service</option>
-        {#each services as service}
-          <option value={service}>{service}</option>
-        {/each}
-      </select>
+  <!-- Service Selection Dropdown -->
+  <div class="mb-4">
+    <label for="service-select" class="block text-sm font-medium text-gray-700">Select Service</label>
+    <select id="service-select" bind:value={selectedService} class="block w-full border border-gray-700 rounded-md shadow-sm p-2">
+      <option value="" disabled>Select a service</option>
+      {#each services as service}
+        <option value={service}>{service}</option>
+      {/each}
+    </select>
+  </div>
+
+  <!-- Sub-Service Selection Checkboxes -->
+  {#if selectedService && subServices[selectedService]}
+    <div class="mt-2">
+      <label for="sub-services" class="block text-sm font-medium text-gray-700">Sub-services</label>
+      {#each subServices[selectedService] as subService}
+        <div class="flex items-center">
+          <Checkbox id={subService} value={subService} on:change={() => toggleSubService(subService)} />
+          <label for={subService} class="ml-2">{subService}</label>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Time Slot Section -->
+  <div class="mb-6">
+    <!-- Morning Time Slots -->
+    <div class="flex items-center mb-4">
+      <img alt="Morning icon" class="mr-2" height="24" src="https://storage.googleapis.com/a1aa/image/GIyR3HKfMp1fDkqFrYulwbIHaTApWH3YPZDJuQDrFo5lwM5TA.jpg" width="24" />
+      <div>
+        <div class="text-gray-700 font-semibold">Morning Hours</div>
+        <div class="text-gray-500 text-sm">Monday to Friday: 8:00 AM to 12:00 PM | Sunday: 8:00 AM to 12:00 AM | Saturday: Day Off</div>
+      </div>
     </div>
 
-    <!-- Sub-Service Selection Checkboxes -->
-    {#if selectedService && subServices[selectedService]}
-      <div class="mt-2">
-        <!-- svelte-ignore a11y_label_has_associated_control -->
-        <label class="block text-sm font-medium text-gray-700">Sub-services</label>
-        {#each subServices[selectedService] as subService}
-          <div class="flex items-center">
-            <Checkbox id={subService} value={subService} on:change={() => toggleSubService(subService)} />
-            <label for={subService} class="ml-2">{subService}</label>
-          </div>
+    <div class="slots-container">
+      <div class="grid grid-cols-4 gap-4">
+        {#each morningSlots as slot}
+          <button
+            class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
+            class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+            class:selected={selectedTime === slot}
+            on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+            disabled={!isTimeSlotAvailable(slot, selectedDate)}
+            style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
+          >
+            {slot}
+          </button>
         {/each}
+      </div>
+    </div>
+
+    <!-- Afternoon Time Slots -->
+    <div class="mb-4">
+      <div class="flex items-center mb-4">
+        <img alt="Afternoon icon" class="mr-2" height="24" src="https://cdn.dribbble.com/users/128741/screenshots/710759/afternoon.png" width="24" />
+        <div>
+          <div class="text-gray-700 font-semibold">Afternoon Hours</div>
+          <div class="text-gray-500 text-sm">Monday to Friday: 1:00 PM to 5:00 PM | Sunday: 1:00 PM to 4:00 PM | Saturday: Day Off</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-4">
+        {#each afternoonSlots as slot}
+          <button
+            class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
+            class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+            class:selected={selectedTime === slot}
+            on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+            disabled={!isTimeSlotAvailable(slot, selectedDate)}
+            style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
+          >
+            {slot}
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    {#if selectedTime}
+      <div class="mt-4 text-gray-700">
+        <p>You have selected: <span class="font-semibold">{selectedTime}</span></p>
+        <button
+          on:click={() => bookAppointment()}
+          class="mt-4 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Book Appointment
+        </button>
       </div>
     {/if}
-
-    <!-- Time Slot Section -->
-    <div class="mb-6">
-      <!-- Morning Time Slots -->
-      <div class="flex items-center mb-4">
-        <img alt="Morning icon" class="mr-2" height="24" src="https://storage.googleapis.com/a1aa/image/GIyR3HKfMp1fDkqFrYulwbIHaTApWH3YPZDJuQDrFo5lwM5TA.jpg" width="24" />
-        <div>
-          <div class="text-gray-700 font-semibold">Morning Hours</div>
-          <div class="text-gray-500 text-sm">Monday to Friday: 8:00 AM to 12:00 PM | Sunday: 8:00 AM to 12:00 AM | Saturday: Day Off</div>
-        </div>
-      </div>
-
-      <div class="slots-container">
-        <div class="grid grid-cols-4 gap-4">
-          {#each morningSlots as slot}
-          <button
-          class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
-          class:booked={!isTimeSlotAvailable(slot, selectedDate)}
-          class:selected={selectedTime === slot}
-          on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
-          disabled={!isTimeSlotAvailable(slot, selectedDate)}
-          style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
-        >
-          {slot}
-        </button>
-          {/each}
-        </div>
-      </div>
-
-      <!-- Afternoon Time Slots -->
-      <div class="mb-4">
-        <div class="flex items-center mb-4">
-          <img alt="Afternoon icon" class="mr-2" height="24" src="https://cdn.dribbble.com/users/128741/screenshots/710759/afternoon.png" width="24" />
-          <div>
-            <div class="text-gray-700 font-semibold">Afternoon Hours</div>
-            <div class="text-gray-500 text-sm">Monday to Friday: 1:00 PM to 5:00 PM | Sunday: 1:00 PM to 4:00 PM | Saturday: Day Off</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-4 gap-4">
-          {#each afternoonSlots as slot}
-          <button
-          class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
-          class:booked={!isTimeSlotAvailable(slot, selectedDate)}
-          class:selected={selectedTime === slot}
-          on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
-          disabled={!isTimeSlotAvailable(slot, selectedDate)}
-          style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
-        >
-          {slot}
-        </button>
-
-          {/each}
-        </div>
-      </div>
-
-      {#if selectedTime}
-        <div class="mt-4 text-gray-700">
-          <p>You have selected: <span class="font-semibold">{selectedTime}</span></p>
-          <button on:click={bookAppointment} class="mt-4 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-            Book Appointment
-          </button>
-        </div>
-      {/if}
-    </div>
   </div>
 </div>
-
+</div>
 <div
 style="
   flex: 1;
