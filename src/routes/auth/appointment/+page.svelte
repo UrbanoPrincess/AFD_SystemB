@@ -25,7 +25,7 @@ type Appointment = {
   service: string;
   subServices: string[];
   cancellationStatus?: 'pending' | 'Approved' | 'decline' | 'requested' | null;
-  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "Rescheduled" |"cancellationRequested" | "";
+  status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "Rescheduled" |"Scheduled" |"Completed: Need Follow-up" |"cancellationRequested" | "";
 };
 
 let selectedDate = new Date().toISOString().split('T')[0]; // Initialize with today's date in YYYY-MM-DD format
@@ -846,6 +846,10 @@ style="
                   <span class="text-purple-600 font-semibold">Reschedule Requested</span>
                 {:else if appointment.status === 'Rescheduled'}
                   <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+                  {:else if appointment.status === 'Completed: Need Follow-up'}
+                  <span class="text-blue-600 font-semibold">Completed: With Follow-up Appointment</span>
+                  {:else if appointment.status === 'Scheduled'}
+                  <span class="text-blue-600 font-semibold">Follow-up Appointment</span>
                 {:else if appointment.status === 'Accepted'}
                   <span class="text-green-600 font-semibold">Accepted</span>
                 {:else if appointment.status === 'Completed'}
@@ -947,6 +951,8 @@ style="
                     <span class="text-purple-600 font-semibold">Reschedule Requested</span>
                   {:else if appointment.status === 'Rescheduled'}
                     <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+                    {:else if appointment.status === 'Completed: Need Follow-up'}
+                    <span class="text-blue-600 font-semibold">Completed: With Follow-up Appointment</span>
                   {:else if appointment.status === 'Accepted'}
                     <span class="text-green-600 font-semibold">Accepted</span>
                   {:else if appointment.status === 'Completed'}
