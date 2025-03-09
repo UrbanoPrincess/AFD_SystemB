@@ -24,26 +24,6 @@
 </script>
 
 <style>
-    /* Main container to make it scrollable */
-    .main-container {
-        height: calc(100vh - 168px); /* Subtract the header height */
-        overflow-y: auto; /* Allow vertical scrolling */
-        padding: 16px;  /* Optional padding for spacing */
-    }
-
-    /* Hide scrollbar for Webkit browsers (Chrome, Safari) */
-    .main-container::-webkit-scrollbar {
-        display: none;
-    }
-
-    /* Hide scrollbar for Internet Explorer 10+ and Firefox */
-    .main-container {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-        height: 100%;
-    }
-
-    
     .header-section {
         background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
         border-top-left-radius: 8px;
@@ -144,21 +124,9 @@
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
     }
 
-    .card h4, .card h5 {
-        margin-bottom: 0.6rem;
-        font-size: 1.1rem;
-        color: #005b80;
-    }
+   
 
-    .card p {
-        margin-bottom: 0.2rem;
-        font-size: 1rem;
-        color: #333;
-    }
-
-    .card p strong {
-        color: #08B8F3;
-    }
+   
 
     .image-preview {
         width: 100%;
@@ -181,11 +149,7 @@
         text-align: justify;
     }
 
-    .medicine-quantity {
-        margin-top: 10px;
-        margin-bottom: 0;
-    }
-
+   
     /* Responsive Styles */
     @media (max-width: 768px) {
         .grid {

@@ -25,7 +25,7 @@
     onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
-            // Truncate the username to 15 characters and append "..." if it's too long
+         
             const maxLength = 15;
             let displayName = user.displayName ?? user.email ?? '';
             if (displayName.length > maxLength) {
@@ -302,12 +302,6 @@
                     <span class="text">History</span>
                 </a>
             </li>
-           <!--  <li>
-                <a href="./medicine-list">
-                    <img class="icon" src="/images/medicinelist.png" alt="Prescriptions Icon" />
-                    <span class="text">Medicines List</span>
-                </a>
-            </li>-->
            
         </ul>
 
