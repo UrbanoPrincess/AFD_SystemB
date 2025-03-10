@@ -219,20 +219,19 @@ function generatePDF(prescription: any, index: number) {
 </script>
 <div style="max-height: 100vh; overflow: hidden;">
     <header style="padding-top: 1rem; padding-left: 1rem;">
-        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 90%; max-width: 350px;">
+        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 68rem;">
             <div class="flex items-center">
-                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" style="display: none;" />
-                <div class="header-info" style="max-width: 100%; overflow: hidden;">
-                    <h1 class="patient-name" style="font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">AFDomingo</h1>
-                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">DENTAL CLINIC</p>
-                    <p class="patient-details" style="font-size: 0.875rem; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; max-width: 90%;">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">afdomingodentalclinic@gmail.com</p>
-                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">0932 984 9554</p>
+                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" />
+                <div class="header-info">
+                    <h1 class="patient-name">AFDomingo</h1>
+                    <p class="patient-details">DENTAL CLINIC</p>
+                    <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+                    <p class="patient-details">afdomingodentalclinic@gmail.com</p>
+                    <p class="patient-details">0932 984 9554</p>
                 </div>
             </div>
         </div>
     </header>
-    
     <div class="container" style="overflow-y: auto; max-height: calc(100vh - 168px);"> <!-- Adjust height based on header -->
         <div class="header">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
@@ -421,10 +420,8 @@ function generatePDF(prescription: any, index: number) {
 
 /* 🔹 Responsive Header for Mobile */
 @media (max-width: 768px) {
-    @media (max-width: 768px) {
     .header-section {
-        background: none !important; /* Remove gradient */
-        background-color: #08B8F3 !important; /* Apply solid color */
+        background-color: #08B8F3; /* Ensure consistent property usage */
         display: flex;
         flex-direction: column;
         align-items: flex-start; /* Use 'flex-start' instead of 'left' */
@@ -434,8 +431,6 @@ function generatePDF(prescription: any, index: number) {
         max-width: 350px;
         border-radius: 8px;
     }
-}
-
 
     .logo {
         display: none; /* Hide logo on mobile */
@@ -448,7 +443,6 @@ function generatePDF(prescription: any, index: number) {
     .patient-name {
         font-size: 1.2rem;
         font-weight: bold; /* Improve readability */
-        color:#fff;
     }
 
     .patient-details {
