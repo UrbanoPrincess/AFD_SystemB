@@ -271,18 +271,21 @@ function toggleEditProfile() {
 
 
 <div class="main-container">
-    <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 68rem;">
+    <div class="patient-card">
         <img src="/images/logo(landing).png" 
              alt="Decorative logo" class="logo"/>
-        <div style="color: black;">
-          <h1 class="text-lg font-bold" style="font-size: 1.25rem; font-weight: bold;">
-            {`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}
-          </h1>
-          <p>Patient ID: {patientProfile.id || "xxxxxx"}</p>
-          <p>Age: {patientProfile.age || "xx"}</p>
-          <p>Gender: {patientProfile.gender || "xxxxx"}</p> <!-- Moved gender to a new paragraph -->
+    
+        <div class="patient-info">
+            <h1>{`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}</h1>
+            <p><strong>Patient ID:</strong> {patientProfile.id || "xxxxxx"}</p>
+            <p><strong>Age:</strong> {patientProfile.age || "xx"}</p>
+            <p><strong>Gender:</strong> {patientProfile.gender || "xxxxx"}</p>
         </div>
     </div>
+    
+    
+    
+    
 
 <!-- Edit Profile Dropdown Button -->
 <div style="margin-top: 16px;">
@@ -409,16 +412,69 @@ function toggleEditProfile() {
     height: 100%;
 }
 
-    .header-section {
-        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00,#eaee00, #08B8F3, #08B8F3, #005b80); /* Gradient background */
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 16px;
-        height: 168px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301); /* Subtle shadow for depth */
+.patient-card {
+    background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: 68rem;
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+/* Patient Info Styles */
+.patient-info {
+    color: black;
+    font-size: 1rem;
+    flex-grow: 1;
+    min-width: 0; /* Prevents text from overflowing */
+    word-wrap: break-word;
+}
+
+.patient-info h1 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+/* 🔹 Mobile: Smaller Compact Card */
+@media (max-width: 768px) {
+    .patient-card {
+        background: #08B8F3; /* Single color */
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        padding: 12px; /* Smaller padding */
+        width: 90%; /* Smaller width */
+        max-width: 320px; /* Limit width for a compact look */
+        border-radius: 8px; /* Softer corners */
     }
+
+    .logo {
+        display: none; /* Hides logo on mobile */
+    }
+
+    .patient-info {
+        color: white; /* White text for contrast */
+        font-size: 0.9rem; /* Slightly smaller text */
+        width: 100%;
+    }
+
+    .patient-info h1 {
+        font-size: 1.25rem; /* Reduce name size */
+        text-align: left;
+    }
+
+    .patient-info p {
+        font-size: 1rem; /* Reduce text size */
+        margin-bottom: 2px;
+        text-align: left;
+    }
+}
+
 
     .logo {
         width: 10rem; /* Increased logo size */
