@@ -610,24 +610,6 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 padding-left: 1rem;
 
 ">
-<div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; height: 168px; display: flex; align-items: center; width: 68rem;">
-  <div class="flex items-center">
-              <img 
-                  src="/images/logo(landing).png" 
-                  alt="Sun with dental logo" 
-                  class="logo" 
-              />
-              <div class="header-info">
-                  <h1 class="patient-name">AFDomingo</h1>
-                  <p class="patient-details">DENTAL CLINIC</p>
-                  <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-                  <p class="patient-details">afdomingodentalclinic@gmail.com</p>
-                  <p class="patient-details">0932 984 9554</p>
-              </div>
-          </div>
-      </div>
-  </header>
-
 
 <div
   style="
@@ -769,20 +751,20 @@ padding-left: 1rem;
 </div>
 </div>
 <div
-style="
-  flex: 1;
-  padding: 20px;
-  margin-top: -40px;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  border-top: 5px solid #007bff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-  overflow: hidden;
-  margin-bottom: 0px; /* No margin-bottom here */
-"
+  style="
+    flex: 1;
+    padding: 20px;
+    margin-top: 20px; /* Adjusted to a positive margin */
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    border-top: 5px solid #007bff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    overflow: hidden;
+  "
 >
-<h3 style="font-size: 18px; font-weight: bold;">Your Appointments</h3>
+  <h3 style="font-size: 18px; font-weight: bold;">Your Appointments</h3>
+
 
 <!-- Tabs Navigation -->
 <div style="display: flex; margin-top: 20px; border-bottom: 1px solid #ddd;">
@@ -1069,7 +1051,8 @@ style="
   </Modal>
 
   <style>
-    .modal {
+   /* Modal Overlay */
+.modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -1080,8 +1063,10 @@ style="
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 20px; /* Ensures modal is accessible on smaller screens */
 }
 
+/* Modal Content */
 .modal-content {
   background: white;
   padding: 20px;
@@ -1089,146 +1074,108 @@ style="
   width: 400px;
   max-width: 90%;
   text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-    .booked {
-      background-color: #cbd5e1;
-      cursor: not-allowed;
-    }
-  
-    .slot-button {
-      width: 100%;
-    }
-  
-    .slots-container {
-      max-height: 300px; /* Adjust the height as needed */
-       /* Enables vertical scrolling */
-    }
-  
-    .appointments-section {
-      margin-top: 30px;
-      background-color: #f9fafb;
-      padding: 10px;
-      border-radius: 8px;
-      max-height: 300px; /* Adjust the height as needed */
-      /* Enables vertical scrolling */
-    }
-  
-  
-   
-    /* Hide the scrollbar */
-    div::-webkit-scrollbar {
-      display: none;
-    }
-  
-    div {
-      -ms-overflow-style: none;  /* For Internet Explorer and Edge */
-      scrollbar-width: none;      /* For Firefox */
-    }
-    @media (max-width: 768px) {
-      .flex {
-        flex-direction: column; /* Stack the elements vertically on small screens */
-        align-items: center;
-        text-align: center;
-      }
-  
-     
-  
-      .text-lg {
-        font-size: 18px; /* Adjust font size for headings */
-      }
-  
-      .text-sm {
-        font-size: 14px; /* Adjust font size for smaller text */
-      }
-    }
-    @media (max-width: 768px) {
-      .slots-container .grid {
-        grid-template-columns: repeat(2, 1fr); /* Adjust grid layout on smaller screens */
-      }
-  
-      .text-sm {
-        font-size: 14px; /* Smaller text on mobile */
-      }
-  
-      .slot-button {
-        padding: 8px 12px; /* Adjust padding for smaller buttons */
-      }
-    }
-    /*
-    :global(.content) {
-         
-          overflow: auto;
-      }*/
-      .selected {
-    background-color: blue; /* Blue background for selected slot */
-    color: white; /* White text */
-    border-color: blue; /* Matching border color */
-    cursor: default; /* Prevent hover change when selected */
-    transition: background-color 0.3s ease, border-color 0.3s ease; /* Smooth transition */
+/* Disabled Slot */
+.booked {
+  background-color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+/* Slot Button */
+.slot-button {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 6px;
+}
+
+/* Slots Container */
+.slots-container {
+  max-height: 300px;
+  overflow-y: auto; /* Ensures scrolling if too many slots */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Dynamic grid */
+  gap: 8px;
+}
+
+/* Appointments Section */
+.appointments-section {
+  margin-top: 30px;
+  background-color: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Hide Scrollbar */
+div::-webkit-scrollbar {
+  display: none;
+}
+div {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* RESPONSIVE STYLES */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 100%;
+    max-width: 95%;
+    padding: 16px;
   }
-  .selected:hover {
-    background-color: darkblue; /* Darker blue when hovered */
-    border-color: darkblue; /* Darker border to match */
+
+  .slots-container {
+    grid-template-columns: repeat(2, 1fr); /* Two columns on mobile */
   }
-  .header-section {
-          background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-          padding: 16px;
-          height: 168px;
-          display: flex;
-          align-items: center;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
-      }
-  
-      .logo {
-          width: 10rem;
-          height: 10rem;
-          border-radius: 50%;
-          margin-right: 16px;
-          object-fit: cover;
-      }
-  
-      .header-info {
-          color: #000000;
-      }
-  
-      .patient-name {
-          font-size: 1.3rem;
-          font-weight: bold;
-          margin: 0;
-      }
-  
-      .patient-details {
-          margin: 2px 0;
-          font-size: 1rem;
-          color: #000000;
-          line-height: 1.2;
-      }
-  
-      /* Responsive Styles */
-      @media (max-width: 768px) {
-          .header-section {
-              flex-direction: column;
-              align-items: flex-start;
-              padding: 12px;
-          }
-  
-          .logo {
-              width: 8rem;
-              height: 8rem;
-              margin-bottom: 12px;
-          }
-  
-          .patient-name {
-              font-size: 1.25rem;
-          }
-  
-          .patient-details {
-              font-size: 0.875rem;
-          }
-      }
+
+  .slot-button {
+    font-size: 14px; /* Smaller buttons for mobile */
+    padding: 8px 12px;
+  }
+
+  .flex {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .text-lg {
+    font-size: 18px;
+  }
+
+  .text-sm {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .slots-container {
+    grid-template-columns: repeat(1, 1fr); /* Single column on very small screens */
+  }
+
+  .slot-button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+/* Selected State */
+.selected {
+  background-color: blue;
+  color: white;
+  border-color: blue;
+  cursor: default;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.selected:hover {
+  background-color: darkblue;
+  border-color: darkblue;
+}
+
       .reschedule-icon {
     width: 20px; /* Adjust the size of the icon */
     height: 20px;

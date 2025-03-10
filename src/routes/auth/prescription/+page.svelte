@@ -219,19 +219,20 @@ function generatePDF(prescription: any, index: number) {
 </script>
 <div style="max-height: 100vh; overflow: hidden;">
     <header style="padding-top: 1rem; padding-left: 1rem;">
-        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 68rem;">
+        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 90%; max-width: 350px;">
             <div class="flex items-center">
-                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" />
-                <div class="header-info">
-                    <h1 class="patient-name">AFDomingo</h1>
-                    <p class="patient-details">DENTAL CLINIC</p>
-                    <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-                    <p class="patient-details">afdomingodentalclinic@gmail.com</p>
-                    <p class="patient-details">0932 984 9554</p>
+                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" style="display: none;" />
+                <div class="header-info" style="max-width: 100%; overflow: hidden;">
+                    <h1 class="patient-name" style="font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">AFDomingo</h1>
+                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">DENTAL CLINIC</p>
+                    <p class="patient-details" style="font-size: 0.875rem; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; max-width: 90%;">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">afdomingodentalclinic@gmail.com</p>
+                    <p class="patient-details" style="font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">0932 984 9554</p>
                 </div>
             </div>
         </div>
     </header>
+    
     <div class="container" style="overflow-y: auto; max-height: calc(100vh - 168px);"> <!-- Adjust height based on header -->
         <div class="header">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
@@ -348,44 +349,6 @@ function generatePDF(prescription: any, index: number) {
     }
 
     /* Ensure no fixed positioning is applied to the header */
-    .header-section {
-        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 16px;
-        display: flex;
-        align-items: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
-    }
-
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    .container::-webkit-scrollbar {
-        display: none; /* Hide scrollbar */
-    }
-
-    /* Hide scrollbar for IE, Edge and Firefox */
-    .container {
-        -ms-overflow-style: none; /* IE and Edge */
-        scrollbar-width: none; /* Firefox */
-    }
-    /* Responsive Styles */
-   
-       
-    .header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-    .header h2 {
-        padding-bottom: -2rem;
-        margin-left: 10px;
-    }
-    .info {
-        margin-top: 2rem;
-        margin: 2px 0; /* Reduced margin to bring elements closer */
-        font-size: 16px;
-    }
-    
 
    
     .button {
@@ -415,62 +378,85 @@ function generatePDF(prescription: any, index: number) {
     .loading {
         font-style: italic;
     }
-
     .header-section {
-        background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        padding: 16px;
+    background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: 68rem;
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+/* Logo Style */
+.logo {
+    width: 10rem;
+    height: 10rem;
+    border-radius: 50%;
+    margin-right: 16px;
+    object-fit: cover;
+}
+
+/* Header Info */
+.header-info {
+    color: #000000;
+}
+
+.patient-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.patient-details {
+    margin: 2px 0;
+    font-size: 1rem;
+    color: #000000;
+    line-height: 1.2;
+}
+
+/* 🔹 Responsive Header for Mobile */
+@media (max-width: 768px) {
+    @media (max-width: 768px) {
+    .header-section {
+        background: none !important; /* Remove gradient */
+        background-color: #08B8F3 !important; /* Apply solid color */
         display: flex;
-        align-items: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.301);
+        flex-direction: column;
+        align-items: flex-start; /* Use 'flex-start' instead of 'left' */
+        text-align: left;
+        padding: 12px;
+        width: 90%;
+        max-width: 350px;
+        border-radius: 8px;
     }
+}
+
 
     .logo {
-        width: 10rem;
-        height: 10rem;
-        border-radius: 50%;
-        margin-right: 16px;
-        object-fit: cover;
+        display: none; /* Hide logo on mobile */
     }
 
     .header-info {
-        color: #000000;
+        width: 100%;
     }
 
     .patient-name {
-        font-size: 1.3rem;
-        font-weight: bold;
-        margin: 0;
+        font-size: 1.2rem;
+        font-weight: bold; /* Improve readability */
+        color:#fff;
     }
 
     .patient-details {
-        margin: 2px 0;
-        font-size: 1rem;
-        color: #000000;
-        line-height: 1.2;
+        font-size: 0.875rem;
+        line-height: 1.4; /* Slightly improved line height */
+        color: #333; /* Darker text for better readability */
     }
+}
 
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-        .header-section {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 12px;
-        }
 
-        .logo {
-            width: 8rem;
-            height: 8rem;
-            margin-bottom: 12px;
-        }
-
-        .patient-name {
-            font-size: 1.25rem;
-        }
-
-        .patient-details {
-            font-size: 0.875rem;
-        }
-    }
 </style>
