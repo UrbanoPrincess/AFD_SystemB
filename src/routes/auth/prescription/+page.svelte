@@ -217,11 +217,10 @@ function generatePDF(prescription: any, index: number) {
         });
     });
 </script>
-<div style="max-height: 100vh; overflow: hidden;">
-    <header style="padding-top: 1rem; padding-left: 1rem;">
-        <div class="header-section" style="background-color: #08B8F3; border-top-left-radius: 8px; border-top-right-radius: 8px; padding: 16px; display: flex; align-items: center; width: 68rem;">
-            <div class="flex items-center">
-                <img src="/images/logo(landing).png" alt="Sun with dental logo" class="logo" />
+<div class="main-container">
+    <div class="patient-card">
+        <img src="/images/logo(landing).png" 
+             alt="Decorative logo" class="logo"/>
                 <div class="header-info">
                     <h1 class="patient-name">AFDomingo</h1>
                     <p class="patient-details">DENTAL CLINIC</p>
@@ -230,10 +229,10 @@ function generatePDF(prescription: any, index: number) {
                     <p class="patient-details">0932 984 9554</p>
                 </div>
             </div>
-        </div>
-    </header>
-    <div class="container" style="overflow-y: auto; max-height: calc(100vh - 168px);"> <!-- Adjust height based on header -->
-        <div class="header">
+      
+  
+ <!-- Adjust height based on header 
+       <div class="header">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
                 <path d="M10 5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z"/>
                 <path d="M0 14s1-3 7-3 7 3 7 3v1H0v-1z"/>
@@ -252,39 +251,60 @@ function generatePDF(prescription: any, index: number) {
                 <div class="info"><strong>Gender:</strong> {gender || 'Not available'}</div>
                 <div class="info"><strong>Phone:</strong> {phone || 'Not available'}</div>
                 <div class="info"><strong>Birthday:</strong> {birthday || 'Not available'}</div>
-
-                <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>
-                {#if prescriptions.length > 0}
-                    <div class="mt-4">
-                        {#each prescriptions as prescription, index}
-                            <div class="card">
-                                <h4 class="font-bold">Prescription {index + 1}</h4>
-                                <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
-
-                                <h5 class="font-bold mt-2">Medication Details:</h5>
-                                {#each prescription.medicines as medicine, medicineIndex}
-                                    <div class="mt-2">
-                                        <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
-                                        <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
-                                        <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
-                                    </div>
-                                {/each}
-
-                                <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
-                                <button on:click={() => generatePDF(prescription, index)} class="button">
-                                    Download PDF
-                                </button>
-                            </div>
-                        {/each}
-                    </div>
-                {:else}
-                    <p>No prescriptions available.</p>
-                {/if}
+        -->
+        <section class="prescriptions">
+            <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>
+        
+            {#if prescriptions.length > 0}
+                <div class="mt-4">
+                    {#each prescriptions as prescription, index}
+                        <div class="prescription-card">
+                            <h4 class="font-bold">Prescription {index + 1}</h4>
+                            <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
+        
+                            <h5 class="font-bold mt-2">Medication Details:</h5>
+                            {#each prescription.medicines as medicine, medicineIndex}
+                                <div class="medicine-info">
+                                    <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
+                                    <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
+                                    <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
+                                </div>
+                            {/each}
+        
+                            <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
+        
+                            <button on:click={() => generatePDF(prescription, index)} class="download-button">
+                                Download PDF
+                            </button>
+                        </div>
+                    {/each}
+                </div>
+            {:else}
+                <p class="no-prescriptions">No prescriptions available.</p>
             {/if}
-        {/if}
-    </div>
-</div>
+        </section>
+    </div> 
+    
 <style>
+
+    /* Main container to make it scrollable */
+   .main-container {
+    height: calc(100vh - 168px); /* Subtract the header height */
+    overflow-y: auto; /* Allow vertical scrolling */
+    padding: 16px;  /* Optional padding for spacing */
+}
+
+/* Hide scrollbar for Webkit browsers (Chrome, Safari) */
+.main-container::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for Internet Explorer 10+ and Firefox */
+.main-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    height: 100%;
+}
     .card {
         background-color: #fff;
         border: 1px solid #ddd;
@@ -327,15 +347,36 @@ function generatePDF(prescription: any, index: number) {
     }
 
    
-    .prescription-header {
-        font-size: 1.5rem; /* Larger font size for emphasis */
-        color: #000000; /* Use the same color as the gradient for consistency */
-        margin-bottom: 16px; /* Space below the header */
-        text-align: center; /* Center the header text */
-        border-bottom: 2px solid #ddd; /* Underline effect */
-        padding-bottom: 8px; /* Space between text and underline */
-        text-transform: uppercase; /* Make the text uppercase for emphasis */
-    }
+    .prescription-card {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.medicine-info {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-left: 4px solid #007bff;
+    margin-top: 0.5rem;
+    border-radius: 5px;
+}
+
+.download-button {
+    background: #007bff;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.download-button:hover {
+    background: #0056b3;
+}
+
     .container {
         margin-top: 0.5rem;
         max-width: 100%;
@@ -377,20 +418,18 @@ function generatePDF(prescription: any, index: number) {
     .loading {
         font-style: italic;
     }
-    .header-section {
+    .patient-card {
     background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 20px;
     display: flex;
     align-items: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     width: 68rem;
     max-width: 100%;
     justify-content: flex-start;
     gap: 16px;
 }
-
 /* Logo Style */
 .logo {
     width: 10rem;
@@ -419,17 +458,19 @@ function generatePDF(prescription: any, index: number) {
 }
 
 /* 🔹 Responsive Header for Mobile */
-@media (max-width: 768px) {
-    .header-section {
-        background: #08B8F3 !important; /* Solid blue color */
+@media (max-width: 768px) { 
+    .patient-card {
+        background: #08B8F3;
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        padding: 12px;
+        align-items: center;
+        text-align: center;
+        padding: 12px; /* Reduced padding for a smaller card */
         width: 90%;
-        max-width: 225px; /* Set your preferred max-width */
-        border-radius: 8px;
+        max-width: 280px; /* Makes card smaller */
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        word-wrap: break-word;
     }
 
     .logo {
@@ -442,14 +483,17 @@ function generatePDF(prescription: any, index: number) {
 
     .patient-name {
         font-size: 1.2rem;
-        font-weight: bold; /* Improve readability */
+        font-weight: bold;
         color: #fff;
+        margin-bottom: 2px;
     }
 
     .patient-details {
-        font-size: 0.875rem;
-        line-height: 1.4; /* Slightly improved line height */
-        color: #333;
+        font-size: 0.8rem; /* Smaller text */
+        line-height: 1.3;
+        color: #fff;
+        word-break: keep-all; /* Prevents weird email breaking */
+        overflow-wrap: break-word;
     }
 }
 

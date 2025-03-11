@@ -253,7 +253,7 @@
     }
 
     .content.shifted.collapsed {
-        margin-left: 5rem;
+        margin-left: 4rem;
     }
 
     /* Loading Popup styles */

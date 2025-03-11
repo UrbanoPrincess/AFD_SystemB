@@ -604,12 +604,7 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 
 
 <div style="max-height: 100vh; overflow-y: auto;">
-  <header style="
-  padding-top: 1rem;
-
-padding-left: 1rem;
-
-">
+ 
 
 <div
   style="
@@ -627,19 +622,7 @@ padding-left: 1rem;
     "
     
 >
-<div
-  style="
-    flex: 1; 
-    padding: 20px; 
-    margin-top: -40px; /* Adjusted margin to reduce space on top */
-    border: 1px solid #ddd; 
-    border-top: 5px solid #007bff;
-    border-radius: 0.75rem; 
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); 
-    background-color: #fff;
-    transition: box-shadow 0.3s ease;
-  "
->
+<div class="responsive-card">
 <!-- Left Section (Form) -->
 <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333;">Book Appointment</h3>
 
@@ -692,23 +675,25 @@ padding-left: 1rem;
         <div class="text-gray-500 text-sm">Monday to Friday: 8:00 AM to 12:00 PM | Sunday: 8:00 AM to 12:00 AM | Saturday: Day Off</div>
       </div>
     </div>
-
     <div class="slots-container">
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2">
+
         {#each morningSlots as slot}
           <button
-            class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
+            class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100 px-2 py-1 rounded transition duration-200"
             class:booked={!isTimeSlotAvailable(slot, selectedDate)}
             class:selected={selectedTime === slot}
             on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
             disabled={!isTimeSlotAvailable(slot, selectedDate)}
-            style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
           >
             {slot}
           </button>
         {/each}
       </div>
     </div>
+    
+    
+    
 
     <!-- Afternoon Time Slots -->
     <div class="mb-4">
@@ -720,22 +705,20 @@ padding-left: 1rem;
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {#each afternoonSlots as slot}
-          <button
-            class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100"
-            class:booked={!isTimeSlotAvailable(slot, selectedDate)}
-            class:selected={selectedTime === slot}
-            on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
-            disabled={!isTimeSlotAvailable(slot, selectedDate)}
-            style="padding: 10px; border-radius: 4px; transition: background-color 0.2s ease;"
-          >
-            {slot}
-          </button>
-        {/each}
-      </div>
-    </div>
-
+        <button
+        class="slot-button border border-gray-300 text-gray-700 hover:bg-blue-100 px-2 py-1 rounded transition duration-200"
+        class:booked={!isTimeSlotAvailable(slot, selectedDate)}
+        class:selected={selectedTime === slot}
+        on:click={() => isTimeSlotAvailable(slot, selectedDate) && selectTime(slot)}
+        disabled={!isTimeSlotAvailable(slot, selectedDate)}
+      >
+        {slot}
+      </button>
+    {/each}
+  </div>
+</div>
     {#if selectedTime}
       <div class="mt-4 text-gray-700">
         <p>You have selected: <span class="font-semibold">{selectedTime}</span></p>
@@ -750,20 +733,7 @@ padding-left: 1rem;
   </div>
 </div>
 </div>
-<div
-style="
-  flex: 1;
-  padding: 20px;
-  margin-top: -40px;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  border-top: 5px solid #007bff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-  overflow: hidden;
-  margin-bottom: 0px; /* No margin-bottom here */
-"
->
+<div class="responsive-card">
 <h3 style="font-size: 18px; font-weight: bold;">Your Appointments</h3>
 
 <!-- Tabs Navigation -->
@@ -1167,43 +1137,41 @@ style="
   outline: none;
 }
 
-/* Responsive Design */
-@media (max-width: 600px) {
-  .reschedule-modal .modal-content {
-    padding: 2rem 1.5rem;
-    width: 95%;
-    max-width: 380px;
-  }
-  
-  .reschedule-modal h2 {
-    font-size: 1.6rem;
-  }
 
-  .reschedule-modal label {
-    font-size: 1rem;
+.responsive-card {
+  flex: 1;
+  padding: 20px;
+  margin-top: -40px; /* Adjust space on top */
+  border: 1px solid #ddd;
+  border-top: 5px solid #007bff;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: #fff;
+  transition: box-shadow 0.3s ease;
+  max-width: 500px; /* Prevents it from stretching too wide */
+  width: 100%; /* Makes it adapt to screen size */
+}
+
+/* Adjustments for larger mobile devices and tablets */
+@media (max-width: 768px) {
+  .responsive-card {
+    padding: 15px;
+    margin-top: -20px; /* Reduce margin for smaller screens */
+    border-radius: 0.5rem;
+    max-width: 90%; /* Adjust width on smaller screens */
   }
 }
-.tab-button {
-    position: relative;
-  }
 
-  .active-tab {
-    font-weight: bold; /* Optional, for highlighting */
-    color: #007bff; /* Optional, color of active tab text */
+/* Adjustments for smaller mobile devices */
+@media (max-width: 480px) {
+  .responsive-card {
+    padding: 10px;
+    margin-top: -10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    max-width: 100%; /* Make sure it uses the full available width */
+    margin-left: none;
+    margin-right: auto; /* Center the card horizontally */
   }
+}
 
-  .active-tab::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 2px; /* Thickness of the underline */
-    background-color: #007bff; /* Color of the underline */
-  }
-
-  /* Optional: Add a transition effect for the underline */
-  .tab-button {
-    transition: color 0.3s ease-in-out;
-  }
   </style>
