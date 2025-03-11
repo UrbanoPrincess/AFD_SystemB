@@ -303,57 +303,56 @@ function toggleEditProfile() {
 
 <!-- Form Section -->
 {#if isEditingProfile}
-        <div class="profile-form-container" style="padding: 20px; background-color: #f9fafb; border-radius: 8px; margin-top: 20px;">
-            <form class="space-y-6" on:submit|preventDefault={savePatientProfile}>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="profile-form-container">
+        <form class="profile-form" on:submit|preventDefault={savePatientProfile}>
+            <div class="input-grid">
+                <div>
+                    <label for="first-name">First Name</label>
+                    <input id="first-name" type="text" bind:value={formPatientName} />
+                </div>
+                <div>
+                    <label for="last-name">Last Name</label>
+                    <input id="last-name" type="text" bind:value={formLastName} />
+                </div>
+                <div>
+                    <label for="phone">Phone Number</label>
+                    <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} />
+                </div>
+                <div>
+                    <label for="email">E-Mail Address</label>
+                    <input id="email" type="text" bind:value={formEmail} />
+                </div>
+                <div>
+                    <label for="home-address">Home Address</label>
+                    <input id="home-address" type="text" bind:value={formHomeAddress} />
+                </div>
+                <div>
+                    <label for="birthday">Birth Date</label>
+                    <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} />
+                </div>
+                <div class="age-gender-container">
                     <div>
-                        <label for="first-name" class="block text-sm font-medium text-gray-700">First Name</label>
-                        <input id="first-name" type="text" bind:value={formPatientName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
+                        <label for="age">Age</label>
+                        <input id="age" type="number" bind:value={formAge} readonly />
                     </div>
                     <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                        <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                    </div>
-                    <div>
-                        <label for="last-name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                        <input id="last-name" type="text" bind:value={formLastName} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                    </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">E-Mail Address</label>
-                        <input id="email" type="text" bind:value={formEmail} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                    </div>
-                    <div>
-                        <label for="home-address" class="block text-sm font-medium text-gray-700">Home Address</label>
-                        <input id="home-address" type="text" bind:value={formHomeAddress} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                    </div>
-                    <div>
-                        <label for="birthday" class="block text-sm font-medium text-gray-700">Birth Date</label>
-                        <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
-                            <input id="age" type="number" bind:value={formAge} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" readonly />
-                        </div>
-                        <div>
-                            <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
-                            <select id="gender" bind:value={formGender} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3">
-                                <option value="">Select</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
+                        <label for="gender">Gender</label>
+                        <select id="gender" bind:value={formGender}>
+                            <option value="">Select</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
                     </div>
                 </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="professional-button">
-                        Save
-                    </button>
-                </div>
-            </form>
-        </div>
-    {/if}
+            </div>
+            <div class="save-button-container">
+                <button type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+{/if}
+
 
 <div class="combined-history">
     <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
@@ -596,6 +595,72 @@ function toggleEditProfile() {
         }
     }
 
+/* Default (Desktop) Layout - Keeps your original design */
+.profile-form-container {
+    padding: 20px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Keeps two columns for desktop */
+    gap: 16px;
+}
+
+.age-gender-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.save-button-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+input,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Mobile-Only Adjustments */
+@media (max-width: 640px) {
+    .profile-form-container {
+        padding: 12px;
+        margin-top: 12px;
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr; /* Switch to single column for mobile */
+        gap: 12px;
+    }
+
+    .age-gender-container {
+        grid-template-columns: 1fr; /* Stack Age & Gender fields */
+    }
+
+    .save-button-container {
+        justify-content: center;
+    }
+
+    button {
+        width: 100%;
+    }
+}
 
 
 </style>

@@ -81,7 +81,7 @@
                 .then(() => {
                     console.log('User signed out');
                     username.set(''); // Clear username on logout
-                    goto('/'); // Navigate to the landing page
+                    goto('/loginPatient'); // Navigate to the landing pagesrc\routes\loginPatient
                     loading.set(false); // Hide loading popup
                 })
                 .catch((error) => {
@@ -205,7 +205,7 @@
 
     /* Logout Button */
     .logout-btn {
-        background-color: #00a2e8;
+        background-color: #005b80;
         color: white;
         border: none;
         cursor: pointer;

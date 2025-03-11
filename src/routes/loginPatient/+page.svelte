@@ -30,12 +30,16 @@
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password.trim());
         Swal.fire({
-            icon: 'success',
-            title: 'Login Successful',
-            text: `Welcome, ${userCredential.user.email}`,
-            showConfirmButton: false,
-            timer: 2000
-        });
+    icon: 'success',
+    title: 'Login Successful',
+    text: `Welcome, ${userCredential.user.email}`,
+    showConfirmButton: false,
+    timer: 2000,
+    customClass: {
+        popup: 'swal-custom'
+    }
+    });
+
 
         if (rememberMe) {
             localStorage.setItem('email', email);
@@ -84,7 +88,22 @@
     padding: 0;
     height: 100%;
 }
+
+    @media (max-width: 768px) {
+    .swal-custom {
+        width: 80% !important; /* Paliitin ang width */
+        font-size: 0.9rem !important; /* Mas maliit na text */
+    }
+}
+
+@media (max-width: 480px) {
+    .swal-custom {
+        width: 90% !important; /* Mas compact sa mas maliit na screens */
+        font-size: 0.8rem !important; /* Mas maliit na text para kasya */
+    }
+}
 </style>
+
 
 <!-- Patient Login Form -->
 <div class="min-h-screen bg-gradient-to-r from-[#094361] to-[#128AC7] flex items-center justify-center px-4 sm:px-8 md:px-16 lg:px-24">
@@ -170,3 +189,4 @@
         </div>
     </div>
 </div>
+
