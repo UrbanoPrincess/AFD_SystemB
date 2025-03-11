@@ -443,35 +443,42 @@ function toggleEditProfile() {
 /* 🔹 Mobile: Smaller Compact Card */
 @media (max-width: 768px) {
     .patient-card {
-        background: #08B8F3; /* Single color */
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        padding: 12px; /* Smaller padding */
-        width: 90%; /* Smaller width */
-        max-width: 320px; /* Limit width for a compact look */
-        border-radius: 8px; /* Softer corners */
+    background: #08B8F3; /* Solid blue */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content */
+    text-align: center; /* Align text */
+    padding: 6px 8px; /* Smaller padding */
+    width: 100%; /* Full width of the container */
+    min-width: 220px; /* Ensures a wider minimum width */
+    max-width: 250px; /* Wider max width */
+    min-height: 80px; /* Minimum height to keep content visible */
+    border-radius: 12px; /* Softer, more card-like look */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Light shadow for depth */
+
+
     }
 
     .logo {
-        display: none; /* Hides logo on mobile */
+        display: none; /* Hide logo */
     }
 
     .patient-info {
-        color: white; /* White text for contrast */
-        font-size: 0.9rem; /* Slightly smaller text */
+        color: white;
+        font-size: 0.8rem; /* Smaller text */
         width: 100%;
+        text-align: left;
     }
 
     .patient-info h1 {
-        font-size: 1.25rem; /* Reduce name size */
-        text-align: left;
+        font-size: 1rem; /* Reduce name size */
+        margin-bottom: 2px;
     }
 
     .patient-info p {
-        font-size: 1rem; /* Reduce text size */
+        font-size: 0.8rem; /* Reduce text size */
         margin-bottom: 2px;
-        text-align: left;
+        line-height: 1.1; /* Tighter spacing */
     }
 }
 

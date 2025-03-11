@@ -421,14 +421,14 @@ function generatePDF(prescription: any, index: number) {
 /* 🔹 Responsive Header for Mobile */
 @media (max-width: 768px) {
     .header-section {
-        background-color: #08B8F3; /* Ensure consistent property usage */
+        background: #08B8F3 !important; /* Solid blue color */
         display: flex;
         flex-direction: column;
-        align-items: flex-start; /* Use 'flex-start' instead of 'left' */
+        align-items: flex-start;
         text-align: left;
         padding: 12px;
         width: 90%;
-        max-width: 350px;
+        max-width: 225px; /* Set your preferred max-width */
         border-radius: 8px;
     }
 
@@ -443,12 +443,13 @@ function generatePDF(prescription: any, index: number) {
     .patient-name {
         font-size: 1.2rem;
         font-weight: bold; /* Improve readability */
+        color: #fff;
     }
 
     .patient-details {
         font-size: 0.875rem;
         line-height: 1.4; /* Slightly improved line height */
-        color: #333; /* Darker text for better readability */
+        color: #333;
     }
 }
 
