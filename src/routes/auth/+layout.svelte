@@ -18,7 +18,25 @@
     // Create a writable store for username
     export const username = writable<string>('');  // The username will be updated here
 
-    export let isCollapsed = false;
+        let isCollapsed = false;
+    let isMobile = false;
+
+    function checkScreenSize() {
+        isMobile = window.innerWidth <= 768;
+        isCollapsed = isMobile; // Auto-collapse kapag mobile
+    }
+
+    function toggleSidebar() {
+        if (!isMobile) {
+            isCollapsed = !isCollapsed; // Allow toggle lang sa desktop
+        }
+    }
+
+    onMount(() => {
+        checkScreenSize();
+        window.addEventListener("resize", checkScreenSize);
+    });
+
     let loading = writable(false);  // State for the loading popup
 
     // Monitor auth state changes
@@ -74,10 +92,6 @@
     });
 }
 
-    // Function to toggle the sidebar state
-    function toggleSidebar() {
-        isCollapsed = !isCollapsed;
-    }
 </script>
 
 <style>
@@ -269,6 +283,8 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    
 </style>
 
 <div class="layout">
@@ -315,9 +331,11 @@
         </button>
 
         <!-- Toggle Sidebar Button -->
-        <button class="toggle-btn" on:click={toggleSidebar}>
-            {isCollapsed ? '➡️' : '⬅️'}
-        </button>
+      <!-- Toggle Sidebar Button -->
+<button class="toggle-btn" on:click={toggleSidebar} disabled={isMobile}>
+    {isCollapsed ? '➡️' : '⬅️'}
+</button>
+
     </div>
 
     <!-- Content Area -->
