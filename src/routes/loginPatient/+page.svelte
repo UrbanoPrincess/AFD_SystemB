@@ -91,15 +91,15 @@
 
     @media (max-width: 768px) {
     .swal-custom {
-        width: 80% !important; /* Paliitin ang width */
-        font-size: 0.9rem !important; /* Mas maliit na text */
+        width: 80% !important;
+        font-size: 0.9rem !important;
     }
 }
 
 @media (max-width: 480px) {
     .swal-custom {
-        width: 90% !important; /* Mas compact sa mas maliit na screens */
-        font-size: 0.8rem !important; /* Mas maliit na text para kasya */
+        width: 90% !important; 
+        font-size: 0.8rem !important;
     }
 }
 </style>
