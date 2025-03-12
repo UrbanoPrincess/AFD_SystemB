@@ -606,27 +606,12 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 <div style="max-height: 100vh; overflow-y: auto;">
  
 
-<div
-  style="
-    display: flex; 
-    justify-content: space-between; 
-    gap: 20px; 
-    padding: 10px; 
-    width: 100%; 
-    max-width: 1200px; 
-    margin: 50px auto; 
-    margin-top: 5%; 
-    margin-bottom: 50px; 
-    max-height: 85vh; 
-    flex-wrap: wrap;
-    "
-    
->
+  <div class="responsive-container">
 <div class="responsive-card">
 <!-- Left Section (Form) -->
 <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #333;">Book Appointment</h3>
 
-<div style="flex: 1 1 45%; min-width: 300px; min-height: 400px; transform: scale(0.95); margin-top: -10px;">
+<div style="flex: 1 1 45%; min-width: auto; min-height: 400px; margin-top: -10px;">
   <!-- Datepicker Section -->
   <div class="mb-4">
     <label for="datepicker" class="block text-sm font-medium text-gray-700">Select Date</label>
@@ -759,110 +744,73 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 <!-- Tabs Content -->
 <div>
   {#if activeTab === 'upcoming'}
-    <!-- Upcoming Appointments Section -->
-    <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
-      {#if upcomingAppointments.length > 0}
-        <div style="margin-bottom: 20px;">
-          <!-- Reuse your existing appointments table here -->
-          <!-- Replace "appointments" with "upcomingAppointments" -->
-          <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-            <!-- Table Header -->
-            <TableHead>
-              <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
-              <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell>
-            </TableHead>
-            <!-- Table Body -->
-            <TableBody tableBodyClass="divide-y">
-              {#each upcomingAppointments as appointment}
-                <!-- Reuse your appointment rows here -->
-                <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
-                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    {appointment.date}
-                  </TableBodyCell>
-                  <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
-                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                    {appointment.service}
-                  </TableBodyCell>
-                  <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                   <!-- Status Handling -->
-                  {#if appointment.cancellationStatus === 'requested'}
-                  <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                {:else if appointment.cancellationStatus === 'Approved'}
-                  <span class="text-red-600 font-semibold">Cancelled</span>
-                {:else if appointment.cancellationStatus === 'decline'}
-                  <span class="text-red-600 font-semibold">Appointment Declined</span>
-                {:else if appointment.status === 'Reschedule Requested'}
-                  <span class="text-purple-600 font-semibold">Reschedule Requested</span>
-                {:else if appointment.status === 'Rescheduled'}
-                  <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
-                  {:else if appointment.status === 'Completed: Need Follow-up'}
-                  <span class="text-blue-600 font-semibold">Completed: With Follow-up Appointment</span>
-                  {:else if appointment.status === 'Scheduled'}
-                  <span class="text-blue-600 font-semibold">Follow-up Appointment</span>
-                {:else if appointment.status === 'Accepted'}
-                  <span class="text-green-600 font-semibold">Accepted</span>
-                {:else if appointment.status === 'Completed'}
-                  <span class="text-blue-600 font-semibold">Completed</span>
-                {:else if appointment.status === 'Missed'}
-                  <span class="text-orange-600 font-semibold">Missed</span>
-                {:else if appointment.status === 'Decline'}
-                  <span class="text-red-600 font-semibold">Cancellation Declined</span>
-                {:else if appointment.status === 'pending'}
-                  <span class="text-yellow-600 font-semibold">Pending</span>
-                {:else if appointment.status === 'confirmed'}
-                  <span class="text-blue-600 font-semibold">Confirmed</span>
-                {:else if appointment.status === 'cancellationRequested'}
-                  <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                {:else}
-                  <span class="text-gray-600 font-semibold">Unknown Status</span>
-                {/if}
+  <div class="flex flex-wrap gap-4 justify-center mt-5">
+    {#if upcomingAppointments.length > 0}
+      {#each upcomingAppointments as appointment}
+        <div class="bg-white shadow-lg rounded-lg p-4 w-full max-w-sm border border-gray-300">
+          <div class="mb-2">
+            <p class="font-bold text-lg text-blue-600">{appointment.date} </p>
+            <p class="font-bold text-lg text-blue-600"> {appointment.time}</p>
+            <p class="text-gray-700 font-semibold">{appointment.service}</p>
+          </div>
+          <div class="mb-2">
+            <!-- Status Handling -->
+            {#if appointment.cancellationStatus === 'requested'}
+              <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+            {:else if appointment.cancellationStatus === 'Approved'}
+              <span class="text-red-600 font-semibold">Cancelled</span>
+            {:else if appointment.cancellationStatus === 'decline'}
+              <span class="text-red-600 font-semibold">Appointment Declined</span>
+            {:else if appointment.status === 'Reschedule Requested'}
+              <span class="text-purple-600 font-semibold">Reschedule Requested</span>
+            {:else if appointment.status === 'Rescheduled'}
+              <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+            {:else if appointment.status === 'Completed: Need Follow-up'}
+              <span class="text-blue-600 font-semibold">Completed: With Follow-up</span>
+            {:else if appointment.status === 'Scheduled'}
+              <span class="text-blue-600 font-semibold">Follow-up Appointment</span>
+            {:else if appointment.status === 'Accepted'}
+              <span class="text-green-600 font-semibold">Accepted</span>
+            {:else if appointment.status === 'Completed'}
+              <span class="text-blue-600 font-semibold">Completed</span>
+            {:else if appointment.status === 'Missed'}
+              <span class="text-orange-600 font-semibold">Missed</span>
+            {:else if appointment.status === 'Decline'}
+              <span class="text-red-600 font-semibold">Cancellation Declined</span>
+            {:else if appointment.status === 'pending'}
+              <span class="text-yellow-600 font-semibold">Pending</span>
+            {:else if appointment.status === 'confirmed'}
+              <span class="text-blue-600 font-semibold">Confirmed</span>
+            {:else}
+              <span class="text-gray-600 font-semibold">Unknown Status</span>
+            {/if}
+          </div>
+          <div class="flex justify-end gap-2">
+            {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
+              <button 
+                on:click={() => openRescheduleModal(appointment.id)} 
+                class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm"
+              >
+                Reschedule
+              </button>
+            {/if}
 
-                  </TableBodyCell>
-                <TableBodyCell style="padding: 5px;">
-                  {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
-                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
-                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
-                    
-                  </Button>
-                {/if}
-
-                  {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
-                    <Button
-                      on:click={() => openCancelModal(appointment.id)}
-                      class="cancel-button"
-                    >
-                      <CloseCircleOutline 
-                        class="w-6 h-6" 
-                        style="color: red;" 
-                      />
-                    </Button>
-                  {/if}
-                </TableBodyCell>
-                
-              </TableBodyRow>
-            {/each}
-            </TableBody>
-          </Table>
+            {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
+              <button 
+                on:click={() => openCancelModal(appointment.id)} 
+                class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm"
+              >
+                Cancel
+              </button>
+            {/if}
+          </div>
         </div>
-      {:else}
-        <div class="appointments-section">
-          <p
-            style="
-              font-style: italic;
-              color: red;
-              font-size: 16px;
-              text-align: center;
-            "
-          >
-            No upcoming appointments found.
-          </p>
-        </div>
-      {/if}
-    </div>
-  {/if}
+      {/each}
+    {:else}
+      <p class="text-center text-red-500 font-semibold italic">No upcoming appointments found.</p>
+    {/if}
+  </div>
+{/if}
 
   {#if activeTab === 'past'}
   <!-- Past Appointments Section -->
@@ -1021,7 +969,7 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
   </Modal>
 
   <style>
-      .reschedule-icon {
+.reschedule-icon {
     width: 20px; /* Adjust the size of the icon */
     height: 20px;
     margin-right: 10px; /* Space between the icon and text */
@@ -1158,7 +1106,8 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
     padding: 15px;
     margin-top: -20px; /* Reduce margin for smaller screens */
     border-radius: 0.5rem;
-    max-width: 90%; /* Adjust width on smaller screens */
+    max-width: 100%; /* Adjust width on smaller screens */
+    
   }
 }
 
@@ -1172,6 +1121,40 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
     margin-left: none;
     margin-right: auto; /* Center the card horizontally */
   }
+}
+
+.responsive-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 10px;
+    max-height: 85vh;
+    flex-wrap: wrap;
+    margin-top: 5%;
+    margin-bottom: 50px;
+}
+
+/* Para sa mobile (default) */
+.responsive-container {
+  display: flex; 
+    justify-content: space-between; 
+    gap: 20px; 
+    padding: 10px; 
+    width: 100%; 
+    margin-top: 5%; 
+    margin-bottom: 50px; 
+    max-height: 85vh; 
+    flex-wrap: wrap;
+
+}
+
+/* Para sa desktop */
+@media (min-width: 768px) {
+    .responsive-container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 50px auto;
+    }
 }
 
   </style>
