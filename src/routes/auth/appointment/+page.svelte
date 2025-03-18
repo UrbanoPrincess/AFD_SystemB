@@ -104,7 +104,6 @@ const morningSlots = [
   let availableSlots = [...morningSlots, ...afternoonSlots];
 
   // Fetch available slots when date changes
- // Fetch available slots when date changes
 $: fetchAvailableSlots();
 
 async function fetchAvailableSlots() {
@@ -273,63 +272,87 @@ function getMinDate(): string {
 
   return `${year}-${month}-${day}`; // Format as YYYY-MM-DD
 }
+let notifiedAppointments: Set<string> = new Set(); // Track notified appointments by ID
 
+// Check if notifications were already shown for the user using localStorage
+const checkNotificationsState = () => {
+  const state = localStorage.getItem("notifiedAppointments");
+  if (state) {
+    return new Set<string>(JSON.parse(state)); // Explicitly cast the parsed value to Set<string>
+  }
+  return new Set<string>();
+};
 
-// Function to fetch and categorize appointments
+// Save the notified appointments state to localStorage
+const updateNotificationsState = () => {
+  localStorage.setItem("notifiedAppointments", JSON.stringify(Array.from(notifiedAppointments)));
+};
+
 function getAppointments() {
   if (patientId) {
     try {
       const today = new Date();
-      const todayISOString = today.toISOString().split("T")[0]; // Format to YYYY-MM-DD
-      console.log("Today's Date: ", todayISOString); // Log today's date for debugging
+      const todayISOString = today.toISOString().split("T")[0]; // YYYY-MM-DD format
 
-      // Query to get appointments for the current patient
       const q = query(collection(db, "appointments"), where("patientId", "==", patientId));
 
-      // Set up a real-time listener
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        console.log("Appointments Retrieved: ", querySnapshot.size); // Log the number of docs fetched
-
-        // Clear previous data
         upcomingAppointments = [];
         pastAppointments = [];
 
-        // If no appointments are found, exit early
-        if (querySnapshot.empty) {
-          console.log("No appointments found for this patient.");
-          return;
-        }
-
-        // Iterate through each appointment and categorize based on the date
         querySnapshot.forEach((doc) => {
-  const data = doc.data() as Appointment; // Cast the document data to the Appointment type
-  const appointmentDate = data.date; // Assuming `date` is a string in the database
+          const data = doc.data() as Appointment;
+          const appointmentDate = data.date;
 
-  console.log("Appointment Date: ", appointmentDate); // Log the appointment date
+          const appointmentWithId: Appointment = { ...data, id: doc.id };
 
-  // Add appointment with its id to match the Appointment type
-  const appointmentWithId: Appointment = {
-    ...data, // Include all properties from the fetched data
-    id: doc.id, // Add the id property explicitly
-  };
+          if (appointmentDate >= todayISOString) {
+            upcomingAppointments.push(appointmentWithId);
+          } else {
+            pastAppointments.push(appointmentWithId);
+          }
+        });
 
-  // Check if the appointment date is upcoming or past
-  if (appointmentDate >= todayISOString) {
-    console.log("Upcoming Appointment:", appointmentWithId);
-    upcomingAppointments.push(appointmentWithId); // Push a valid Appointment object
-  } else {
-    console.log("Past Appointment:", appointmentWithId);
-    pastAppointments.push(appointmentWithId); // Push a valid Appointment object
-  }
-});
+        console.log("Upcoming Appointments:", upcomingAppointments);
+        console.log("Past Appointments:", pastAppointments);
 
+        // ✅ Notification Check
+        upcomingAppointments.forEach((appointment) => {
+          // Only show notifications if not already notified
+          if (appointment.status === "Accepted" && !notifiedAppointments.has(appointment.id)) {
+            // Send confirmation notification when the appointment is accepted, but only once
+            Swal.fire({
+              icon: "success",
+              title: "Appointment Confirmed",
+              text: `Your appointment on ${appointment.date} at ${appointment.time} has been confirmed!`,
+            });
 
-        // Log the categorized appointments
-        console.log("Upcoming appointments:", upcomingAppointments);
-        console.log("Past appointments:", pastAppointments);
+            // Add the appointment ID to the notified set to prevent showing the notification again
+            notifiedAppointments.add(appointment.id);
+          }
+
+          // Check if the appointment is nearing (e.g., within 1 day of the appointment)
+          const appointmentDateObj = new Date(appointment.date);
+          const timeDiff = appointmentDateObj.getTime() - today.getTime();
+          const oneDayInMillis = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+          if (timeDiff <= oneDayInMillis && !notifiedAppointments.has(appointment.id)) {
+            // Send reminder notification when the appointment is close, but only once
+            Swal.fire({
+              icon: "info",
+              title: "Appointment Reminder",
+              text: `Your appointment is tomorrow, on ${appointment.date} at ${appointment.time}.`,
+            });
+
+            // Add the appointment ID to the notified set to prevent showing the notification again
+            notifiedAppointments.add(appointment.id);
+          }
+        });
+
+        // Save the updated notified appointments state
+        updateNotificationsState();
       });
 
-      // Optional: Return unsubscribe function to allow cleanup
       return unsubscribe;
     } catch (e) {
       console.error("Error setting up real-time listener for appointments:", e);
@@ -338,6 +361,18 @@ function getAppointments() {
     console.log("Patient ID not found.");
   }
 }
+
+onMount(() => {
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      patientId = user.uid;
+      notifiedAppointments = checkNotificationsState(); // Load the state of notifications from localStorage
+      getAppointments(); // Start the Firestore listener
+    }
+  });
+});
+
+
 async function requestCancelAppointment() {
   if (selectedAppointmentId && getSelectedReasons().length > 0) {
     try {
@@ -388,6 +423,7 @@ async function requestCancelAppointment() {
 }
 
 
+
 function openCancelModal(appointmentId: string) {
   selectedAppointmentId = appointmentId;
   popupModal = true;
@@ -403,7 +439,7 @@ onMount(() => {
   try {
     // Check if we have an appointment available before trying to fetch details
     if (upcomingAppointments.length > 0) {
-      const appointment = upcomingAppointments[0]; // Use the first upcoming appointment as an example
+      const appointment = upcomingAppointments[0]; // Use the first upcoming appointment
 
       const appointmentRef = doc(db, "appointments", appointment.id);
 
@@ -411,10 +447,26 @@ onMount(() => {
       const unsubscribe = onSnapshot(appointmentRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          
           // Update the appointment object with the new data
           appointment.cancellationStatus = data.cancellationStatus;
           appointment.status = data.status;
           console.log("Updated appointment:", appointment);
+
+          // 🔔 Show notification when appointment status updates
+          if (data.status === "Accepted") {
+            Swal.fire({
+              icon: "success",
+              title: "Appointment Confirmed",
+              text: `Your appointment on ${data.date} at ${data.time} has been confirmed!`,
+            });
+          } else if (data.status === "Rejected") {
+            Swal.fire({
+              icon: "error",
+              title: "Appointment Rejected",
+              text: `Your appointment on ${data.date} at ${data.time} was rejected. Please book another slot.`,
+            });
+          }
         } else {
           console.log("Appointment not found.");
         }
@@ -603,7 +655,8 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 </script>
 
 
-<div style="max-height: 100vh; overflow-y: auto;">
+<div style="max-height: 100vh; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;">
+
  
 
   <div class="responsive-container">
@@ -812,87 +865,76 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
   </div>
 {/if}
 
-  {#if activeTab === 'past'}
-  <!-- Past Appointments Section -->
-  <div style="flex: 1 1 45%; min-width: 300px; margin-top: 20px;">
-    {#if pastAppointments.length > 0}
-      <div style="margin-bottom: 20px;">
-        <!-- Reuse your existing appointments table here -->
-        <!-- Replace "appointments" with "pastAppointments" -->
-        <Table shadow style="width: 100%; table-layout: fixed; border-collapse: collapse;">
-          <!-- Same table structure as above -->
-          <TableHead>
-            <TableHeadCell style="font-weight: bold; padding: 10px; width: 15%; background-color: #4A90E2; color: white;">Date</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px; width: 15%; background-color: #4A90E2; color: white;">Time</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Service</TableHeadCell>
-            <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Status</TableHeadCell>
-            <!-- <TableHeadCell style="font-weight: bold; padding: 5px; width: 20%; background-color: #4A90E2; color: white;">Actions</TableHeadCell> -->
-          </TableHead>
-          <TableBody tableBodyClass="divide-y">
-            {#each pastAppointments as appointment}
-              <!-- Appointment Rows -->
-              <TableBodyRow class={appointment.cancellationStatus === 'requested' ? 'opacity-50' : ''} style="padding: 10px;">
-                <TableBodyCell style="padding: 10px; word-wrap: break-word; white-space: normal;">
-                  {appointment.date}
-                </TableBodyCell>
-                <TableBodyCell style="padding: 5px;">{appointment.time}</TableBodyCell>
-                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                  {appointment.service}
-                </TableBodyCell>
-                <TableBodyCell style="padding: 5px; word-wrap: break-word; white-space: normal;">
-                  <!-- Status Handling for Past Appointments -->
-                  {#if appointment.cancellationStatus === 'requested'}
-                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                  {:else if appointment.cancellationStatus === 'Approved'}
-                    <span class="text-red-600 font-semibold">Cancelled</span>
-                  {:else if appointment.cancellationStatus === 'decline'}
-                    <span class="text-red-600 font-semibold">Cancellation Declined</span>
-                  {:else if appointment.status === 'Reschedule Requested'}
-                    <span class="text-purple-600 font-semibold">Reschedule Requested</span>
-                  {:else if appointment.status === 'Rescheduled'}
-                    <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
-                    {:else if appointment.status === 'Completed: Need Follow-up'}
-                    <span class="text-blue-600 font-semibold">Completed: With Follow-up Appointment</span>
-                  {:else if appointment.status === 'Accepted'}
-                    <span class="text-green-600 font-semibold">Accepted</span>
-                  {:else if appointment.status === 'Completed'}
-                    <span class="text-blue-600 font-semibold">Completed</span>
-                  {:else if appointment.status === 'Missed'}
-                    <span class="text-orange-600 font-semibold">Missed</span>
-                  {:else if appointment.status === 'Decline'}
-                    <span class="text-red-600 font-semibold">Declined</span>
-                  {:else if appointment.status === 'pending'}
-                    <span class="text-yellow-600 font-semibold">Pending</span>
-                  {:else if appointment.status === 'confirmed'}
-                    <span class="text-blue-600 font-semibold">Confirmed</span>
-                  {:else if appointment.status === 'cancellationRequested'}
-                    <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
-                  {:else}
-                    <span class="text-gray-600 font-semibold">Unknown Status</span>
-                  {/if}
-                </TableBodyCell>
-                <!-- <TableBodyCell style="padding: 5px;">
-                 
-                  <Button on:click={() => openRescheduleModal(appointment.id)} class="reschedule-button">
-                    <img src="/images/rescheduling.png" alt="Reschedule" class="reschedule-icon" />
-                  </Button>
-                </TableBodyCell> -->
-              </TableBodyRow>
-            {/each}
-          </TableBody>
-        </Table>
+{#if activeTab === 'past'}
+<!-- Past Appointments Section -->
+<div class="flex flex-wrap gap-4 justify-center mt-5">
+  {#if pastAppointments.length > 0}
+    {#each pastAppointments as appointment}
+      <div class="bg-white shadow-lg rounded-lg p-4 w-full max-w-sm border border-gray-300">
+        <div class="mb-2">
+          <p class="font-bold text-lg text-blue-600">{appointment.date}</p>
+          <p class="font-bold text-lg text-blue-600">{appointment.time}</p>
+          <p class="text-gray-700 font-semibold">{appointment.service}</p>
+        </div>
+        <div class="mb-2">
+          <!-- Status Handling for Past Appointments -->
+          {#if appointment.cancellationStatus === 'requested'}
+            <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+          {:else if appointment.cancellationStatus === 'Approved'}
+            <span class="text-red-600 font-semibold">Cancelled</span>
+          {:else if appointment.cancellationStatus === 'decline'}
+            <span class="text-red-600 font-semibold">Cancellation Declined</span>
+          {:else if appointment.status === 'Reschedule Requested'}
+            <span class="text-purple-600 font-semibold">Reschedule Requested</span>
+          {:else if appointment.status === 'Rescheduled'}
+            <span class="text-blue-600 font-semibold">Reschedule Accepted</span>
+          {:else if appointment.status === 'Completed: Need Follow-up'}
+            <span class="text-blue-600 font-semibold">Completed: With Follow-up</span>
+          {:else if appointment.status === 'Accepted'}
+            <span class="text-green-600 font-semibold">Accepted</span>
+          {:else if appointment.status === 'Completed'}
+            <span class="text-blue-600 font-semibold">Completed</span>
+          {:else if appointment.status === 'Missed'}
+            <span class="text-orange-600 font-semibold">Missed</span>
+          {:else if appointment.status === 'Decline'}
+            <span class="text-red-600 font-semibold">Declined</span>
+          {:else if appointment.status === 'pending'}
+            <span class="text-yellow-600 font-semibold">Pending</span>
+          {:else if appointment.status === 'confirmed'}
+            <span class="text-blue-600 font-semibold">Confirmed</span>
+          {:else if appointment.status === 'cancellationRequested'}
+            <span class="text-yellow-600 font-semibold">Cancellation Requested</span>
+          {:else}
+            <span class="text-gray-600 font-semibold">Unknown Status</span>
+          {/if}
+        </div>
+        <div class="flex justify-end gap-2">
+          {#if appointment.status === 'Accepted' && appointment.cancellationStatus !== 'Approved'}
+            <button 
+              on:click={() => openRescheduleModal(appointment.id)} 
+              class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm"
+            >
+              Reschedule
+            </button>
+          {/if}
+
+          {#if appointment.status === 'pending' && appointment.cancellationStatus !== 'requested'}
+            <button 
+              on:click={() => openCancelModal(appointment.id)} 
+              class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm"
+            >
+              Cancel
+            </button>
+          {/if}
+        </div>
       </div>
-    {:else}
-      <div class="appointments-section">
-        <p
-          style="font-style: italic; color: red; font-size: 16px; text-align: center;"
-        >
-          No past appointments found.
-        </p>
-      </div>
-    {/if}
-  </div>
+    {/each}
+  {:else}
+    <p class="text-center text-red-500 font-semibold italic">No past appointments found.</p>
+  {/if}
+</div>
 {/if}
+
 </div>
 </div>
 </div>
@@ -969,11 +1011,7 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
   </Modal>
 
   <style>
-.reschedule-icon {
-    width: 20px; /* Adjust the size of the icon */
-    height: 20px;
-    margin-right: 10px; /* Space between the icon and text */
-  }
+
 /* Scoped styles for reschedule modal */
 .reschedule-modal {
   position: fixed;
@@ -1087,17 +1125,16 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 
 
 .responsive-card {
-  flex: 1;
-  padding: 20px;
-  margin-top: -40px; /* Adjust space on top */
+  flex: 1 1 45%; /* Default: Desktop layout */
+  min-width: 300px;
+  margin-top: 10px;
   border: 1px solid #ddd;
   border-top: 5px solid #007bff;
   border-radius: 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background-color: #fff;
   transition: box-shadow 0.3s ease;
-  max-width: 500px; /* Prevents it from stretching too wide */
-  width: 100%; /* Makes it adapt to screen size */
+  padding: 20px;
 }
 
 /* Adjustments for larger mobile devices and tablets */
@@ -1113,27 +1150,21 @@ async function rescheduleAppointment(newDate: string, newTime: string): Promise<
 
 /* Adjustments for smaller mobile devices */
 @media (max-width: 480px) {
+  @media (max-width: 768px) {
+  .responsive-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
   .responsive-card {
-    padding: 10px;
-    margin-top: -10px;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-    max-width: 100%; /* Make sure it uses the full available width */
-    margin-left: none;
-    margin-right: auto; /* Center the card horizontally */
+    flex: 1 1 100%; /* Full width sa mobile */
+    min-width: auto; /* Para di sumobra sa screen */
+    margin-top: 10px;
   }
 }
-
-.responsive-container {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 10px;
-    max-height: 85vh;
-    flex-wrap: wrap;
-    margin-top: 5%;
-    margin-bottom: 50px;
 }
-
 /* Para sa mobile (default) */
 .responsive-container {
   display: flex; 
