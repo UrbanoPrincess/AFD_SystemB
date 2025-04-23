@@ -268,399 +268,610 @@ function toggleEditProfile() {
         isDropdownOpen = !isDropdownOpen;  // Toggle dropdown visibility
     }
 </script>
-
-
 <div class="main-container">
+    <!-- ========== Patient Card ========== -->
     <div class="patient-card">
-        <img src="/images/logo(landing).png" 
-             alt="Decorative logo" class="logo"/>
-    
+        <img src="/images/logo(landing).png" alt="Clinic Logo" class="logo"/>
         <div class="patient-info">
             <h1>{`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}</h1>
-            <p><strong>Patient ID:</strong> {patientProfile.id || "xxxxxx"}</p>
-            <p><strong>Age:</strong> {patientProfile.age || "xx"}</p>
-            <p><strong>Gender:</strong> {patientProfile.gender || "xxxxx"}</p>
+            <div class="info-grid">
+                 <p><strong>Patient ID:</strong> {patientProfile.id || "N/A"}</p>
+                 <p><strong>Age:</strong> {patientProfile.age != null ? patientProfile.age : "N/A"}</p>
+                 <p><strong>Gender:</strong> {patientProfile.gender || "N/A"}</p>
+                 <p><strong>Phone:</strong> {patientProfile.phone || "N/A"}</p>
+                 <p><strong>Email:</strong> {patientProfile.email || "N/A"}</p>
+                 <p class="address"><strong>Address:</strong> {patientProfile.address || "N/A"}</p>
+            </div>
         </div>
     </div>
-    
-    
-    
-    
 
-<!-- Edit Profile Dropdown Button -->
-<div style="margin-top: 16px;">
-    <button on:click={toggleEditProfile} class="professional-button">
-        <span class="icon">
-            {#if isEditingProfile}
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon-chevron" viewBox="0 0 24 24"><path d="M12 16l-4-4h8z"/></svg>
-            {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon-chevron" viewBox="0 0 24 24"><path d="M12 8l4 4h-8z"/></svg>
-            {/if}
-        </span>
-        <span class="button-text">{isEditingProfile ? 'Update Profile' : 'Update Profile'}</span>
-    </button>
-</div>
+    <!-- ========== Edit Profile Section ========== -->
+    <div class="edit-profile-section">
+        <button on:click={toggleEditProfile} class="edit-button">
+            <span class="icon">
+                <!-- Using simple +/- icons for expand/collapse feel -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon-edit">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+                 {isEditingProfile ? 'Close Form' : 'Update Profile'}
+            </span>
 
-<!-- Form Section -->
-{#if isEditingProfile}
-    <div class="profile-form-container">
-        <form class="profile-form" on:submit|preventDefault={savePatientProfile}>
-            <div class="input-grid">
-                <div>
-                    <label for="first-name">First Name</label>
-                    <input id="first-name" type="text" bind:value={formPatientName} />
-                </div>
-                <div>
-                    <label for="last-name">Last Name</label>
-                    <input id="last-name" type="text" bind:value={formLastName} />
-                </div>
-                <div>
-                    <label for="phone">Phone Number</label>
-                    <input id="phone" type="tel" placeholder="ex. 09123456789" bind:value={formPhone} />
-                </div>
-                <div>
-                    <label for="email">E-Mail Address</label>
-                    <input id="email" type="text" bind:value={formEmail} />
-                </div>
-                <div>
-                    <label for="home-address">Home Address</label>
-                    <input id="home-address" type="text" bind:value={formHomeAddress} />
-                </div>
-                <div>
-                    <label for="birthday">Birth Date</label>
-                    <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} />
-                </div>
-                <div class="age-gender-container">
-                    <div>
-                        <label for="age">Age</label>
-                        <input id="age" type="number" bind:value={formAge} readonly />
+        </button>
+
+        {#if isEditingProfile}
+            <div class="profile-form-container slide-down">
+                 <h3 class="form-title">Edit Patient Information</h3>
+                <form class="profile-form" on:submit|preventDefault={savePatientProfile}>
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="first-name">First Name</label>
+                            <input id="first-name" type="text" bind:value={formPatientName} required />
+                        </div>
+                        <div class="form-group">
+                            <label for="last-name">Last Name</label>
+                            <input id="last-name" type="text" bind:value={formLastName} required />
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input id="phone" type="tel" placeholder="e.g., 09123456789" bind:value={formPhone} pattern="[0-9]{11}" title="Enter an 11-digit phone number"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">E-Mail Address</label>
+                            <input id="email" type="email" bind:value={formEmail} />
+                        </div>
+                         <div class="form-group full-width"> 
+                            <label for="home-address">Home Address</label>
+                            <input id="home-address" type="text" bind:value={formHomeAddress} />
+                        </div>
+                        <div class="form-group">
+                            <label for="birthday">Birth Date</label>
+                            <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} />
+                        </div>
+                         <div class="form-group">
+                            <label for="age">Age</label>
+                            <!-- Changed readonly to disabled for clearer visual cue -->
+                            <input id="age" type="number" bind:value={formAge} disabled />
+                        </div>
+                        <div class="form-group">
+                            <label for="gender">Gender</label>
+                            <select id="gender" bind:value={formGender}>
+                                <option value="" disabled>Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                                 <option value="prefer_not_to_say">Prefer not to say</option>
+                            </select>
+                        </div>
+
                     </div>
-                    <div>
-                        <label for="gender">Gender</label>
-                        <select id="gender" bind:value={formGender}>
-                            <option value="">Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
+                    <div class="save-button-container">
+                        <button type="submit" class="save-button">Save Changes</button>
+                         <button type="button" on:click={toggleEditProfile} class="cancel-button">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        {/if}
+    </div>
+
+    <!-- ========== History Section ========== -->
+    <div class="history-section">
+        <h2 class="section-title">
+            Appointment & Prescription History
+        </h2>
+        {#if doneAppointments.length === 0}
+            <p class="no-data-message">No past visits recorded.</p>
+        {:else}
+        <div class="card-container">
+            {#each doneAppointments as appointment (appointment.id)}
+                <div class="history-card">
+                    <div class="card-header">
+                         Appointment Details
+                    </div>
+                    <div class="card-content">
+                         <p><strong>Date & Time:</strong> {appointment.date} at {appointment.time}</p>
+                         <p><strong>Service:</strong> {appointment.service} <span class="status">({appointment.status})</span></p>
+
+                         {#if appointment.remarks}
+                            <p class="remarks"><strong>Remarks:</strong> {appointment.remarks}</p>
+                         {:else}
+                            <p class="no-info"><em>No remarks for this visit.</em></p>
+                         {/if}
+
+                         <hr class="divider" />
+
+                         <p class="sub-header"><strong>Prescription:</strong></p>
+                         {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
+                            {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
+                                <div class="prescription-details">
+                                     {#each prescription.medicines as med (med.medicine)}
+                                        <div class="medicine-item">
+                                            <p><strong>Med:</strong> {med.medicine}</p>
+                                            <p><strong>Instructions:</strong> {med.instructions}</p>
+                                            <p><strong>Qty/Refills:</strong> {med.dosage}</p>
+                                        </div>
+                                     {/each}
+                                    <p class="prescriber"><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
+                                </div>
+                            {/each}
+                         {:else}
+                            <p class="no-info"><em>No prescription issued for this visit.</em></p>
+                         {/if}
                     </div>
                 </div>
-            </div>
-            <div class="save-button-container">
-                <button type="submit">Save</button>
-            </div>
-        </form>
+            {/each}
+        </div>
+        {/if}
     </div>
-{/if}
-
-
-<div class="combined-history">
-    <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-6">
-        Appointment and Prescription History
-    </h2>
-    {#if doneAppointments.length === 0}
-        <p class="text-gray-500 italic">No past visits available.</p>
-    {:else}
-    <div class="card-container">
-        {#each doneAppointments as appointment (appointment.id)}
-            <div class="card">
-                <p><strong>Date Visited:</strong> {appointment.date} at {appointment.time}</p>
-                <p><strong>Service/Subservice:</strong> {appointment.service} ({appointment.status})</p>
-                
-                {#if prescriptions && prescriptions.filter(p => p.appointmentId === appointment.id).length > 0}
-                    {#each prescriptions.filter(p => p.appointmentId === appointment.id) as prescription}
-                        <p><strong>Medication:</strong> {prescription.medicines.map((m: { medicine: any }) => `${m.medicine}`).join(", ")}</p>
-                        <p><strong>Instructions:</strong> {prescription.medicines.map((m: { instructions: any; }) => m.instructions).join(", ")}</p>
-                        <p><strong>Qty/Refills:</strong> {prescription.medicines.map((m: { dosage: any; }) => m.dosage).join(", ")}</p>
-                        <p><strong>Prescriber:</strong> {prescription.prescriber || "N/A"}</p>
-                    {/each}
-                {:else}
-                    <p class="italic text-gray-500">No prescription issued for this visit.</p>
-                {/if}
-                
-                <!-- New Remarks Section -->
-                {#if appointment.remarks}
-                    <p><strong>Remarks:</strong> {appointment.remarks}</p>
-                {:else}
-                    <p class="italic text-gray-500">No remarks for this visit.</p>
-                {/if}
-            </div>
-        {/each}
-    </div>
-    {/if}
 </div>
-</div>
-<!-- Styling for the dropdown -->
+
 <style>
-   /* Main container to make it scrollable */
-   .main-container {
-    height: calc(100vh - 168px); /* Subtract the header height */
-    overflow-y: auto; /* Allow vertical scrolling */
-    padding: 16px;  /* Optional padding for spacing */
-}
-
-/* Hide scrollbar for Webkit browsers (Chrome, Safari) */
-.main-container::-webkit-scrollbar {
-    display: none;
-}
-
-/* Hide scrollbar for Internet Explorer 10+ and Firefox */
-.main-container {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    height: 100%;
-}
-
-.patient-card {
-    background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    width: 68rem;
-    max-width: 100%;
-    justify-content: flex-start;
-    gap: 16px;
-}
-
-/* Patient Info Styles */
-.patient-info {
-    color: black;
-    font-size: 1rem;
-    flex-grow: 1;
-    min-width: 0; /* Prevents text from overflowing */
-    word-wrap: break-word;
-}
-
-.patient-info h1 {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-/* 🔹 Mobile: Smaller Compact Card */
-@media (max-width: 768px) {
-    .patient-card {
-    background: #08B8F3; /* Solid blue */
-    display: flex;
-    flex-direction: column;
-    align-items: center; /* Center content */
-    text-align: center; /* Align text */
-    padding: 6px 8px; /* Smaller padding */
-    width: 100%; /* Full width of the container */
-    min-width: 220px; /* Ensures a wider minimum width */
-    max-width: 250px; /* Wider max width */
-    min-height: 80px; /* Minimum height to keep content visible */
-    border-radius: 12px; /* Softer, more card-like look */
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Light shadow for depth */
-
-
+    :root {
+        --primary-color: #08B8F3;
+        --secondary-color: #005b80;
+        --accent-color: #eaee00; 
+        --light-gray: #f8f9fa;
+        --medium-gray: #e9ecef;
+        --dark-gray: #6c757d;
+        --text-color: #343a40;
+        --white: #ffffff;
+        --danger-color: #dc3545;
+        --success-color: #28a745;
+        --border-radius: 8px;
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --input-border-color: #ced4da;
     }
 
-    .logo {
-        display: none; /* Hide logo */
+    body {
+        font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--light-gray); 
+    }
+   .main-container {
+        max-width: 1200px; 
+        margin: 0 auto; 
+        padding: 20px;
+        height: calc(100vh - 80px); 
+        overflow-y: auto;
+         background-color: var(--white);
+         border-radius: var(--border-radius);
+         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .main-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    .main-container::-webkit-scrollbar-track {
+        background: var(--medium-gray);
+        border-radius: 4px;
+    }
+    .main-container::-webkit-scrollbar-thumb {
+        background-color: var(--dark-gray);
+        border-radius: 4px;
+        border: 2px solid var(--medium-gray);
+    }
+    .main-container {
+        scrollbar-width: thin;
+        scrollbar-color: var(--dark-gray) var(--medium-gray);
+    }
+
+    .patient-card {
+        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+        color: var(--white);
+        border-radius: var(--border-radius);
+        padding: 24px;
+        display: flex;
+        align-items: flex-start;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 24px; 
+        gap: 24px; 
+    }
+
+    .patient-card .logo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--white); 
+        flex-shrink: 0; 
     }
 
     .patient-info {
-        color: white;
-        font-size: 0.8rem; /* Smaller text */
-        width: 100%;
-        text-align: left;
+        flex-grow: 1;
+        min-width: 0; /* Prevent overflow issues */
     }
 
     .patient-info h1 {
-        font-size: 1rem; /* Reduce name size */
-        margin-bottom: 2px;
+        font-size: 1.8rem; /* Larger name */
+        font-weight: 600;
+        margin-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* Subtle separator */
+        padding-bottom: 8px;
+        word-break: break-word; /* Prevent long names from breaking layout */
+    }
+
+    .patient-info .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+        gap: 8px 16px; /* Row and column gap */
+        font-size: 0.95rem;
+        line-height: 1.5;
     }
 
     .patient-info p {
-        font-size: 0.8rem; /* Reduce text size */
-        margin-bottom: 2px;
-        line-height: 1.1; /* Tighter spacing */
-    }
-}
-
-
-    .logo {
-        width: 10rem; /* Increased logo size */
-        height: 10rem; /* Increased logo size */
-        border-radius: 50%;
-        margin-right: 16px;
-        object-fit: cover; /* Ensure the logo fits well */
+        margin-bottom: 0; /* Remove default margin */
+        color: rgba(255, 255, 255, 0.9); /* Slightly transparent text */
     }
 
-   
+    .patient-info p strong {
+        font-weight: 500;
+        color: var(--white); /* Make labels stand out */
+        margin-right: 5px;
+    }
+     .patient-info .address {
+        grid-column: 1 / -1; /* Make address span full width */
+    }
 
-.professional-button {
-        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
-        color: rgb(255, 255, 255);
-        font-family: 'Roboto', sans-serif; /* Professional font */
-        font-weight: 550; /* Slightly lighter font weight */
-        padding: 0.5rem 1rem; /* Smaller padding for a more compact button */
-        border-radius: 0.3rem; /* More rounded corners */
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.582); /* Subtle shadow for depth */
-        display: flex;
+    /* Patient Card - Mobile */
+    @media (max-width: 768px) {
+        .patient-card {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px;
+            gap: 16px;
+        }
+         .patient-card .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px; /* Space below logo on mobile */
+        }
+        .patient-info h1 {
+            font-size: 1.5rem;
+        }
+        .patient-info .info-grid {
+             grid-template-columns: 1fr; /* Single column on mobile */
+             text-align: left; /* Align text left within the column */
+             gap: 5px;
+        }
+         .patient-info .address {
+             grid-column: auto; /* Reset span for single column */
+         }
+    }
+
+
+    /* ========== Edit Profile Section ========== */
+    .edit-profile-section {
+        margin-bottom: 32px; /* Space below this section */
+    }
+
+    .edit-button {
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        color: var(--white);
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: var(--border-radius);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        display: inline-flex; /* Align icon and text */
         align-items: center;
-        transition: background 0.3s ease, transform 0.2s ease; /* Smooth transitions */
+        gap: 8px; /* Space between icon and text */
+        transition: all 0.3s ease;
         border: none;
         cursor: pointer;
-        outline: none; /* Remove outline */
+        outline: none;
     }
 
-    .professional-button:hover {
-        background: linear-gradient(90deg, #005b80, #08B8F3); /* Reverse gradient on hover */
-        transform: translateY(2px); /* Slight lift effect */
+    .edit-button:hover {
+        background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        transform: translateY(-2px);
     }
 
-    .icon {
-        margin-right: 0.5rem; /* Space between icon and text */
+    .edit-button .icon-edit {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Form Container */
+     .profile-form-container {
+        background-color: var(--white);
+        border: 1px solid var(--medium-gray);
+        border-radius: var(--border-radius);
+        padding: 24px;
+        margin-top: 16px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+     .form-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--medium-gray);
+    }
+
+    /* Form Styles */
+    .profile-form .input-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* Two columns default */
+        gap: 18px; /* Increased gap */
+        margin-bottom: 24px;
+    }
+
+    .profile-form .form-group {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+    }
+     .form-group.full-width {
+        grid-column: 1 / -1; /* Span across both columns */
     }
 
-    .icon-chevron {
-        margin-left: -0.6rem;
-        width: 24px;
-        height: 24px;
-        fill: rgb(255, 255, 255);
+
+    .profile-form label {
+        margin-bottom: 6px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: var(--dark-gray);
     }
 
-    .button-text {
-        margin-left: -0.4rem;
-        font-size: 1rem; /* Adjust font size as needed */
+    .profile-form input[type="text"],
+    .profile-form input[type="tel"],
+    .profile-form input[type="email"],
+    .profile-form input[type="date"],
+    .profile-form input[type="number"],
+    .profile-form select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--input-border-color);
+        border-radius: 6px; /* Slightly less rounded inputs */
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        background-color: var(--white);
     }
-    
-    .profile-form-container{
-        background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    .profile-form input:focus,
+    .profile-form select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(8, 184, 243, 0.2);
+        outline: none;
     }
-    
-    /* Card Styling */
+     .profile-form input[disabled] {
+         background-color: var(--medium-gray); 
+         cursor: not-allowed;
+     }
+
+    .profile-form select {
+        appearance: none; 
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E"); /* Custom arrow */
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 16px 16px;
+        padding-right: 30px; 
+    }
+
+    .save-button-container {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px; 
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--medium-gray);
+    }
+
+    .save-button, .cancel-button {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        border: none;
+    }
+
+    .save-button {
+        background-color: var(--success-color);
+        color: white;
+    }
+    .save-button:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+    }
+
+    .cancel-button {
+        background-color: var(--light-gray);
+        color: var(--dark-gray);
+        border: 1px solid var(--input-border-color);
+    }
+     .cancel-button:hover {
+         background-color: var(--medium-gray);
+         transform: translateY(-1px);
+     }
+
+
+    /* Form Animation */
+    .slide-down {
+        animation: slideDown 0.4s ease-out forwards;
+        overflow: hidden; /* Important for animation */
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-15px);
+            max-height: 0;
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+            max-height: 1000px; /* Adjust if form can be very tall */
+        }
+    }
+
+
+    /* Form - Mobile */
+    @media (max-width: 640px) {
+        .profile-form .input-grid {
+            grid-template-columns: 1fr; /* Single column on mobile */
+            gap: 15px;
+        }
+         .form-group.full-width {
+            grid-column: auto; /* Reset span for single column */
+         }
+        .save-button-container {
+            flex-direction: column; /* Stack buttons */
+            gap: 10px;
+        }
+         .save-button, .cancel-button {
+             width: 100%; /* Full width buttons */
+         }
+         .profile-form-container {
+             padding: 16px;
+         }
+    }
+
+
+    /* ========== History Section ========== */
+    .history-section {
+        margin-top: 32px;
+    }
+
+    .section-title {
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: var(--secondary-color);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+     .no-data-message {
+        background-color: var(--medium-gray);
+        color: var(--dark-gray);
+        padding: 15px;
+        border-radius: var(--border-radius);
+        text-align: center;
+        font-style: italic;
+     }
+
+    /* History Cards Container */
     .card-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 16px;
-    justify-content: center;
+        display: grid;
+        /* Adjust minmax for desired card width */
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
     }
 
-    .card {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    .history-card {
+        background-color: var(--white);
+        border: 1px solid var(--medium-gray);
+        border-radius: var(--border-radius);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         position: relative;
-        overflow: hidden;
+        overflow: hidden; /* Ensure border-top doesn't overflow */
+        display: flex;
+        flex-direction: column; /* Stack header and content */
     }
-
-    /* Solid Box-Shadow Effect on Top */
-    .card::before {
+     /* Top Border Accent */
+     .history-card::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 6px; /* Height of the solid bar */
-        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
     }
 
-    /* Hover Effect */
-    .card:hover {
+    .history-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
     }
 
-    .card p {
-        margin-bottom: 8px;
-        font-size: 1rem;
-        color: #333;
+    .card-header {
+        background-color: var(--light-gray);
+        padding: 10px 16px;
+        font-weight: 600;
+        color: var(--secondary-color);
+        border-bottom: 1px solid var(--medium-gray);
+        font-size: 1.1rem;
     }
 
-    .card p strong {
-        color: #08B8F3; /* Bright blue for labels */
+    .card-content {
+        padding: 16px;
+        font-size: 0.95rem;
+        color: var(--text-color);
+        line-height: 1.6;
+        flex-grow: 1; /* Allow content to take remaining space */
     }
 
-    .card .italic {
-        color: red;
+    .card-content p {
+        margin-bottom: 10px;
     }
 
-    /* Responsive Styles */
+    .card-content strong {
+        font-weight: 500;
+        color: var(--secondary-color); /* Consistent label color */
+        margin-right: 4px;
+    }
+
+     .card-content .status {
+         font-style: italic;
+         color: var(--dark-gray);
+         font-size: 0.9em;
+     }
+     .card-content .remarks {
+         background-color: #eef8ff; /* Light blue background for remarks */
+         padding: 8px 12px;
+         border-radius: 4px;
+         border-left: 3px solid var(--primary-color);
+         margin-top: 10px;
+     }
+
+     .card-content .no-info {
+         color: var(--dark-gray);
+         font-style: italic;
+         font-size: 0.9em;
+         margin-top: 5px;
+     }
+
+    .divider {
+        border: none;
+        border-top: 1px dashed var(--medium-gray);
+        margin: 16px 0;
+    }
+     .sub-header {
+        font-weight: 600 !important;
+        color: var(--text-color) !important;
+        margin-bottom: 8px !important;
+     }
+     .prescription-details {
+        margin-top: 5px;
+        padding-left: 10px;
+        border-left: 2px solid var(--medium-gray);
+     }
+     .medicine-item {
+         margin-bottom: 12px;
+         padding-bottom: 8px;
+         border-bottom: 1px dotted #eee; /* Separator for multiple meds */
+     }
+     .medicine-item:last-child {
+         margin-bottom: 5px;
+         border-bottom: none;
+     }
+     .medicine-item p {
+         margin-bottom: 4px;
+         font-size: 0.9rem;
+     }
+     .prescriber {
+         font-size: 0.9rem;
+         color: var(--dark-gray);
+         margin-top: 10px;
+     }
+
+    /* History Card - Mobile */
     @media (max-width: 768px) {
         .card-container {
-            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
-            gap: 12px;
+            grid-template-columns: 1fr; /* Single column */
+            gap: 16px;
         }
     }
-
-/* Default (Desktop) Layout - Keeps your original design */
-.profile-form-container {
-    padding: 20px;
-    background-color: #f9fafb;
-    border-radius: 8px;
-    margin-top: 20px;
-}
-
-.input-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Keeps two columns for desktop */
-    gap: 16px;
-}
-
-.age-gender-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
-.save-button-container {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 12px;
-}
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-}
-input,
-select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-/* Mobile-Only Adjustments */
-@media (max-width: 640px) {
-    .profile-form-container {
-        padding: 12px;
-        margin-top: 12px;
-    }
-
-    .input-grid {
-        grid-template-columns: 1fr; /* Switch to single column for mobile */
-        gap: 12px;
-    }
-
-    .age-gender-container {
-        grid-template-columns: 1fr; /* Stack Age & Gender fields */
-    }
-
-    .save-button-container {
-        justify-content: center;
-    }
-
-    button {
-        width: 100%;
-    }
-}
-
 
 </style>

@@ -1,501 +1,661 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { firebaseConfig } from "$lib/firebaseConfig";
-    import { initializeApp } from 'firebase/app';
-    import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-    import { getAuth, onAuthStateChanged } from 'firebase/auth';
-    import { goto } from '$app/navigation';
-    import jsPDF from 'jspdf';
-    import { Button } from 'flowbite-svelte';
+	import { onMount } from 'svelte';
+	import { firebaseConfig } from "$lib/firebaseConfig";
+	import { initializeApp, getApps, getApp } from 'firebase/app'; // Import getApps/getApp for check
+	import { getFirestore, doc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore'; // Import Timestamp
+	import { getAuth, onAuthStateChanged } from 'firebase/auth';
+	// import { goto } from '$app/navigation'; // Usually not needed here if layout handles auth redirects
+	import jsPDF from 'jspdf';
+	import { browser } from '$app/environment'; // Import browser check
+	import Swal from 'sweetalert2';
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
+	// --- Firebase Initialization (safe check) ---
+	const app = browser && !getApps().length ? initializeApp(firebaseConfig) : (browser ? getApp() : null);
+	const db = app ? getFirestore(app) : null;
+	const auth = app ? getAuth(app) : null;
 
-    // State variables for patient and prescription data
-    let patientId: string = '';
-    let name: string = '';
-    let lastName: string = '';
-    let address: string = '';
-    let age: number = 0;
-    let email: string = '';
-    let gender: string = '';
-    let phone: string = '';
-    let birthday: string = '';
-    let prescriptions: any[] = [];
-    let loading: boolean = true;
-    let error: string = '';
+	// --- State Variables ---
+	let patientId: string = '';
+	let patientName: string = ''; // Combined name for PDF
+	let patientLastName: string = ''; // Keep separate if needed elsewhere, otherwise combine early
+	// Removed address, age, email, gender, phone, birthday as they are not displayed directly on this page, only used in PDF
+	let prescriptions: any[] = []; // Consider creating a specific type/interface
+	let loading: boolean = true;
+	let error: string = '';
 
-   // Helper function to format date
-function formatDate(date: string | number | Date) {
-    const parsedDate = new Date(date);
-    if (parsedDate.getTime()) {
-        // Format the date as MM/DD/YYYY or customize as needed
-        const day = String(parsedDate.getDate()).padStart(2, '0');
-        const month = String(parsedDate.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-        const year = parsedDate.getFullYear();
-        
-        return `${month}/${day}/${year}`;  // Format as MM/DD/YYYY
-    } else {
-        return "Invalid date";  // Return a fallback value for invalid dates
-    }
-}
-
-
-
-    // Fetch patient data based on the current user's ID
-async function fetchPatientData() {
-    try {
-        loading = true;
-
-        const user = auth.currentUser;
-        if (user) {
-            patientId = user.uid;
-
-            // Fetch patient profile
-            const patientDocRef = doc(db, "patientProfiles", patientId);
-            const patientDoc = await getDoc(patientDocRef);
-
-            if (patientDoc.exists()) {
-                const patient = patientDoc.data();
-                name = patient.name || 'No name available';
-                lastName = patient.lastName || 'No last name available';
-                address = patient.address || '';
-                age = patient.age || 0;
-                email = patient.email || '';
-                gender = patient.gender || '';
-                phone = patient.phone || '';
-                birthday = patient.birthday || '';
+	// --- Helper Function: Format Firestore Timestamp or Date String ---
+	function formatDate(dateInput: any): string {
+        try {
+            let date: Date;
+            if (dateInput instanceof Timestamp) {
+                date = dateInput.toDate();
+            } else if (typeof dateInput === 'string' || typeof dateInput === 'number' || dateInput instanceof Date) {
+                date = new Date(dateInput);
             } else {
-                error = "No Patient Information Found!";
+                // console.warn("Invalid date type received:", typeof dateInput, dateInput);
+                return 'Invalid Date'; // Handle unexpected types
             }
 
-            // Fetch completed appointments for the patient
-            const appointmentsRef = collection(db, "appointments");
-            const qAppointments = query(
-                appointmentsRef,
-                where("patientId", "==", patientId),
-                where("status", "==", "Completed")
-            );
-            const querySnapshot = await getDocs(qAppointments);
-            const doneAppointments = querySnapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id, // Include Firestore document ID
-                date: doc.data().date // Add the appointment date here
-            }));
-            console.log("Loaded done appointments: ", doneAppointments); // Debugging log
-
-            // Check if appointmentId exists before proceeding
-            const appointmentIds = doneAppointments
-                .filter(appointment => appointment.id) // Filter out appointments without an id
-                .map(appointment => appointment.id);
-
-            // Fetch prescriptions based on appointmentIds
-            if (appointmentIds.length > 0) {
-                const prescriptionsRef = collection(db, "prescriptions");
-                const qPrescriptions = query(
-                    prescriptionsRef,
-                    where("appointmentId", "in", appointmentIds) // Filter prescriptions by appointmentId
-                );
-                const prescriptionsSnapshot = await getDocs(qPrescriptions);
-                prescriptions = prescriptionsSnapshot.docs.map(doc => {
-                    const appointmentId = doc.data().appointmentId;
-                    // Find the corresponding appointment date from the completed appointments
-                    const appointment = doneAppointments.find(app => app.id === appointmentId);
-                    return {
-                        appointmentId: appointmentId,
-                        appointmentDate: appointment ? appointment.date : null, // Use appointment date
-                        medicines: doc.data().medicines,
-                        prescriber: doc.data().prescriber
-                    };
-                });
-                console.log("Loaded prescriptions: ", prescriptions); // Debugging log
-            } else {
-                console.log("No valid appointment IDs found.");
+            if (isNaN(date.getTime())) {
+                 // console.warn("Parsed date is invalid:", dateInput);
+                return 'Invalid Date'; // Handle cases where parsing fails
             }
-        } else {
-            error = "No authenticated user found!";
+
+            // Format the date as MM/DD/YYYY
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+            const year = date.getFullYear();
+            return `${month}/${day}/${year}`;
+
+        } catch (e) {
+            console.error("Error formatting date:", e, "Input:", dateInput);
+            return 'Date Error';
         }
-    } catch (err) {
-        console.error("Error loading data: ", err);
-        error = "An error occurred while fetching data.";
-    } finally {
-        loading = false;
-    }
-}
+	}
 
 
+	// --- Fetch Patient Data and Prescriptions ---
+	async function fetchPrescriptionData() {
+		if (!browser || !auth || !db) {
+            error = "Application not ready.";
+            loading = false;
+            return;
+        }
 
-function generatePDF(prescription: any, index: number) {
-    // Initialize jsPDF in landscape orientation
-    const doc = new jsPDF({ orientation: "landscape" });
+		loading = true;
+		error = ''; // Reset error on new fetch
 
-    // Set the font and size
-    doc.setFont("helvetica", "normal");
+		try {
+			const user = auth.currentUser;
+			if (user) {
+				patientId = user.uid;
 
-    // Header
-    doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust the path, format, and dimensions as needed
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
+				// 1. Fetch patient profile (needed for PDF name)
+				const patientDocRef = doc(db, "patientProfiles", patientId);
+				const patientDoc = await getDoc(patientDocRef);
 
-    // Set text color to indigo-600 (approximately RGB: 67, 56, 202)
-    doc.setTextColor(67, 56, 202);
-    doc.text("AFDomingo", 50, 15); // Clinic name
+				if (patientDoc.exists()) {
+					const patient = patientDoc.data();
+					// Store names needed for PDF generation
+					patientName = patient.name || 'N/A';
+					patientLastName = patient.lastName || '';
+				} else {
+					// Allow fetching prescriptions even if profile is minimal/missing
+					console.warn("Patient profile not found, proceeding with prescription fetch.");
+					patientName = 'Patient'; // Default name for PDF
+					patientLastName = '';
+					// Optional: Set a non-blocking warning instead of 'error'
+					// error = "Patient profile details missing.";
+				}
 
-    // Reset text color to black for subsequent text
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text("DENTAL CLINIC", 50, 20);
-    doc.text("#46 12th Street, Corner Gordon Ave, New Kalalake", 50, 25);
-    doc.text("afdomingodentalclinic@gmail.com", 50, 30);
-    doc.text("0932 984 9554", 50, 35);
-    doc.line(20, 40, 277, 40); // Horizontal line
+				// 2. Fetch completed appointments for the patient
+				const appointmentsRef = collection(db, "appointments");
+				const qAppointments = query(
+					appointmentsRef,
+					where("patientId", "==", patientId),
+					where("status", "==", "Completed")
+				);
+				const appointmentsSnapshot = await getDocs(qAppointments);
 
-    // Prescription Title
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Prescription", 20, 48);
+                // Extract IDs and dates, handling potential missing dates
+				const completedAppointments = appointmentsSnapshot.docs.map(doc => ({
+					id: doc.id,
+					date: doc.data().date // Keep the original date object/timestamp
+				}));
 
-    // Patient Details
-    const patientFirstName = name.toUpperCase(); // Make sure `name` is available in scope
-    const patientLastName = lastName.toUpperCase(); // Make sure `lastName` is available in scope
+				// console.log("Fetched completed appointments: ", completedAppointments); // Debug log
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    doc.text(`Date: ${formatDate(prescription.appointmentDate) || 'Not available'}`, 20, 55);
-    doc.text(`Patient Name: ${patientFirstName} ${patientLastName}`, 20, 62);
+                const appointmentIds = completedAppointments.map(app => app.id);
 
-    // Prescription Details (Loop through medicines array)
-    let yPosition = 77; // Start position for prescription details
+				// 3. Fetch prescriptions based on completed appointment IDs
+				if (appointmentIds.length > 0) {
+					const prescriptionsRef = collection(db, "prescriptions");
+					const qPrescriptions = query(
+						prescriptionsRef,
+						where("appointmentId", "in", appointmentIds)
+					);
+					const prescriptionsSnapshot = await getDocs(qPrescriptions);
 
-    // Loop through medicines array to list all medicines
-    prescription.medicines.forEach((medicine: any, medicineIndex: number) => {
-        doc.setFontSize(11);
-        doc.text(`Medicine: ${medicine.medicine || 'Not available'}`, 20, yPosition);
-        doc.text(` Qty/Refills ${medicine.dosage || 'Not available'}`, 20, yPosition + 8);
-        doc.text(`Instructions: ${medicine.instructions || 'Not available'}`, 20, yPosition + 16);
-        yPosition += 24; // Adjust space for next medicine
-    });
+                    // Map prescriptions and associate the appointment date
+					prescriptions = prescriptionsSnapshot.docs.map(docSnap => {
+						const data = docSnap.data();
+						const appointmentId = data.appointmentId;
+						// Find the corresponding completed appointment
+						const relatedAppointment = completedAppointments.find(app => app.id === appointmentId);
+						return {
+							id: docSnap.id, // Prescription document ID
+							appointmentId: appointmentId,
+							// Use the date from the fetched appointment, format later
+							appointmentDate: relatedAppointment ? relatedAppointment.date : null,
+							medicines: data.medicines || [], // Ensure medicines is an array
+							prescriber: data.prescriber || 'N/A'
+						};
+					}).sort((a, b) => {
+                        // Sort by date descending (newest first)
+                        const dateA = a.appointmentDate ? (a.appointmentDate instanceof Timestamp ? a.appointmentDate.toMillis() : new Date(a.appointmentDate).getTime()) : 0;
+                        const dateB = b.appointmentDate ? (b.appointmentDate instanceof Timestamp ? b.appointmentDate.toMillis() : new Date(b.appointmentDate).getTime()) : 0;
+                        return dateB - dateA;
+                    });
 
-    // Add prescriber info on the right side
-    const prescriberText = `Prescriber: ${prescription.prescriber || 'Not available'}`;
-    const pageWidth = doc.internal.pageSize.width; // Get the page width dynamically
-    const prescriberX = pageWidth - 70; // Adjust for right alignment
-    const prescriberY = 175; // Position it just above the footer
-    doc.text(prescriberText, prescriberX, prescriberY);
+					// console.log("Loaded and sorted prescriptions: ", prescriptions); // Debug log
 
-    // Add signature image
-    const signaturePath = '/images/signature.jpg'; // Update with the correct path to the signature image
-    const signatureWidth = 50; // Adjust width as needed
-    const signatureHeight = 20; // Adjust height as needed
-    const signatureX = pageWidth - 70; // Position it near the right margin
-    const signatureY = 150; // Position just above the footer
-    doc.addImage(signaturePath, 'JPG', signatureX, signatureY, signatureWidth, signatureHeight);
+				} else {
+					console.log("No completed appointments found for this patient.");
+					prescriptions = []; // Ensure prescriptions is empty
+				}
 
-    // Footer
-    doc.line(20, 190, 277, 190); // Footer line
-    doc.setFontSize(12);
-    doc.text("Promoting Healthy Teeth & Smiles", 148.5, 200, { align: "center" });
+			} else {
+				error = "No authenticated user found. Please log in."; // More specific error
+				// Layout should ideally handle redirect, but we set error state here
+			}
+		} catch (err: any) {
+			console.error("Error loading prescription data: ", err);
+			error = `An error occurred: ${err.message || 'Failed to fetch data.'}`;
+            prescriptions = []; // Clear any partial data on error
+		} finally {
+			loading = false;
+		}
+	}
 
-    // Save the PDF with the patient's name
-    const filename = `${patientFirstName}_${patientLastName}_Prescription_${index + 1}.pdf`;
-    doc.save(filename);
-}
+	// --- PDF Generation Function ---
+	function generatePDF(prescription: any, index: number) {
+        if (!patientName) {
+            Swal.fire('Error', 'Patient name is missing. Cannot generate PDF.', 'error');
+            return;
+        }
 
+		const doc = new jsPDF({ orientation: "landscape" }); // landscape orientation
 
+        // --- Reusable Header ---
+        const addHeader = () => {
+            doc.addImage('/images/af dominic.jpg', 'JPG', 20, 8, 30, 30); // Adjust path if needed
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.setTextColor(67, 56, 202); // Blue color
+            doc.text("AFDomingo", 55, 15);
+            doc.setTextColor(0, 0, 0); // Reset to black
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text("DENTAL CLINIC", 55, 20);
+            doc.text("#46 12th Street, Corner Gordon Ave, New Kalalake", 55, 25);
+            doc.text("afdomingodentalclinic@gmail.com", 55, 30);
+            doc.text("0932 984 9554", 55, 35);
+            doc.line(20, 40, 277, 40); // Horizontal line below header (adjust x2 for landscape)
+        };
 
+        // --- Reusable Footer ---
+        const addFooter = (pageNumber: number, totalPages: number) => {
+            doc.line(20, 190, 277, 190); // Horizontal line above footer (adjust x2 for landscape)
+            doc.setFontSize(10);
+            doc.text("Promoting Healthy Teeth & Smiles", 148.5, 197, { align: "center" }); // Centered text
+            doc.setFontSize(8);
+            doc.text(`Page ${pageNumber} of ${totalPages}`, 277, 205, { align: 'right'}); // Page number
+        };
 
-    onMount(() => {
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                fetchPatientData();
-            } else {
-                error = "No authenticated user found!";
-                loading = false;
-            }
-        });
-    });
+		addHeader();
+
+		doc.setFontSize(12);
+		doc.setFont("helvetica", "bold");
+		doc.text("Prescription", 20, 48);
+
+		// Patient Details
+		const pdfPatientFirstName = patientName.toUpperCase();
+		const pdfPatientLastName = patientLastName.toUpperCase();
+		const formattedDate = formatDate(prescription.appointmentDate);
+
+		doc.setFont("helvetica", "normal");
+		doc.setFontSize(11);
+		doc.text(`Date: ${formattedDate}`, 20, 55);
+		doc.text(`Patient Name: ${pdfPatientFirstName} ${pdfPatientLastName}`, 20, 62);
+
+		// Prescription Details Table Header
+		doc.setFont("helvetica", "bold");
+        doc.text("Medicine", 20, 75);
+        doc.text("Qty/Dosage", 100, 75);
+        doc.text("Instructions", 160, 75);
+		doc.line(20, 77, 277, 77); // Line below header
+
+		let yPosition = 85; // Starting Y for first medicine
+        const pageHeight = doc.internal.pageSize.height;
+        const bottomMargin = 25; // Space needed for footer + prescriber
+        let currentPage = 1;
+        const totalPages = 1; // Calculate if needed, but start with 1
+
+		doc.setFont("helvetica", "normal");
+        doc.setFontSize(10); // Slightly smaller font for table content
+
+		prescription.medicines.forEach((medicine: any) => {
+			const medicineName = medicine.medicine || 'N/A';
+			const dosage = medicine.dosage || 'N/A';
+			const instructions = medicine.instructions || 'N/A';
+
+            // Estimate height needed for this entry (simple estimate)
+            const nameLines = doc.splitTextToSize(medicineName, 75); // Width of medicine column
+            const dosageLines = doc.splitTextToSize(dosage, 55); // Width of dosage column
+            const instructionLines = doc.splitTextToSize(instructions, 110); // Width of instructions column
+            const maxLines = Math.max(nameLines.length, dosageLines.length, instructionLines.length);
+            const textHeight = maxLines * (doc.getLineHeight() / doc.internal.scaleFactor) + 4; // Add padding
+
+			// Check if content exceeds page height
+			if (yPosition + textHeight > pageHeight - bottomMargin) {
+				// Add Footer to current page
+                addFooter(currentPage, totalPages); // Need to calculate totalPages if multi-page is possible
+
+				// Add New Page
+				doc.addPage();
+                currentPage++;
+                // Add Header to new page
+                addHeader();
+				// Reset Y position for new page
+				yPosition = 55; // Reset Y position (adjust as needed for header space)
+                 // Redraw table header on new page
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(11);
+                doc.text("Medicine", 20, yPosition);
+                doc.text("Qty/Dosage", 100, yPosition);
+                doc.text("Instructions", 160, yPosition);
+                doc.line(20, yPosition + 2, 277, yPosition + 2);
+                yPosition += 10;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+			}
+
+            // Draw text using multi-line support if needed
+            doc.text(nameLines, 20, yPosition);
+            doc.text(dosageLines, 100, yPosition);
+            doc.text(instructionLines, 160, yPosition);
+
+			yPosition += textHeight; // Move Y down for the next item
+		});
+
+        // --- Prescriber Signature and Info (Position near bottom right) ---
+        let finalY = Math.max(yPosition + 10, pageHeight - 55); // Ensure enough space from bottom or last item
+
+        // Check if signature needs to go to next page
+        if (finalY + 30 > pageHeight - 15) { // 30 for signature height + text + buffer
+             addFooter(currentPage, totalPages);
+             doc.addPage();
+             currentPage++;
+             addHeader();
+             finalY = 55; // Reset Y near top
+        }
+
+		const signaturePath = '/images/signature.jpg'; // Ensure this path is correct in 'static' folder
+		const signatureWidth = 40;
+		const signatureHeight = 16;
+		const signatureX = doc.internal.pageSize.width - 20 - signatureWidth; // Position from right edge
+		const signatureY = finalY; // Position above the text
+
+		try {
+            doc.addImage(signaturePath, 'JPG', signatureX, signatureY, signatureWidth, signatureHeight);
+        } catch (imgError) {
+            console.error("Error adding signature image:", imgError);
+            doc.text("[Signature Image Error]", signatureX, signatureY + signatureHeight / 2);
+        }
+
+        const prescriberText = `Prescriber: ${prescription.prescriber || 'N/A'}`;
+        doc.setFontSize(10);
+        doc.text(prescriberText, signatureX, signatureY + signatureHeight + 5); // Text below signature
+
+        // Add footer to the last page
+		addFooter(currentPage, totalPages); // Update totalPages if calculated
+
+		// --- Save the PDF ---
+		const filename = `${patientName}_${patientLastName}_Prescription_${formattedDate.replace(/\//g, '-')}.pdf`;
+		doc.save(filename);
+	}
+
+	// --- Lifecycle Hook ---
+	onMount(() => {
+		if (!browser) return; // Ensure runs only in browser
+
+		if (!auth) {
+			console.error("Firebase Auth not initialized on mount.");
+			error = "Initialization error. Please refresh.";
+			loading = false;
+			return;
+		}
+
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				fetchPrescriptionData(); // Fetch data when user is confirmed
+			} else {
+				error = "You are not logged in. Please log in to view prescriptions.";
+				loading = false;
+				prescriptions = []; // Clear data if user logs out
+				// Note: Layout component might handle redirection already
+			}
+		});
+
+		// Cleanup listener on component destroy
+		return () => unsubscribe();
+	});
+
 </script>
-<div class="main-container">
-    <div class="patient-card">
-        <img src="/images/logo(landing).png" 
-             alt="Decorative logo" class="logo"/>
-                <div class="header-info">
-                    <h1 class="patient-name">AFDomingo</h1>
-                    <p class="patient-details">DENTAL CLINIC</p>
-                    <p class="patient-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
-                    <p class="patient-details">afdomingodentalclinic@gmail.com</p>
-                    <p class="patient-details">0932 984 9554</p>
-                </div>
-            </div>
-      
-  
- <!-- Adjust height based on header 
-       <div class="header">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                <path d="M10 5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z"/>
-                <path d="M0 14s1-3 7-3 7 3 7 3v1H0v-1z"/>
-            </svg>
-            <h2><strong>Name: {name} {lastName}</strong></h2>
-        </div>
 
-        {#if loading}
-            <p class="loading">Loading...</p>
-        {:else}
-            {#if error}
-                <p class="error">{error}</p>
-            {:else}
-                <div class="info"><strong>Address:</strong> {address || 'Not available'}</div>
-                <div class="info"><strong>Age:</strong> {age || 'Not available'} years old</div>
-                <div class="info"><strong>Gender:</strong> {gender || 'Not available'}</div>
-                <div class="info"><strong>Phone:</strong> {phone || 'Not available'}</div>
-                <div class="info"><strong>Birthday:</strong> {birthday || 'Not available'}</div>
-        -->
-        <section class="prescriptions">
-            <h3 class="prescription-header mt-4 font-bold">Prescriptions</h3>
-        
-            {#if prescriptions.length > 0}
-                <div class="mt-4">
-                    {#each prescriptions as prescription, index}
-                        <div class="prescription-card">
-                            <h4 class="font-bold">Prescription {index + 1}</h4>
-                            <p><strong>Date Visited:</strong> {formatDate(prescription.appointmentDate) || 'Not available'}</p>
-        
-                            <h5 class="font-bold mt-2">Medication Details:</h5>
-                            {#each prescription.medicines as medicine, medicineIndex}
-                                <div class="medicine-info">
-                                    <p><strong>Medicine {medicineIndex + 1}:</strong> {medicine.medicine || 'Not available'}</p>
-                                    <p><strong>Qty/Refills:</strong> {medicine.dosage || 'Not available'}</p>
-                                    <p><strong>Instructions:</strong> {medicine.instructions || 'Not available'}</p>
-                                </div>
-                            {/each}
-        
-                            <p><strong>Prescriber:</strong> {prescription.prescriber || 'Not available'}</p>
-        
-                            <button on:click={() => generatePDF(prescription, index)} class="download-button">
-                                Download PDF
-                            </button>
-                        </div>
-                    {/each}
-                </div>
-            {:else}
-                <p class="no-prescriptions">No prescriptions available.</p>
-            {/if}
-        </section>
-    </div> 
-    
+<!-- HTML Content -->
+<div class="prescription-page-container">
+
+	<!-- Clinic Header Card -->
+	<div class="clinic-header-card">
+		<img src="/images/logo(landing).png" alt="Clinic Logo" class="logo"/>
+		<div class="header-info">
+			<h1 class="clinic-name">AFDomingo</h1>
+			<p class="clinic-details">DENTAL CLINIC</p>
+			<p class="clinic-details">#46 12th Street, Corner Gordon Ave New Kalalake</p>
+			<p class="clinic-details">afdomingodentalclinic@gmail.com</p>
+			<p class="clinic-details">0932 984 9554</p>
+		</div>
+	</div>
+
+	<!-- Prescriptions Section -->
+	<section class="prescriptions-section">
+		<h2 class="section-title">Your Prescriptions</h2>
+
+		{#if loading}
+			<p class="status-message loading">Loading prescriptions...</p>
+		{:else if error}
+			<p class="status-message error">{error}</p>
+		{:else if prescriptions.length > 0}
+			<div class="prescription-list">
+				{#each prescriptions as prescription, index}
+					<div class="prescription-card">
+						<div class="card-header">
+							<h3 class="prescription-title">Prescription #{prescriptions.length - index}</h3>
+							<p class="prescription-date">
+								Date: {formatDate(prescription.appointmentDate) || 'N/A'}
+							</p>
+						</div>
+
+						<div class="card-body">
+							<h4 class="medication-heading">Medications:</h4>
+							{#if prescription.medicines && prescription.medicines.length > 0}
+								{#each prescription.medicines as medicine, medIndex}
+									<div class="medicine-info">
+										<p><strong>{medIndex + 1}. {medicine.medicine || 'N/A'}</strong></p>
+										<p class="detail">Qty/Dosage: {medicine.dosage || 'N/A'}</p>
+										<p class="detail">Instructions: {medicine.instructions || 'N/A'}</p>
+									</div>
+								{/each}
+							{:else}
+								<p>No medication details available for this prescription.</p>
+							{/if}
+						</div>
+
+						<div class="card-footer">
+							<p class="prescriber-info">Prescriber: {prescription.prescriber || 'N/A'}</p>
+							<button
+								class="download-button"
+								on:click={() => generatePDF(prescription, index)}
+								title="Download Prescription as PDF"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                                </svg>
+								<span>Download PDF</span>
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<p class="status-message">No prescriptions found.</p>
+		{/if}
+	</section>
+
+</div>
+
+<!-- Scoped Styles -->
 <style>
-
-    /* Main container to make it scrollable */
-   .main-container {
-    height: calc(100vh - 168px); /* Subtract the header height */
-    overflow-y: auto; /* Allow vertical scrolling */
-    padding: 16px;  /* Optional padding for spacing */
-}
-
-/* Hide scrollbar for Webkit browsers (Chrome, Safari) */
-.main-container::-webkit-scrollbar {
-    display: none;
-}
-
-/* Hide scrollbar for Internet Explorer 10+ and Firefox */
-.main-container {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    height: 100%;
-}
-    .card {
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 16px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        position: relative;
-        overflow: hidden;
+	.prescription-page-container {
+		padding: 15px; /* Add padding around the whole page content */
+        max-width: 1200px; /* Optional: constrain max width */
+        margin: 0 auto; /* Center content if max-width is set */
+        height: 100%; /* Allow container to fill height provided by layout */
+        overflow-y: auto; /* Allow scrolling only for this container if needed */
+        box-sizing: border-box;
+	}
+     /* Hide scrollbar */
+    .prescription-page-container::-webkit-scrollbar {
+        display: none;
+    }
+    .prescription-page-container {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
     }
 
-    .card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 6px; /* Height of the solid bar */
-        background: linear-gradient(90deg, #08B8F3, #005b80); /* Gradient background */
+	/* Clinic Header Styling */
+	.clinic-header-card {
+		background: linear-gradient(90deg, #e0f7fa, #b2ebf2); /* Light blue gradient */
+		border-radius: 10px;
+		padding: 15px 20px;
+		display: flex;
+		align-items: center;
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 25px; /* Space below header */
+		gap: 20px; /* Space between logo and text */
+	}
+
+	.clinic-header-card .logo {
+		width: 70px; /* Adjusted size */
+		height: 70px;
+		border-radius: 50%;
+		object-fit: cover;
+		flex-shrink: 0; /* Prevent logo from shrinking */
+        border: 2px solid white;
+	}
+
+	.clinic-header-card .header-info {
+		color: #005b80; /* Darker blue text */
+        flex-grow: 1;
+	}
+
+	.clinic-header-card .clinic-name {
+		font-size: 1.4rem;
+		font-weight: bold;
+		margin: 0 0 2px 0;
+        color: #003d50;
+	}
+
+	.clinic-header-card .clinic-details {
+		margin: 1px 0;
+		font-size: 0.9rem;
+		color: #005b80;
+		line-height: 1.3;
+	}
+
+	/* Prescriptions Section */
+	.prescriptions-section {
+		margin-top: 20px;
+	}
+
+	.section-title {
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: #005b80; /* Match theme color */
+		margin-bottom: 15px;
+		border-bottom: 2px solid #00a2e8; /* Theme color accent */
+		padding-bottom: 5px;
+	}
+
+	/* Status Messages (Loading, Error, No Data) */
+	.status-message {
+		text-align: center;
+		padding: 20px;
+		border-radius: 5px;
+		margin-top: 15px;
+		font-size: 1.1rem;
+	}
+	.status-message.loading {
+		color: #005b80;
+		background-color: #e0f7fa;
+	}
+	.status-message.error {
+		color: #d32f2f; /* Red color for errors */
+		background-color: #ffebee;
+		font-weight: bold;
+	}
+
+    /* Prescription List and Cards */
+	.prescription-list {
+		display: grid;
+		gap: 20px;
+        /* Responsive grid columns */
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	}
+
+	.prescription-card {
+		background-color: #fff;
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+		display: flex;
+		flex-direction: column;
+        transition: box-shadow 0.3s ease;
+	}
+    .prescription-card:hover {
+         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
     }
 
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+    .card-header {
+        background-color: #f8f9fa; /* Light header background */
+        padding: 10px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    .card h4, h5 {
-        margin-bottom: 0.6rem;
+
+    .prescription-title {
         font-size: 1.1rem;
+        font-weight: 600;
         color: #005b80;
+        margin: 0;
     }
 
-    .card p {
-        margin-bottom: 0.2rem;
-        font-size: 1rem;
-        color: #333;
+    .prescription-date {
+        font-size: 0.85rem;
+        color: #555;
+        margin: 0;
     }
 
-    .card p strong {
-        color: #08B8F3; /* Bright blue for labels */
+	.card-body {
+        padding: 15px;
+        flex-grow: 1; /* Allow body to take available space */
+	}
+
+	.medication-heading {
+		font-size: 1rem;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 10px;
+	}
+
+	.medicine-info {
+		background: #f8f9fa; /* Subtle background for each medicine */
+		padding: 10px;
+		border-left: 3px solid #00a2e8; /* Theme color accent */
+		margin-bottom: 10px;
+		border-radius: 4px;
+	}
+    .medicine-info:last-child {
+         margin-bottom: 0;
     }
 
-   
-    .prescription-card {
-    background: #fff;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1rem;
-}
-
-.medicine-info {
-    background: #f8f9fa;
-    padding: 0.75rem;
-    border-left: 4px solid #007bff;
-    margin-top: 0.5rem;
-    border-radius: 5px;
-}
-
-.download-button {
-    background: #007bff;
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 1rem;
-}
-
-.download-button:hover {
-    background: #0056b3;
-}
-
-    .container {
-        margin-top: 0.5rem;
-        max-width: 100%;
-        padding: 20px;
-        background-color: #f9f9f9;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        overflow-y: auto; /* Allow vertical scrolling */
-        max-height: calc(100vh - 168px); /* Adjust height based on header */
+	.medicine-info p {
+		margin: 2px 0;
+		font-size: 0.9rem;
+		color: #444;
+		line-height: 1.4;
+	}
+    .medicine-info p.detail {
+         padding-left: 10px; /* Indent details */
+         font-size: 0.85rem;
+         color: #555;
     }
+	.medicine-info p strong {
+		color: #003d50; /* Darker theme color for medicine name */
+	}
 
-    /* Ensure no fixed positioning is applied to the header */
-
-   
-    .button {
-        background: linear-gradient(90deg, #08B8F3, #005b80);
-        color: rgb(255, 255, 255);
-        font-family: 'Roboto', sans-serif;
-        font-weight: 550;
-        padding: 0.5rem 1rem;
-        border-radius: 0.3rem;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.582);
+    .card-footer {
+        padding: 10px 15px;
+        border-top: 1px solid #e0e0e0;
+        background-color: #f8f9fa;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        transition: background 0.3s ease, transform 0.2s ease;
-        border: none;
-        cursor: pointer;
-        outline: none;
     }
 
-    .button:hover {
-        background: linear-gradient(90deg, #005b80, #08B8F3);
-        transform: translateY(2px);
-    }
+	.prescriber-info {
+		font-size: 0.85rem;
+		color: #555;
+        margin: 0;
+	}
 
-    .error {
-        color: red;
-    }
-    .loading {
-        font-style: italic;
-    }
-    .patient-card {
-    background: linear-gradient(90deg, #ffffff, #ffff, #eaee00, #eaee00, #08B8F3, #08B8F3, #005b80);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    width: 68rem;
-    max-width: 100%;
-    justify-content: flex-start;
-    gap: 16px;
-}
-/* Logo Style */
-.logo {
-    width: 10rem;
-    height: 10rem;
-    border-radius: 50%;
-    margin-right: 16px;
-    object-fit: cover;
-}
-
-/* Header Info */
-.header-info {
-    color: #000000;
-}
-
-.patient-name {
-    font-size: 1.3rem;
-    font-weight: bold;
-    margin: 0;
-}
-
-.patient-details {
-    margin: 2px 0;
-    font-size: 1rem;
-    color: #000000;
-    line-height: 1.2;
-}
-
-/* 🔹 Responsive Header for Mobile */
-@media (max-width: 768px) { 
-    .patient-card {
-        background: #08B8F3;
-        display: flex;
-        flex-direction: column;
+	/* Download Button */
+	.download-button {
+		background-color: #007bb5; /* Button color */
+		color: white;
+		padding: 6px 12px;
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 500;
+		display: inline-flex; /* Align icon and text */
         align-items: center;
-        text-align: center;
-        padding: 12px; /* Reduced padding for a smaller card */
-        width: 90%;
-        max-width: 280px; /* Makes card smaller */
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-        word-wrap: break-word;
+        gap: 5px; /* Space between icon and text */
+		transition: background-color 0.2s ease;
+	}
+
+	.download-button:hover {
+		background-color: #005b80; /* Darker hover */
+	}
+    .download-button svg {
+        vertical-align: middle;
     }
 
-    .logo {
-        display: none; /* Hide logo on mobile */
-    }
+	/* Responsive Adjustments */
+	@media (max-width: 768px) {
+        .prescription-page-container {
+            padding: 10px;
+        }
+		.clinic-header-card {
+            flex-direction: column; /* Stack logo and info */
+            text-align: center;
+            padding: 15px;
+            gap: 10px;
+		}
+        .clinic-header-card .logo {
+            width: 60px;
+            height: 60px;
+            margin-right: 0;
+            margin-bottom: 5px; /* Space below logo */
+        }
+        .clinic-name {
+             font-size: 1.2rem;
+        }
+        .clinic-details {
+            font-size: 0.85rem;
+        }
 
-    .header-info {
-        width: 100%;
-    }
-
-    .patient-name {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #fff;
-        margin-bottom: 2px;
-    }
-
-    .patient-details {
-        font-size: 0.8rem; /* Smaller text */
-        line-height: 1.3;
-        color: #fff;
-        word-break: keep-all; /* Prevents weird email breaking */
-        overflow-wrap: break-word;
-    }
-}
-
+		.prescription-list {
+            grid-template-columns: 1fr; /* Stack cards on smaller screens */
+            gap: 15px;
+        }
+        .section-title {
+             font-size: 1.3rem;
+        }
+        .card-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+	}
 
 </style>
