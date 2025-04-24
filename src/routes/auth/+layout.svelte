@@ -1,5 +1,4 @@
 <script lang="ts">
-	// Merged Imports from both components
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -9,11 +8,10 @@
 	import type { User } from "firebase/auth";
 	import { firebaseConfig } from "$lib/firebaseConfig";
 	import { initializeApp, getApps, getApp } from "firebase/app";
-	import '@fortawesome/fontawesome-free/css/all.css'; // Keep if needed, though not used in template's icons
+	import '@fortawesome/fontawesome-free/css/all.css'; 
 	import Swal from 'sweetalert2';
-	import '../../app.css'; // Assuming this contains base styles
+	import '../../app.css'; 
 
-	// --- State Management (from TemplateComponent) ---
 	let isMobile = false;
 	let isCollapsed = false; // Desktop collapsed state
 	let isSidebarOpen = false; // Mobile sidebar open state

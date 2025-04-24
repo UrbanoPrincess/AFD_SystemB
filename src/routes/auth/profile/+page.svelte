@@ -403,12 +403,11 @@ function toggleEditProfile() {
         {/if}
     </div>
 </div>
-
 <style>
     :root {
         --primary-color: #08B8F3;
         --secondary-color: #005b80;
-        --accent-color: #eaee00; 
+        --accent-color: #eaee00;
         --light-gray: #f8f9fa;
         --medium-gray: #e9ecef;
         --dark-gray: #6c757d;
@@ -421,37 +420,46 @@ function toggleEditProfile() {
         --input-border-color: #ced4da;
     }
 
+    /* Apply basic font and background to the whole page */
     body {
         font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background-color: var(--light-gray); 
+        background-color: var(--light-gray); /* Background for the area outside the main container */
+        margin: 0; /* Remove default body margin */
+        padding: 0; /* Remove default body padding */
+        /* If you want to style the main browser scrollbar (optional) */
+        /* scrollbar-width: thin; */
+        /* scrollbar-color: var(--dark-gray) var(--medium-gray); */
     }
-   .main-container {
-        max-width: 1200px; 
-        margin: 0 auto; 
-        padding: 20px;
-        height: calc(100vh - 80px); 
-        overflow-y: auto;
-         background-color: var(--white);
-         border-radius: var(--border-radius);
-         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-
-    .main-container::-webkit-scrollbar {
+    /* Style for the main browser scrollbar (optional) */
+    /* body::-webkit-scrollbar {
         width: 8px;
     }
-    .main-container::-webkit-scrollbar-track {
+    body::-webkit-scrollbar-track {
         background: var(--medium-gray);
-        border-radius: 4px;
     }
-    .main-container::-webkit-scrollbar-thumb {
+    body::-webkit-scrollbar-thumb {
         background-color: var(--dark-gray);
         border-radius: 4px;
         border: 2px solid var(--medium-gray);
+    } */
+
+
+   .main-container {
+        max-width: 1200px;
+        margin: 20px auto; /* Add top/bottom margin for spacing, auto for centering */
+        padding: 20px;
+        /* REMOVED: height: calc(100vh - 80px); */
+        /* REMOVED: overflow-y: auto; */
+        /* MIN-HEIGHT (Optional): Ensure it takes at least viewport height if needed,
+           but generally not required if you want natural flow */
+        /* min-height: calc(100vh - 40px); /* Adjust based on header/footer height if any */
+         background-color: var(--white);
+         border-radius: var(--border-radius);
+         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+         /* Removed scrollbar styles specific to this container */
     }
-    .main-container {
-        scrollbar-width: thin;
-        scrollbar-color: var(--dark-gray) var(--medium-gray);
-    }
+
+    /* Keep all other styles for patient-card, edit-profile-section, history-section, etc. the same */
 
     .patient-card {
         background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
@@ -461,8 +469,8 @@ function toggleEditProfile() {
         display: flex;
         align-items: flex-start;
         box-shadow: var(--card-shadow);
-        margin-bottom: 24px; 
-        gap: 24px; 
+        margin-bottom: 24px;
+        gap: 24px;
     }
 
     .patient-card .logo {
@@ -470,47 +478,46 @@ function toggleEditProfile() {
         height: 100px;
         border-radius: 50%;
         object-fit: cover;
-        border: 3px solid var(--white); 
-        flex-shrink: 0; 
+        border: 3px solid var(--white);
+        flex-shrink: 0;
     }
 
     .patient-info {
         flex-grow: 1;
-        min-width: 0; /* Prevent overflow issues */
+        min-width: 0;
     }
 
     .patient-info h1 {
-        font-size: 1.8rem; /* Larger name */
+        font-size: 1.8rem;
         font-weight: 600;
         margin-bottom: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3); /* Subtle separator */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         padding-bottom: 8px;
-        word-break: break-word; /* Prevent long names from breaking layout */
+        word-break: break-word;
     }
 
     .patient-info .info-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
-        gap: 8px 16px; /* Row and column gap */
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 8px 16px;
         font-size: 0.95rem;
         line-height: 1.5;
     }
 
     .patient-info p {
-        margin-bottom: 0; /* Remove default margin */
-        color: rgba(255, 255, 255, 0.9); /* Slightly transparent text */
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.9);
     }
 
     .patient-info p strong {
         font-weight: 500;
-        color: var(--white); /* Make labels stand out */
+        color: var(--white);
         margin-right: 5px;
     }
      .patient-info .address {
-        grid-column: 1 / -1; /* Make address span full width */
+        grid-column: 1 / -1;
     }
 
-    /* Patient Card - Mobile */
     @media (max-width: 768px) {
         .patient-card {
             flex-direction: column;
@@ -522,25 +529,30 @@ function toggleEditProfile() {
          .patient-card .logo {
             width: 80px;
             height: 80px;
-            margin-bottom: 10px; /* Space below logo on mobile */
+            margin-bottom: 10px;
         }
         .patient-info h1 {
             font-size: 1.5rem;
         }
         .patient-info .info-grid {
-             grid-template-columns: 1fr; /* Single column on mobile */
-             text-align: left; /* Align text left within the column */
+             grid-template-columns: 1fr;
+             text-align: left;
              gap: 5px;
         }
          .patient-info .address {
-             grid-column: auto; /* Reset span for single column */
+             grid-column: auto;
+         }
+         /* Adjust main container margin/padding on mobile if needed */
+         .main-container {
+            margin: 10px;
+            padding: 15px;
          }
     }
 
 
     /* ========== Edit Profile Section ========== */
     .edit-profile-section {
-        margin-bottom: 32px; /* Space below this section */
+        margin-bottom: 32px;
     }
 
     .edit-button {
@@ -550,9 +562,9 @@ function toggleEditProfile() {
         padding: 10px 20px;
         border-radius: var(--border-radius);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        display: inline-flex; /* Align icon and text */
+        display: inline-flex;
         align-items: center;
-        gap: 8px; /* Space between icon and text */
+        gap: 8px;
         transition: all 0.3s ease;
         border: none;
         cursor: pointer;
@@ -570,8 +582,7 @@ function toggleEditProfile() {
         height: 18px;
     }
 
-    /* Form Container */
-     .profile-form-container {
+    .profile-form-container {
         background-color: var(--white);
         border: 1px solid var(--medium-gray);
         border-radius: var(--border-radius);
@@ -588,11 +599,10 @@ function toggleEditProfile() {
         border-bottom: 1px solid var(--medium-gray);
     }
 
-    /* Form Styles */
     .profile-form .input-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr); /* Two columns default */
-        gap: 18px; /* Increased gap */
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
         margin-bottom: 24px;
     }
 
@@ -601,7 +611,7 @@ function toggleEditProfile() {
         flex-direction: column;
     }
      .form-group.full-width {
-        grid-column: 1 / -1; /* Span across both columns */
+        grid-column: 1 / -1;
     }
 
 
@@ -621,7 +631,7 @@ function toggleEditProfile() {
         width: 100%;
         padding: 10px 12px;
         border: 1px solid var(--input-border-color);
-        border-radius: 6px; /* Slightly less rounded inputs */
+        border-radius: 6px;
         font-size: 0.95rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
         background-color: var(--white);
@@ -633,23 +643,23 @@ function toggleEditProfile() {
         outline: none;
     }
      .profile-form input[disabled] {
-         background-color: var(--medium-gray); 
+         background-color: var(--medium-gray);
          cursor: not-allowed;
      }
 
     .profile-form select {
-        appearance: none; 
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E"); /* Custom arrow */
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236c757d'%3E%3Cpath fill-rule='evenodd' d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06z'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: right 10px center;
         background-size: 16px 16px;
-        padding-right: 30px; 
+        padding-right: 30px;
     }
 
     .save-button-container {
         display: flex;
         justify-content: flex-end;
-        gap: 12px; 
+        gap: 12px;
         margin-top: 16px;
         padding-top: 16px;
         border-top: 1px solid var(--medium-gray);
@@ -684,11 +694,9 @@ function toggleEditProfile() {
          transform: translateY(-1px);
      }
 
-
-    /* Form Animation */
     .slide-down {
         animation: slideDown 0.4s ease-out forwards;
-        overflow: hidden; /* Important for animation */
+        overflow: hidden;
     }
 
     @keyframes slideDown {
@@ -700,26 +708,24 @@ function toggleEditProfile() {
         to {
             opacity: 1;
             transform: translateY(0);
-            max-height: 1000px; /* Adjust if form can be very tall */
+            max-height: 1000px;
         }
     }
 
-
-    /* Form - Mobile */
     @media (max-width: 640px) {
         .profile-form .input-grid {
-            grid-template-columns: 1fr; /* Single column on mobile */
+            grid-template-columns: 1fr;
             gap: 15px;
         }
          .form-group.full-width {
-            grid-column: auto; /* Reset span for single column */
+            grid-column: auto;
          }
         .save-button-container {
-            flex-direction: column; /* Stack buttons */
+            flex-direction: column;
             gap: 10px;
         }
          .save-button, .cancel-button {
-             width: 100%; /* Full width buttons */
+             width: 100%;
          }
          .profile-form-container {
              padding: 16px;
@@ -750,10 +756,8 @@ function toggleEditProfile() {
         font-style: italic;
      }
 
-    /* History Cards Container */
     .card-container {
         display: grid;
-        /* Adjust minmax for desired card width */
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: 20px;
     }
@@ -765,11 +769,10 @@ function toggleEditProfile() {
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         position: relative;
-        overflow: hidden; /* Ensure border-top doesn't overflow */
+        overflow: hidden;
         display: flex;
-        flex-direction: column; /* Stack header and content */
+        flex-direction: column;
     }
-     /* Top Border Accent */
      .history-card::before {
         content: "";
         position: absolute;
@@ -799,7 +802,7 @@ function toggleEditProfile() {
         font-size: 0.95rem;
         color: var(--text-color);
         line-height: 1.6;
-        flex-grow: 1; /* Allow content to take remaining space */
+        flex-grow: 1;
     }
 
     .card-content p {
@@ -808,7 +811,7 @@ function toggleEditProfile() {
 
     .card-content strong {
         font-weight: 500;
-        color: var(--secondary-color); /* Consistent label color */
+        color: var(--secondary-color);
         margin-right: 4px;
     }
 
@@ -818,7 +821,7 @@ function toggleEditProfile() {
          font-size: 0.9em;
      }
      .card-content .remarks {
-         background-color: #eef8ff; /* Light blue background for remarks */
+         background-color: #eef8ff;
          padding: 8px 12px;
          border-radius: 4px;
          border-left: 3px solid var(--primary-color);
@@ -850,7 +853,7 @@ function toggleEditProfile() {
      .medicine-item {
          margin-bottom: 12px;
          padding-bottom: 8px;
-         border-bottom: 1px dotted #eee; /* Separator for multiple meds */
+         border-bottom: 1px dotted #eee;
      }
      .medicine-item:last-child {
          margin-bottom: 5px;
@@ -866,10 +869,9 @@ function toggleEditProfile() {
          margin-top: 10px;
      }
 
-    /* History Card - Mobile */
     @media (max-width: 768px) {
         .card-container {
-            grid-template-columns: 1fr; /* Single column */
+            grid-template-columns: 1fr;
             gap: 16px;
         }
     }
