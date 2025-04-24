@@ -427,7 +427,7 @@
 
 	/* Clinic Header Styling */
 	.clinic-header-card {
-		background: linear-gradient(90deg, #e0f7fa, #b2ebf2); /* Light blue gradient */
+		background: linear-gradient(90deg, #eef2ff, #a2b6ff); 
 		border-radius: 10px;
 		padding: 15px 20px;
 		display: flex;
