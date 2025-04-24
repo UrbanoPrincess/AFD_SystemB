@@ -271,7 +271,7 @@ function toggleEditProfile() {
 <div class="main-container">
     <!-- ========== Patient Card ========== -->
     <div class="patient-card">
-        <img src="/images/logo(landing).png" alt="Clinic Logo" class="logo"/>
+        <img src="/images/logo(landing) copy.png" alt="Clinic Logo" class="logo"/>
         <div class="patient-info">
             <h1>{`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}</h1>
             <div class="info-grid">

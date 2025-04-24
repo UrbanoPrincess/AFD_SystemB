@@ -338,7 +338,7 @@
 
 	<!-- Clinic Header Card -->
 	<div class="clinic-header-card">
-		<img src="/images/logo(landing).png" alt="Clinic Logo" class="logo"/>
+		<img src="/images/logo(landing) copy.png" alt="Clinic Logo" class="logo"/>
 		<div class="header-info">
 			<h1 class="clinic-name">AFDomingo</h1>
 			<p class="clinic-details">DENTAL CLINIC</p>
