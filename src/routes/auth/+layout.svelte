@@ -489,11 +489,9 @@
 		height: 18px;
 	}
 
-
-    /* --- Mobile Specific Styles --- */
 	@media (max-width: 767px) {
 		.app-header {
-			display: flex; /* Show mobile header */
+			display: flex; 
 		}
 
 		.sidebar {
