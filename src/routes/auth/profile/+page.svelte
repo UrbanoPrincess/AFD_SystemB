@@ -405,8 +405,8 @@ function toggleEditProfile() {
 </div>
 <style>
     :root {
-        --primary-color: #08B8F3;
-        --secondary-color: #005b80;
+        --primary-color: #6681e2;
+        --secondary-color: #172f85;
         --accent-color: #eaee00;
         --light-gray: #f8f9fa;
         --medium-gray: #e9ecef;
