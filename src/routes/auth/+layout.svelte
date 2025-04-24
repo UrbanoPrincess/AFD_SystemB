@@ -203,7 +203,7 @@
 			<div class="circle-background">
 				<!-- Conditional image based on collapsed state (desktop) or always logo (mobile?) -->
                  <img
-                    src={(isMobile && isSidebarOpen) || (!isMobile && !isCollapsed) ? "/images/logo(landing).png" : "/images/icon-person.png"}
+                    src={(isMobile && isSidebarOpen) || (!isMobile && !isCollapsed) ? "/images/logo(landing) copy.png" : "/images/icon-person.png"}
                     alt={ (isMobile && isSidebarOpen) || (!isMobile && !isCollapsed) ? "App Logo" : "User Icon"}
                  />
 			</div>
