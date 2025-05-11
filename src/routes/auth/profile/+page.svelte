@@ -24,8 +24,6 @@
     let isPrescriptionDropdownOpen = true;
     let prescriptions: any[] = [];
 
-
-    // Define the type for patientProfile
     type PatientProfile = {
         name: string;
         lastName: string;
@@ -38,7 +36,6 @@
         birthday:string;
     };
 
-    // Initialize patientProfile with default values
     let patientProfile: PatientProfile = {
         name: '',
         lastName: '',
@@ -52,11 +49,10 @@
     };
 
     let currentUser: User | null = null;
-    let isEditingProfile = false; // Toggle for edit profile
+    let isEditingProfile = false; 
     let doneAppointments: any[] = [];
     let isDropdownOpen = true;
 
- // Monitor auth state changes
 onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -70,15 +66,25 @@ onMount(() => {
 
                 if (patientDoc.exists()) {
                     patientProfile = patientDoc.data() as PatientProfile;
-                    // Ensure the ID is numeric
-                    patientProfile.id = patientProfile.id.replace(/\D/g, ''); // Keep only numbers
+                    // Get the customUserId from the users collection
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const userDoc = await getDoc(userRef);
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        patientProfile.id = userData.customUserId || "N/A";
+                    }
                     console.log("Loaded patient profile from Firestore: ", patientProfile);
                 } else {
                     console.log("No profile found for this user. Using default values.");
+                    // Get the customUserId from the users collection
+                    const userRef = doc(db, "users", currentUser.uid);
+                    const userDoc = await getDoc(userRef);
+                    const customUserId = userDoc.exists() ? userDoc.data().customUserId : "N/A";
+                    
                     patientProfile = {
                         name: '',
                         lastName: '',
-                        id: currentUser .uid.replace(/\D/g, ''), // Keep only numbers
+                        id: customUserId,
                         age: '',
                         gender: '',
                         email: '',
@@ -88,7 +94,6 @@ onMount(() => {
                     };
                 }
 
-                // Get appointments where status is "Completed"
                 const appointmentsRef = collection(db, "appointments");
                 const qAppointments = query(
                     appointmentsRef,
@@ -98,20 +103,18 @@ onMount(() => {
                 const querySnapshot = await getDocs(qAppointments);
                 doneAppointments = querySnapshot.docs.map((doc) => ({
                     ...doc.data(),
-                    id: doc.id // Ensure each appointment includes its Firestore document ID
+                    id: doc.id 
                 }));
-                console.log("Loaded done appointments: ", doneAppointments); // Debugging log
-
-                // Check if appointmentId exists before proceeding
+                console.log("Loaded done appointments: ", doneAppointments); 
                 const appointmentIds = doneAppointments
-                    .filter(appointment => appointment.id) // Filter out appointments without an id
+                    .filter(appointment => appointment.id)
                     .map(appointment => appointment.id);
 
                 if (appointmentIds.length > 0) {
                     const prescriptionsRef = collection(db, "prescriptions");
                     const qPrescriptions = query(
                         prescriptionsRef,
-                        where("appointmentId", "in", appointmentIds) // Filter by appointmentId
+                        where("appointmentId", "in", appointmentIds)
                     );
                     const prescriptionsSnapshot = await getDocs(qPrescriptions);
                     prescriptions = prescriptionsSnapshot.docs.map(doc => doc.data());
@@ -158,20 +161,26 @@ function calculateAge(birthday: string) {
     function updateAge(event: Event) {
         const target = event.target as HTMLInputElement;
         formBirthday = target.value;
-        formAge = calculateAge(formBirthday).toString(); // Update formAge based on birthday
+        formAge = calculateAge(formBirthday).toString(); 
     }
-
-// Save patient profile to Firestore
 async function savePatientProfile() {
+    // Clean the phone number
+    const cleanedPhone = formPhone.replace(/\D/g, '');
+    
+    // Debug logs
+    console.log("Original phone:", formPhone);
+    console.log("Cleaned phone:", cleanedPhone);
+    console.log("Phone length:", cleanedPhone.length);
+
     if (!currentUser) {
         Swal.fire({
             icon: 'error',
             title: 'Not Logged In',
             text: 'Please log in to save the profile.'
         });
-        console.log("Please log in to save the profile.");
         return;
     }
+
     if (!formPatientName || !formAge || !formEmail || !formPhone || !formBirthday) {
         Swal.fire({
             icon: 'warning',
@@ -182,75 +191,80 @@ async function savePatientProfile() {
         return;
     }
 
+    if (cleanedPhone.length !== 11) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Phone Number',
+            text: 'Phone number must be exactly 11 digits.'
+        });
+        return;
+    }
+
     try {
-        // Reference to the collection "patientProfiles"
         const patientRef = doc(db, "patientProfiles", currentUser.uid);
+        const userRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userRef);
+        const customUserId = userDoc.exists() ? userDoc.data().customUserId : "N/A";
 
         await setDoc(patientRef, {
             name: formPatientName,
             lastName: formLastName,
             age: formAge,
-            birthday: formBirthday, // Added birthday
+            birthday: formBirthday, 
             gender: formGender,
             email: formEmail,
-            phone: formPhone,
+            phone: cleanedPhone, // Use the cleaned phone number
             address: formHomeAddress,
-            id: currentUser.uid
+            id: customUserId
         });
-        // Display success message
+
         Swal.fire({
             icon: 'success',
             title: 'Profile Saved',
             text: 'Profile updated successfully.'
         });
-        console.log("Patient profile saved/updated successfully.");
 
-        // Update local state
         patientProfile = {
             name: formPatientName,
             lastName: formLastName,
             age: formAge,
-            birthday: formBirthday, // Added birthday
+            birthday: formBirthday,
             gender: formGender,
             email: formEmail,
-            phone: formPhone,
+            phone: cleanedPhone, // Use the cleaned phone number
             address: formHomeAddress,
-            id: currentUser.uid
+            id: customUserId
         };
 
-        // Close the editing form
         isEditingProfile = false;
     } catch (error) {
-        // Display error message
+        console.error("Error saving patient profile: ", error);
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: `Error saving patient profile.`
+            text: 'Error saving patient profile. Please try again.'
         });
-        console.error("Error saving patient profile: ", error);
     }
 }
 
-// Toggle edit profile
 function toggleEditProfile() {
-    isEditingProfile = !isEditingProfile; // Toggle edit state
+    isEditingProfile = !isEditingProfile; 
 
     if (isEditingProfile) {
-        // Initialize form fields with existing profile data when editing starts
+        
         formPatientName = patientProfile.name;
         formLastName = patientProfile.lastName;
         formAge = patientProfile.age;
-        formBirthday = patientProfile.birthday; // Added birthday
+        formBirthday = patientProfile.birthday; 
         formGender = patientProfile.gender;
         formEmail = patientProfile.email;
         formPhone = patientProfile.phone;
         formHomeAddress = patientProfile.address;
     } else {
-        // Reset form fields when editing is canceled
         formPatientName = "";
         formLastName = "";
         formAge = "";
-        formBirthday = ""; // Reset birthday
+        formBirthday = ""; 
         formGender = "";
         formEmail = "";
         formPhone = "";
@@ -258,18 +272,16 @@ function toggleEditProfile() {
     }
 }
 
-    // Toggle prescription history dropdown
     function togglePrescriptionDropdown() {
         isPrescriptionDropdownOpen = !isPrescriptionDropdownOpen;
     }
 
-    // Toggle past visits dropdown
+
     function toggleDropdown(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
-        isDropdownOpen = !isDropdownOpen;  // Toggle dropdown visibility
+        isDropdownOpen = !isDropdownOpen; 
     }
 </script>
 <div class="main-container">
-    <!-- ========== Patient Card ========== -->
     <div class="patient-card">
         <img src="/images/logo(landing) copy.png" alt="Clinic Logo" class="logo"/>
         <div class="patient-info">
@@ -285,11 +297,9 @@ function toggleEditProfile() {
         </div>
     </div>
 
-    <!-- ========== Edit Profile Section ========== -->
     <div class="edit-profile-section">
         <button on:click={toggleEditProfile} class="edit-button">
             <span class="icon">
-                <!-- Using simple +/- icons for expand/collapse feel -->
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon-edit">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                 </svg>
@@ -313,7 +323,23 @@ function toggleEditProfile() {
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
-                            <input id="phone" type="tel" placeholder="e.g., 09123456789" bind:value={formPhone} pattern="[0-9]{11}" title="Enter an 11-digit phone number"/>
+                            <input 
+                                id="phone" 
+                                type="tel" 
+                                placeholder="e.g., 09123456789" 
+                                bind:value={formPhone}
+                                on:input={(e) => {
+                                    const input = e.currentTarget as HTMLInputElement;
+                                    formPhone = input.value.replace(/\D/g, '');
+                                    if (formPhone.length > 11) {
+                                        formPhone = formPhone.slice(0, 11);
+                                    }
+                                }}
+                                maxlength="11"
+                            />
+                            {#if formPhone && formPhone.length !== 11}
+                                <span class="error-message">Phone number must be exactly 11 digits</span>
+                            {/if}
                         </div>
                         <div class="form-group">
                             <label for="email">E-Mail Address</label>
@@ -420,46 +446,17 @@ function toggleEditProfile() {
         --input-border-color: #ced4da;
     }
 
-    /* Apply basic font and background to the whole page */
-    body {
-        font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        background-color: var(--light-gray); /* Background for the area outside the main container */
-        margin: 0; /* Remove default body margin */
-        padding: 0; /* Remove default body padding */
-        /* If you want to style the main browser scrollbar (optional) */
-        /* scrollbar-width: thin; */
-        /* scrollbar-color: var(--dark-gray) var(--medium-gray); */
-    }
-    /* Style for the main browser scrollbar (optional) */
-    /* body::-webkit-scrollbar {
-        width: 8px;
-    }
-    body::-webkit-scrollbar-track {
-        background: var(--medium-gray);
-    }
-    body::-webkit-scrollbar-thumb {
-        background-color: var(--dark-gray);
-        border-radius: 4px;
-        border: 2px solid var(--medium-gray);
-    } */
-
+   
 
    .main-container {
         max-width: 1200px;
-        margin: 20px auto; /* Add top/bottom margin for spacing, auto for centering */
+        margin: 20px auto;  
         padding: 20px;
-        /* REMOVED: height: calc(100vh - 80px); */
-        /* REMOVED: overflow-y: auto; */
-        /* MIN-HEIGHT (Optional): Ensure it takes at least viewport height if needed,
-           but generally not required if you want natural flow */
-        /* min-height: calc(100vh - 40px); /* Adjust based on header/footer height if any */
          background-color: var(--white);
          border-radius: var(--border-radius);
          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-         /* Removed scrollbar styles specific to this container */
+        
     }
-
-    /* Keep all other styles for patient-card, edit-profile-section, history-section, etc. the same */
 
     .patient-card {
         background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
@@ -542,7 +539,7 @@ function toggleEditProfile() {
          .patient-info .address {
              grid-column: auto;
          }
-         /* Adjust main container margin/padding on mobile if needed */
+
          .main-container {
             margin: 10px;
             padding: 15px;
@@ -550,7 +547,6 @@ function toggleEditProfile() {
     }
 
 
-    /* ========== Edit Profile Section ========== */
     .edit-profile-section {
         margin-bottom: 32px;
     }
@@ -732,8 +728,6 @@ function toggleEditProfile() {
          }
     }
 
-
-    /* ========== History Section ========== */
     .history-section {
         margin-top: 32px;
     }
@@ -874,6 +868,12 @@ function toggleEditProfile() {
             grid-template-columns: 1fr;
             gap: 16px;
         }
+    }
+
+    .error-message {
+        color: var(--danger-color);
+        font-size: 0.8rem;
+        margin-top: 4px;
     }
 
 </style>
