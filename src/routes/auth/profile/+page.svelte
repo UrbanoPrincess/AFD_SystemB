@@ -19,6 +19,7 @@
     let formGender = "";
     let formEmail = "";
     let formPhone = "";
+    let phoneError = "";
     let formHomeAddress = "";
     let formBirthday="";
     let isPrescriptionDropdownOpen = true;
@@ -144,6 +145,15 @@ onMount(() => {
 
     return () => unsubscribe();
 });
+
+ function validatePhoneNumber() {
+        const phoneRegex = /^09\d{9}$/; // Philippine phone number format
+        if (!phoneRegex.test(formPhone)) {
+        } else {
+            phoneError = ""; // Clear the error if valid
+        }
+    }
+    
 function calculateAge(birthday: string) {
         const birthDate = new Date(birthday);
         const today = new Date();
@@ -313,7 +323,17 @@ function toggleEditProfile() {
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
-                            <input id="phone" type="tel" placeholder="e.g., 09123456789" bind:value={formPhone} pattern="[0-9]{11}" title="Enter an 11-digit phone number"/>
+                            <input 
+                                id="phone" 
+                                type="tel" 
+                                placeholder="e.g., 09123456789" 
+                                bind:value={formPhone} 
+                                on:blur={validatePhoneNumber} 
+                                required 
+                            />
+                            {#if phoneError}
+                                <p class="error-message">{phoneError}</p>
+                            {/if}
                         </div>
                         <div class="form-group">
                             <label for="email">E-Mail Address</label>
