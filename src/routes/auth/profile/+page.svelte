@@ -19,7 +19,6 @@
     let formGender = "";
     let formEmail = "";
     let formPhone = "";
-    let phoneError = "";
     let formHomeAddress = "";
     let formBirthday="";
     let isPrescriptionDropdownOpen = true;
@@ -148,15 +147,6 @@ onMount(() => {
 
     return () => unsubscribe();
 });
-
- function validatePhoneNumber() {
-        const phoneRegex = /^09\d{9}$/; // Philippine phone number format
-        if (!phoneRegex.test(formPhone)) {
-        } else {
-            phoneError = ""; // Clear the error if valid
-        }
-    }
-    
 function calculateAge(birthday: string) {
         const birthDate = new Date(birthday);
         const today = new Date();
@@ -174,6 +164,18 @@ function calculateAge(birthday: string) {
         formAge = calculateAge(formBirthday).toString(); 
     }
 async function savePatientProfile() {
+    // Debug logs for form values
+    console.log("Form values before save:", {
+        formPatientName,
+        formLastName,
+        formAge,
+        formGender,
+        formEmail,
+        formPhone,
+        formHomeAddress,
+        formBirthday
+    });
+
     // Clean the phone number
     const cleanedPhone = formPhone.replace(/\D/g, '');
     
@@ -183,6 +185,7 @@ async function savePatientProfile() {
     console.log("Phone length:", cleanedPhone.length);
 
     if (!currentUser) {
+        console.log("No current user found");
         Swal.fire({
             icon: 'error',
             title: 'Not Logged In',
@@ -191,17 +194,33 @@ async function savePatientProfile() {
         return;
     }
 
-    if (!formPatientName || !formAge || !formEmail || !formPhone || !formBirthday) {
+    // Check required fields
+    const requiredFields = {
+        'First Name': formPatientName,
+        'Last Name': formLastName,
+        'Age': formAge,
+        'Email': formEmail,
+        'Phone': formPhone,
+        'Birthday': formBirthday,
+        'Gender': formGender
+    };
+
+    const missingFields = Object.entries(requiredFields)
+        .filter(([_, value]) => !value)
+        .map(([field]) => field);
+
+    if (missingFields.length > 0) {
+        console.log("Missing required fields:", missingFields);
         Swal.fire({
             icon: 'warning',
             title: 'Incomplete Form',
-            text: 'Please fill out all required fields.'
+            text: `Please fill out all required fields: ${missingFields.join(', ')}`
         });
-        console.error("Please fill out all required fields.");
         return;
     }
 
     if (cleanedPhone.length !== 11) {
+        console.log("Invalid phone number length:", cleanedPhone.length);
         Swal.fire({
             icon: 'warning',
             title: 'Invalid Phone Number',
@@ -211,22 +230,31 @@ async function savePatientProfile() {
     }
 
     try {
+        console.log("Attempting to save profile...");
         const patientRef = doc(db, "patientProfiles", currentUser.uid);
         const userRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userRef);
-        const customUserId = userDoc.exists() ? userDoc.data().customUserId : "N/A";
+        
+        // Get customUserId with a fallback value
+        let customUserId = "N/A";
+        if (userDoc.exists() && userDoc.data().customUserId) {
+            customUserId = userDoc.data().customUserId;
+        }
 
-        await setDoc(patientRef, {
+        const profileData = {
             name: formPatientName,
             lastName: formLastName,
             age: formAge,
             birthday: formBirthday, 
             gender: formGender,
             email: formEmail,
-            phone: cleanedPhone, // Use the cleaned phone number
+            phone: cleanedPhone,
             address: formHomeAddress,
             id: customUserId
-        });
+        };
+
+        console.log("Saving profile data:", profileData);
+        await setDoc(patientRef, profileData);
 
         Swal.fire({
             icon: 'success',
@@ -234,19 +262,9 @@ async function savePatientProfile() {
             text: 'Profile updated successfully.'
         });
 
-        patientProfile = {
-            name: formPatientName,
-            lastName: formLastName,
-            age: formAge,
-            birthday: formBirthday,
-            gender: formGender,
-            email: formEmail,
-            phone: cleanedPhone, // Use the cleaned phone number
-            address: formHomeAddress,
-            id: customUserId
-        };
-
+        patientProfile = profileData;
         isEditingProfile = false;
+        console.log("Profile saved successfully");
     } catch (error) {
         console.error("Error saving patient profile: ", error);
         Swal.fire({
@@ -309,13 +327,10 @@ function toggleEditProfile() {
 
     <div class="edit-profile-section">
         <button on:click={toggleEditProfile} class="edit-button">
-            <span class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon-edit">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-                 {isEditingProfile ? 'Close Form' : 'Update Profile'}
-            </span>
-
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon-edit">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+            <span>{isEditingProfile ? 'Close Form' : 'Update Profile'}</span>
         </button>
 
         {#if isEditingProfile}
@@ -575,6 +590,8 @@ function toggleEditProfile() {
         border: none;
         cursor: pointer;
         outline: none;
+        width: auto;
+        min-width: 150px;
     }
 
     .edit-button:hover {
@@ -586,6 +603,11 @@ function toggleEditProfile() {
     .edit-button .icon-edit {
         width: 18px;
         height: 18px;
+        flex-shrink: 0;
+    }
+
+    .edit-button span {
+        white-space: nowrap;
     }
 
     .profile-form-container {

@@ -73,6 +73,7 @@
   let selectedService: string | null = null;
   let selectedSubServices: string[] = [];
   let patientId: string | null = null;
+  let hasCompleteProfile: boolean = false;
 
   let defaultWorkingDays: number[] = [1, 2, 3, 4, 5]; // Default fallback
   let fetchedBookingSlots: string[] = [];
@@ -271,6 +272,31 @@
     }
   }
 
+  async function checkPatientProfile() {
+    if (!patientId || !db) return false;
+    try {
+      const profileRef = doc(db, FIRESTORE_PATIENT_PROFILES_COLLECTION, patientId);
+      const profileDoc = await getDoc(profileRef);
+      
+      if (!profileDoc.exists()) {
+        return false;
+      }
+
+      const profileData = profileDoc.data();
+      // Check if all required fields are filled
+      return !!(profileData.name && 
+                profileData.lastName && 
+                profileData.age && 
+                profileData.gender && 
+                profileData.email && 
+                profileData.phone && 
+                profileData.address);
+    } catch (error) {
+      console.error("Error checking patient profile:", error);
+      return false;
+    }
+  }
+
   async function bookAppointment() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -284,6 +310,21 @@
       }
       if (!patientId) {
           Swal.fire('Not Logged In', 'Please log in to book an appointment.', 'error'); return;
+      }
+      if (!hasCompleteProfile) {
+          Swal.fire({
+              icon: 'warning',
+              title: 'Complete Profile Required',
+              text: 'Please complete your profile information before booking an appointment.',
+              showCancelButton: true,
+              confirmButtonText: 'Go to Profile',
+              cancelButtonText: 'Cancel'
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  window.location.href = '/auth/profile';
+              }
+          });
+          return;
       }
       if (!selectedService) {
           Swal.fire('Service Not Selected', 'Please select a service.', 'warning'); return;
@@ -587,7 +628,7 @@
       await loadDefaultWorkingDays();
       fetchAvailabilityForDate(selectedDate, 'booking');
 
-      authUnsubscribe = onAuthStateChanged(auth, (user) => {
+      authUnsubscribe = onAuthStateChanged(auth, async (user) => {
         if (localAppointmentsUnsubscribe) {
           localAppointmentsUnsubscribe();
           localAppointmentsUnsubscribe = undefined;
@@ -595,11 +636,13 @@
 
         if (user) {
           patientId = user.uid;
+          hasCompleteProfile = await checkPatientProfile();
           notifiedAppointments = checkNotificationsState();
           localAppointmentsUnsubscribe = getAppointments();
           appointmentsUnsubscribe = localAppointmentsUnsubscribe ?? null;
         } else {
           patientId = null;
+          hasCompleteProfile = false;
           upcomingAppointments = [];
           pastAppointments = [];
           appointmentsUnsubscribe = null;
@@ -637,121 +680,136 @@
     <div class="responsive-card">
       <h3 class="text-lg font-semibold mb-4 text-gray-800">Book Appointment</h3>
       <div class="space-y-4"> 
-        <div>
-          <label for="datepicker" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
-          <input
-            type="date"
-            id="datepicker"
-            bind:value={selectedDate}
-            class="block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70"
-            min={getMinDate()}
-            disabled={isLoadingBookingSlots}
-          />
-        </div>
+        {#if !patientId}
+          <div class="text-center p-6 text-gray-500 bg-gray-50 rounded-md">
+              <i class="fas fa-sign-in-alt mr-2"></i>Please log in to book an appointment.
+          </div>
+        {:else if !hasCompleteProfile}
+          <div class="text-center p-6 text-orange-600 bg-orange-50 rounded-md">
+              <i class="fas fa-user-edit mr-2"></i>Please complete your profile information before booking an appointment.
+              <div class="mt-4">
+                  <Button color="blue" on:click={() => window.location.href = '/auth/profile'}>
+                      <i class="fas fa-user-edit mr-2"></i>Complete Profile
+                  </Button>
+              </div>
+          </div>
+        {:else}
+          <div>
+            <label for="datepicker" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+            <input
+              type="date"
+              id="datepicker"
+              bind:value={selectedDate}
+              class="block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70"
+              min={getMinDate()}
+              disabled={isLoadingBookingSlots}
+            />
+          </div>
 
-        <div>
-            <label for="service-select" class="block text-sm font-medium text-gray-700 mb-1">Select Service</label>
-            <select id="service-select" bind:value={selectedService} class="block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70" disabled={isLoadingBookingSlots}>
-                <option value={null} disabled selected>Select a service</option>
-                {#each services as service} <option value={service}>{service}</option> {/each}
-            </select>
-        </div>
+          <div>
+              <label for="service-select" class="block text-sm font-medium text-gray-700 mb-1">Select Service</label>
+              <select id="service-select" bind:value={selectedService} class="block w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-70" disabled={isLoadingBookingSlots}>
+                  <option value={null} disabled selected>Select a service</option>
+                  {#each services as service} <option value={service}>{service}</option> {/each}
+              </select>
+          </div>
 
-        {#if selectedService && subServices[selectedService]}
-        <div class="pt-2">
-            <label for="subservices-group" class="block text-sm font-medium text-gray-700 mb-1">Sub-services (Optional)</label>
-             <div id="subservices-group" class="space-y-1">
-                 {#each subServices[selectedService] as subService}
-                 <label for={`sub-${subService}`} class="flex items-center">
-                     <Checkbox id={`sub-${subService}`} value={subService} on:change={() => toggleSubService(subService)} disabled={isLoadingBookingSlots} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"/>
-                     <span class="ml-2 text-sm text-gray-600">{subService}</span>
-                    </label>
-                 {/each}
-             </div>
-        </div>
-        {/if}
+          {#if selectedService && subServices[selectedService]}
+          <div class="pt-2">
+              <label for="subservices-group" class="block text-sm font-medium text-gray-700 mb-1">Sub-services (Optional)</label>
+               <div id="subservices-group" class="space-y-1">
+                   {#each subServices[selectedService] as subService}
+                   <label for={`sub-${subService}`} class="flex items-center">
+                       <Checkbox id={`sub-${subService}`} value={subService} on:change={() => toggleSubService(subService)} disabled={isLoadingBookingSlots} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"/>
+                       <span class="ml-2 text-sm text-gray-600">{subService}</span>
+                      </label>
+                   {/each}
+               </div>
+          </div>
+          {/if}
 
-        <div class="pt-2 space-y-4">
-          {#if isLoadingBookingSlots}
-            <div class="text-center p-4 text-blue-600 bg-blue-50 rounded-md">
-                <i class="fas fa-spinner fa-spin mr-2"></i>Loading available times...
-            </div>
-          {:else if bookingSlotsError}
-             <div class="text-center p-4 text-red-700 bg-red-100 rounded-md border border-red-200">
-                <i class="fas fa-exclamation-triangle mr-2"></i>{bookingSlotsError}
-            </div>
-          {:else if !isBookingDateWorking}
-            <div class="text-center p-4 text-orange-700 bg-orange-100 rounded-md border border-orange-200">
-                 <i class="fas fa-calendar-times mr-2"></i>Sorry, this is not a working day.
-            </div>
-          {:else if fetchedBookingSlots.length === 0}
-            <div class="text-center p-4 text-gray-600 bg-gray-100 rounded-md border border-gray-200">
-                <i class="fas fa-info-circle mr-2"></i>No available time slots for this date.
-             </div>
-          {:else}
-            {#if displayMorningSlots.length > 0}
-            <div>
-               <div class="flex items-center mb-2 text-sm font-medium text-gray-600">
-                    <i class="far fa-sun mr-2 w-4 text-center"></i>Morning
-                </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {#each ALL_POSSIBLE_MORNING_SLOTS as slot (slot)}
-                       {@const isAvailable = displayMorningSlots.includes(slot)}
-                       {@const hasPassed = selectedDate === new Date().toISOString().split('T')[0] && isTimePassed(slot)}
-                       <button
-                           type="button"
-                           class="slot-button border text-sm px-2 py-1.5 rounded-md transition duration-150 {selectedTime === slot ? 'selected' : isAvailable && !hasPassed ? 'available' : 'unavailable'}"
-                           on:click={() => { if (isAvailable && !hasPassed) selectedTime = slot; }}
-                           disabled={!isAvailable || hasPassed}
-                           title={hasPassed ? 'Time has passed' : !isAvailable ? 'Unavailable' : `Select ${slot}`}
-                       >
-                           {slot}
-                       </button>
-                    {/each}
-                 </div>
-            </div>
-            {/if}
-
-            {#if displayAfternoonSlots.length > 0}
-            <div>
+          <div class="pt-2 space-y-4">
+            {#if isLoadingBookingSlots}
+              <div class="text-center p-4 text-blue-600 bg-blue-50 rounded-md">
+                  <i class="fas fa-spinner fa-spin mr-2"></i>Loading available times...
+              </div>
+            {:else if bookingSlotsError}
+               <div class="text-center p-4 text-red-700 bg-red-100 rounded-md border border-red-200">
+                  <i class="fas fa-exclamation-triangle mr-2"></i>{bookingSlotsError}
+              </div>
+            {:else if !isBookingDateWorking}
+              <div class="text-center p-4 text-orange-700 bg-orange-100 rounded-md border border-orange-200">
+                   <i class="fas fa-calendar-times mr-2"></i>Sorry, this is not a working day.
+              </div>
+            {:else if fetchedBookingSlots.length === 0}
+              <div class="text-center p-4 text-gray-600 bg-gray-100 rounded-md border border-gray-200">
+                  <i class="fas fa-info-circle mr-2"></i>No available time slots for this date.
+               </div>
+            {:else}
+              {#if displayMorningSlots.length > 0}
+              <div>
                  <div class="flex items-center mb-2 text-sm font-medium text-gray-600">
-                     <i class="far fa-moon mr-2 w-4 text-center"></i>Afternoon
-                 </div>
-                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {#each ALL_POSSIBLE_AFTERNOON_SLOTS as slot (slot)}
-                         {@const isAvailable = displayAfternoonSlots.includes(slot)}
+                      <i class="far fa-sun mr-2 w-4 text-center"></i>Morning
+                  </div>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {#each ALL_POSSIBLE_MORNING_SLOTS as slot (slot)}
+                         {@const isAvailable = displayMorningSlots.includes(slot)}
                          {@const hasPassed = selectedDate === new Date().toISOString().split('T')[0] && isTimePassed(slot)}
-                          <button
-                           type="button"
-                           class="slot-button border text-sm px-2 py-1.5 rounded-md transition duration-150 {selectedTime === slot ? 'selected' : isAvailable && !hasPassed ? 'available' : 'unavailable'}"
-                           on:click={() => { if (isAvailable && !hasPassed) selectedTime = slot; }}
-                           disabled={!isAvailable || hasPassed}
-                            title={hasPassed ? 'Time has passed' : !isAvailable ? 'Unavailable' : `Select ${slot}`}
+                         <button
+                             type="button"
+                             class="slot-button border text-sm px-2 py-1.5 rounded-md transition duration-150 {selectedTime === slot ? 'selected' : isAvailable && !hasPassed ? 'available' : 'unavailable'}"
+                             on:click={() => { if (isAvailable && !hasPassed) selectedTime = slot; }}
+                             disabled={!isAvailable || hasPassed}
+                             title={hasPassed ? 'Time has passed' : !isAvailable ? 'Unavailable' : `Select ${slot}`}
                          >
                              {slot}
                          </button>
                       {/each}
-                 </div>
-            </div>
-             {/if}
+                   </div>
+              </div>
+              {/if}
 
-            {#if selectedTime}
-             <div class="mt-4 pt-4 border-t border-gray-200 text-center">
-                 <p class="text-gray-700 mb-3 text-sm">
-                     Selected: <span class="font-semibold">{formatDate(selectedDate)}</span> at <span class="font-semibold">{selectedTime}</span>
-                 </p>
-                 <Button
-                     size="md"
-                     color="green"
-                     on:click={bookAppointment}
-                     disabled={!selectedTime || !selectedService || isLoadingBookingSlots}
-                 >
-                    <i class="fas fa-calendar-check mr-2"></i> Request Appointment
-                 </Button>
-             </div>
+              {#if displayAfternoonSlots.length > 0}
+              <div>
+                   <div class="flex items-center mb-2 text-sm font-medium text-gray-600">
+                       <i class="far fa-moon mr-2 w-4 text-center"></i>Afternoon
+                   </div>
+                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {#each ALL_POSSIBLE_AFTERNOON_SLOTS as slot (slot)}
+                           {@const isAvailable = displayAfternoonSlots.includes(slot)}
+                           {@const hasPassed = selectedDate === new Date().toISOString().split('T')[0] && isTimePassed(slot)}
+                            <button
+                             type="button"
+                             class="slot-button border text-sm px-2 py-1.5 rounded-md transition duration-150 {selectedTime === slot ? 'selected' : isAvailable && !hasPassed ? 'available' : 'unavailable'}"
+                             on:click={() => { if (isAvailable && !hasPassed) selectedTime = slot; }}
+                             disabled={!isAvailable || hasPassed}
+                              title={hasPassed ? 'Time has passed' : !isAvailable ? 'Unavailable' : `Select ${slot}`}
+                           >
+                               {slot}
+                           </button>
+                        {/each}
+                   </div>
+              </div>
+               {/if}
+
+               {#if selectedTime}
+                <div class="mt-4 pt-4 border-t border-gray-200 text-center">
+                    <p class="text-gray-700 mb-3 text-sm">
+                        Selected: <span class="font-semibold">{formatDate(selectedDate)}</span> at <span class="font-semibold">{selectedTime}</span>
+                    </p>
+                    <Button
+                        size="md"
+                        color="green"
+                        on:click={bookAppointment}
+                        disabled={!selectedTime || !selectedService || isLoadingBookingSlots}
+                    >
+                       <i class="fas fa-calendar-check mr-2"></i> Request Appointment
+                    </Button>
+                </div>
+               {/if}
             {/if}
-          {/if}
-        </div>
+          </div>
+        {/if}
       </div>
     </div>
 
