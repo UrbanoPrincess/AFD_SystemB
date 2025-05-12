@@ -337,7 +337,6 @@ function toggleEditProfile() {
                                 id="phone" 
                                 type="tel" 
                                 placeholder="e.g., 09123456789" 
-<<<<<<< HEAD
                                 bind:value={formPhone}
                                 on:input={(e) => {
                                     const input = e.currentTarget as HTMLInputElement;
@@ -350,14 +349,6 @@ function toggleEditProfile() {
                             />
                             {#if formPhone && formPhone.length !== 11}
                                 <span class="error-message">Phone number must be exactly 11 digits</span>
-=======
-                                bind:value={formPhone} 
-                                on:blur={validatePhoneNumber} 
-                                required 
-                            />
-                            {#if phoneError}
-                                <p class="error-message">{phoneError}</p>
->>>>>>> 7ca5344c3ae278f4eef61d0064c0d841fb757724
                             {/if}
                         </div>
                         <div class="form-group">
