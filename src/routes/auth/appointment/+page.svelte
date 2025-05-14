@@ -4,7 +4,7 @@
   import {
     getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where,
     updateDoc, getDoc, onSnapshot, runTransaction, initializeFirestore, CACHE_SIZE_UNLIMITED,
-    type QuerySnapshot, type DocumentData // Use type-only imports
+    type QuerySnapshot, type DocumentData, Timestamp // Add Timestamp import
   } from "firebase/firestore";
   import { initializeApp, getApps, getApp } from "firebase/app";
   import { env } from '$lib/env';
@@ -74,8 +74,14 @@
     requestedDate?: string;
     requestedTime?: string;
     createdAt?: Date;
-    paymentStatus?: 'paid' | 'unpaid' | null;
+    paymentStatus?: 'paid' | 'unpaid' | 'refund_pending' | 'refunded' | null;
     paymentDate?: string;
+    paymentAmount?: number;
+    refundRequested?: boolean;
+    refundReason?: string | null;
+    refundAmount?: number;
+    refundRequestDate?: Timestamp;
+    refundProcessedDate?: Timestamp;
   };
 
   // --- Component State ---
@@ -115,6 +121,8 @@
   let reasonNotAvailable = false;
   let reasonSchedulingConflict = false;
   let reasonOther = false;
+  let requestRefund = false;
+  let refundReason = '';
 
   // --- Static Data ---
   const services = [
@@ -386,6 +394,14 @@
       }
 
       try {
+          // Calculate total amount
+          let totalAmount = servicePrices[selectedService];
+          if (selectedSubServices && selectedSubServices.length > 0) {
+              selectedSubServices.forEach(subService => {
+                  totalAmount += subServicePrices[subService as SubServiceType] || 0;
+              });
+          }
+
           await runTransaction(db, async (transaction) => {
               const slotQuery = query(
                   collection(db, FIRESTORE_APPOINTMENTS_COLLECTION),
@@ -421,7 +437,9 @@
                   subServices: selectedSubServices || [],
                   status: 'pending',
                   cancellationStatus: '',
-                  createdAt: new Date()
+                  createdAt: new Date(),
+                  paymentStatus: 'unpaid',
+                  paymentAmount: totalAmount
               });
           });
 
@@ -548,20 +566,49 @@
       if (getSelectedReasons().length === 0) {
           Swal.fire('Reason Required', 'Please select a reason for cancellation.', 'warning'); return;
       }
+      if (requestRefund && !refundReason.trim()) {
+          Swal.fire('Refund Reason Required', 'Please provide a reason for the refund request.', 'warning'); return;
+      }
 
       try {
           const appointmentRef = doc(db, FIRESTORE_APPOINTMENTS_COLLECTION, selectedAppointmentId);
-          await updateDoc(appointmentRef, {
+          const appointmentDoc = await getDoc(appointmentRef);
+          const appointmentData = appointmentDoc.data();
+
+          if (!appointmentData) {
+              throw new Error('Appointment not found');
+          }
+
+          const updateData: any = {
               cancellationStatus: 'requested',
               cancelReason: getSelectedReasons().join(", "),
               status: 'cancellationRequested'
-          });
+          };
 
-          Swal.fire('Cancellation Requested', 'Your cancellation request has been submitted.', 'success');
+          // Handle payment status for paid appointments
+          if (appointmentData.paymentStatus === 'paid') {
+              updateData.paymentStatus = 'refund_pending';
+              updateData.refundRequested = requestRefund;
+              updateData.refundReason = requestRefund ? refundReason : null;
+              if (appointmentData.paymentAmount) {
+                  updateData.refundAmount = appointmentData.paymentAmount;
+              }
+              updateData.refundRequestDate = Timestamp.fromDate(new Date());
+          }
+
+          await updateDoc(appointmentRef, updateData);
+
+          const successMessage = appointmentData.paymentStatus === 'paid' 
+              ? 'Your cancellation and refund request has been submitted.' 
+              : 'Your cancellation request has been submitted.';
+
+          Swal.fire('Cancellation Requested', successMessage, 'success');
           popupModal = false;
           reasonNotAvailable = false;
           reasonSchedulingConflict = false;
           reasonOther = false;
+          requestRefund = false;
+          refundReason = '';
       } catch (e) {
           console.error("Error requesting cancellation: ", e);
           Swal.fire('Error', 'Failed to submit cancellation request. Please try again.', 'error');
@@ -570,6 +617,13 @@
 
   function openCancelModal(appointmentId: string) {
     selectedAppointmentId = appointmentId;
+    const appointment = upcomingAppointments.find(a => a.id === appointmentId);
+    if (appointment?.paymentStatus === 'paid') {
+      requestRefund = true;
+    } else {
+      requestRefund = false;
+    }
+    refundReason = '';
     popupModal = true;
   }
 
@@ -702,6 +756,13 @@
 
       const { id: sessionId } = await response.json();
       if (!sessionId) throw new Error('No session ID received');
+
+      // Update appointment with payment amount
+      if (!selectedAppointmentId) throw new Error('No appointment selected');
+      const appointmentRef = doc(db, FIRESTORE_APPOINTMENTS_COLLECTION, selectedAppointmentId);
+      await updateDoc(appointmentRef, {
+        paymentAmount: totalAmount
+      });
 
       // Redirect to Stripe Checkout
       const result = await stripe.redirectToCheckout({
@@ -993,7 +1054,37 @@
                                            {appointment.status || 'Unknown'}
                                         {/if}
                                     </div>
-                                     <div class="action-buttons">
+                                    {#if appointment.paymentStatus}
+                                        <div class="status-badge {appointment.paymentStatus}-payment-status ml-2">
+                                            <i class="fas {appointment.paymentStatus === 'paid' ? 'fa-check-circle' : 
+                                                         appointment.paymentStatus === 'refund_pending' ? 'fa-clock' : 
+                                                         appointment.paymentStatus === 'refunded' ? 'fa-money-bill-wave' : 
+                                                         'fa-times-circle'} mr-1"></i>
+                                            {#if appointment.paymentStatus === 'refund_pending'}
+                                                Refund Pending
+                                            {:else if appointment.paymentStatus === 'refunded'}
+                                                Refunded
+                                            {:else}
+                                                {appointment.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                                            {/if}
+                                        </div>
+                                    {/if}
+                                    {#if appointment.paymentStatus === 'refunded' && appointment.refundAmount}
+                                        <div class="text-xs text-gray-500 ml-2">
+                                            (₱{appointment.refundAmount.toFixed(2)})
+                                        </div>
+                                    {/if}
+                                    {#if appointment.paymentStatus === 'refund_pending' || appointment.paymentStatus === 'refunded'}
+                                        <div class="text-xs text-gray-500 ml-2">
+                                            {#if appointment.refundRequestDate}
+                                                Requested: {appointment.refundRequestDate instanceof Timestamp ? appointment.refundRequestDate.toDate().toLocaleDateString() : new Date(appointment.refundRequestDate).toLocaleDateString()}
+                                            {/if}
+                                            {#if appointment.refundProcessedDate}
+                                                <br>Processed: {appointment.refundProcessedDate instanceof Timestamp ? appointment.refundProcessedDate.toDate().toLocaleDateString() : new Date(appointment.refundProcessedDate).toLocaleDateString()}
+                                            {/if}
+                                        </div>
+                                    {/if}
+                                    <div class="action-buttons">
                                         {#if (appointment.status === 'Accepted' || appointment.status === 'pending' || appointment.status === 'confirmed') && appointment.cancellationStatus !== 'requested' && appointment.cancellationStatus !== 'Approved'}
                                            <button title="Reschedule Appointment" class="btn-action btn-reschedule" on:click={() => openRescheduleModal(appointment.id)}>
                                                 <i class="fas fa-edit"></i> <span class="hidden sm:inline ml-1">Reschedule</span>
@@ -1148,12 +1239,42 @@
             <Checkbox bind:checked={reasonOther} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"/> Other
           </label>
         </div>
+
+        {#if requestRefund}
+          <div class="mt-4">
+            <p class="text-gray-600 font-medium mb-2">Refund Request Details:</p>
+            <div class="bg-blue-50 p-3 rounded-md mb-3">
+              <p class="text-sm text-blue-700">
+                <i class="fas fa-info-circle mr-1"></i>
+                Since this appointment has been paid, you can request a refund.
+              </p>
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm text-gray-600">
+                Reason for Refund (Required):
+                <textarea
+                  bind:value={refundReason}
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                  rows="3"
+                  placeholder="Please explain why you need a refund..."
+                ></textarea>
+              </label>
+            </div>
+          </div>
+        {/if}
       </div>
       <div class="modal-actions">
-         <Button color="alternative" on:click={() => { popupModal = false; reasonNotAvailable=false; reasonSchedulingConflict=false; reasonOther=false; }}>
+         <Button color="alternative" on:click={() => { 
+           popupModal = false; 
+           reasonNotAvailable = false; 
+           reasonSchedulingConflict = false; 
+           reasonOther = false;
+           requestRefund = false;
+           refundReason = '';
+         }}>
              No, Keep Appointment
          </Button>
-         <Button color="red" on:click={requestCancelAppointment} disabled={!reasonNotAvailable && !reasonSchedulingConflict && !reasonOther}>
+         <Button color="red" on:click={requestCancelAppointment} disabled={!reasonNotAvailable && !reasonSchedulingConflict && !reasonOther || (requestRefund && !refundReason.trim())}>
              <i class="fas fa-ban mr-2"></i>Yes, Request
          </Button>
       </div>
@@ -1495,4 +1616,52 @@
     background-color: #7f1d1d;
     color: #fca5a5;
   }
+
+  .paid-payment-status {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #bbf7d0;
+  }
+
+  .unpaid-payment-status {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #fecaca;
+  }
+
+  :global(.dark) .paid-payment-status {
+    background-color: #064e3b;
+    color: #6ee7b7;
+    border-color: #059669;
+  }
+
+  :global(.dark) .unpaid-payment-status {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+    border-color: #dc2626;
+  }
+
+  .refund_pending-payment-status {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.refunded-payment-status {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+
+:global(.dark) .refund_pending-payment-status {
+    background-color: #78350f;
+    color: #fcd34d;
+    border-color: #92400e;
+}
+
+:global(.dark) .refunded-payment-status {
+    background-color: #064e3b;
+    color: #6ee7b7;
+    border-color: #059669;
+}
 </style>
