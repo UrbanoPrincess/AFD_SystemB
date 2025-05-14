@@ -74,7 +74,7 @@
     requestedDate?: string;
     requestedTime?: string;
     createdAt?: Date;
-    paymentStatus?: 'paid' | 'unpaid' | 'refunded' | null;
+    paymentStatus?: 'paid' | 'unpaid' | null;
     paymentDate?: string;
   };
 
@@ -737,32 +737,6 @@
     paymentStatus = null;
   }
 
-  async function processRefund(appointmentId: string) {
-    try {
-      const response = await fetch('/api/process-refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appointmentId })
-      });
-
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      Swal.fire({
-        icon: 'success',
-        title: 'Refund Processed',
-        text: 'Your refund has been processed successfully.'
-      });
-    } catch (error) {
-      console.error('Refund error:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Refund Failed',
-        text: error instanceof Error ? error.message : 'Failed to process refund'
-      });
-    }
-  }
-
   // --- Lifecycle ---
   let authUnsubscribe: Unsubscribe | null = null;
   let appointmentsUnsubscribe: Unsubscribe | null = null;
@@ -1002,19 +976,19 @@
                                </div>
                             
                                <div class="mt-auto pt-2 border-t border-gray-100 flex justify-between items-center min-h-[50px]">
-                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''} {appointment.paymentStatus === 'refunded' ? 'refunded-status' : ''}">
-                                        {#if appointment.paymentStatus === 'refunded'}
-                                            <i class="fas fa-undo mr-1"></i> Refunded
+                                    <div class="status-badge {appointment.status.toLowerCase().replace(/\s+/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''}">
+                                        {#if appointment.status === 'Reschedule Requested'}
+                                            <i class="fas fa-exchange-alt mr-1"></i> Reschedule Req.
+                                        {:else if appointment.cancellationStatus === 'requested'}
+                                            <i class="fas fa-ban mr-1"></i> Cancel Req.
                                         {:else if appointment.cancellationStatus === 'Approved'}
                                             <i class="fas fa-times-circle mr-1"></i> Cancelled
                                         {:else if appointment.cancellationStatus === 'decline'}
                                             <i class="fas fa-exclamation-circle mr-1"></i> Cancel Declined
-                                        {:else if appointment.status === 'Completed'}
-                                            <i class="fas fa-check-double mr-1"></i> Completed
-                                        {:else if appointment.status === 'Completed: Need Follow-up'}
-                                            <i class="fas fa-notes-medical mr-1"></i> Completed (Follow-up)
-                                        {:else if appointment.status === 'Missed'}
-                                            <i class="fas fa-calendar-times mr-1"></i> Missed
+                                        {:else if appointment.status === 'Accepted' || appointment.status === 'confirmed'}
+                                            <i class="fas fa-check-circle mr-1"></i> {appointment.status}
+                                         {:else if appointment.status === 'pending'}
+                                            <i class="fas fa-hourglass-half mr-1"></i> Pending
                                         {:else}
                                            {appointment.status || 'Unknown'}
                                         {/if}
@@ -1036,11 +1010,6 @@
                                              <span class="text-xs italic text-purple-600 px-2">Pending...</span>
                                          {:else if appointment.cancellationStatus === 'requested'}
                                              <span class="text-xs italic text-yellow-700 px-2">Pending...</span>
-                                         {/if}
-                                         {#if appointment.cancellationStatus === 'Approved' && appointment.paymentStatus === 'paid'}
-                                            <button title="Request Refund" class="btn-action btn-refund" on:click={() => processRefund(appointment.id)}>
-                                                <i class="fas fa-undo"></i> <span class="hidden sm:inline ml-1">Request Refund</span>
-                                            </button>
                                          {/if}
                                          {#if appointment.cancellationStatus === 'Approved'}
                                             <span class="text-xs italic text-red-600 px-2 truncate" title={appointment.cancelReason}>
@@ -1079,10 +1048,8 @@
                                      {/if}
                                 </div>
                                 <div class="mt-auto pt-2 border-t border-gray-100 flex items-center min-h-[50px]">
-                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''} {appointment.paymentStatus === 'refunded' ? 'refunded-status' : ''}">
-                                       {#if appointment.paymentStatus === 'refunded'}
-                                            <i class="fas fa-undo mr-1"></i> Refunded
-                                       {:else if appointment.cancellationStatus === 'Approved'}
+                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''}">
+                                       {#if appointment.cancellationStatus === 'Approved'}
                                             <i class="fas fa-times-circle mr-1"></i> Cancelled
                                        {:else if appointment.cancellationStatus === 'decline'}
                                             <i class="fas fa-exclamation-circle mr-1"></i> Cancel Declined
@@ -1238,35 +1205,35 @@
     width: 100%;
     margin-top: 2rem; 
     margin-bottom: 2rem;
-    /* max-height: 90vh; * 
+    /* max-height: 90vh; */ /* Removing this might help stretching on desktop if needed */
     flex-wrap: wrap;
-    align-items: stretch; 
+    align-items: stretch; /* Explicitly set default, ensures cards stretch vertically on desktop */
   }
   .responsive-card {
     flex: 1 1 45%;
     min-width: 320px;
-    border: 1px solid #e5e7eb;  
-    border-radius: 0.75rem;  
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);  
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    border-radius: 0.75rem; /* rounded-xl */
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
     background-color: #fff;
     padding: 1.5rem; /* p-6 */
-    display: flex;           
-    flex-direction: column;  
-     
+    display: flex;           /* Needed for internal flex layout */
+    flex-direction: column; /* Needed for internal flex layout */
+    /* REMOVED fixed height from here */
   }
 
    @media (max-width: 768px) {
         .responsive-container {
             flex-direction: column;
-            /* max-height: none; */  
-            align-items: center; 
+            /* max-height: none; */ /* Allow container to grow */
+            align-items: center; /* Center cards when stacked */
             margin-top: 1rem;
             gap: 1rem; /* gap-4 */
         }
         .responsive-card {
-            flex-basis: auto;  
-            width: 95%;      
-          
+            flex-basis: auto; /* Allow natural height */
+            width: 95%;      /* Control width when stacked */
+            /* Ensure min-width doesn't conflict */
              min-width: 0;
             margin-left: auto;
             margin-right: auto;
@@ -1527,19 +1494,5 @@
   :global(.dark) .payment-modal .payment-status.failed {
     background-color: #7f1d1d;
     color: #fca5a5;
-  }
-
-  .refunded-status {
-    background-color: #fef3c7;
-    color: #92400e;
-    border-color: #fcd34d;
-  }
-
-  .btn-refund {
-    background-color: #f59e0b;
-    border-color: #d97706;
-  }
-  .btn-refund:hover {
-    background-color: #d97706;
   }
 </style>
