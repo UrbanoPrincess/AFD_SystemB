@@ -7,13 +7,14 @@
     type QuerySnapshot, type DocumentData // Use type-only imports
   } from "firebase/firestore";
   import { initializeApp, getApps, getApp } from "firebase/app";
-  import { firebaseConfig } from "$lib/firebaseConfig";
+  import { env } from '$lib/env';
   import { getAuth, onAuthStateChanged, type Unsubscribe } from "firebase/auth"; // Import Unsubscribe type
   import '@fortawesome/fontawesome-free/css/all.css'; // Keep for icons
   import { Button, Modal, Dropdown, DropdownItem } from 'flowbite-svelte';
   import { ExclamationCircleOutline, CloseOutline, CloseCircleOutline } from 'flowbite-svelte-icons';
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte'; // Keep if used elsewhere, otherwise remove
   import Swal from 'sweetalert2';
+  import { loadStripe } from '@stripe/stripe-js';
 
   // --- Constants ---
   const FIRESTORE_APPOINTMENTS_COLLECTION = 'appointments';
@@ -21,6 +22,10 @@
   const FIRESTORE_SETTINGS_COLLECTION = 'settings';
   const FIRESTORE_SCHEDULE_DEFAULTS_DOC = 'scheduleDefaults';
   const FIRESTORE_DAILY_SCHEDULES_COLLECTION = 'dailySchedules';
+  if (!env.stripe.publicKey) {
+    throw new Error('Stripe public key is not configured');
+  }
+  const stripePromise = loadStripe(env.stripe.publicKey);
 
   const ALL_POSSIBLE_MORNING_SLOTS = [
       "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
@@ -36,7 +41,7 @@
 
   try {
     if (getApps().length === 0) {
-      const app = initializeApp(firebaseConfig);
+      const app = initializeApp(env.firebaseConfig);
       db = getFirestore(app);
       auth = getAuth(app);
       console.log("Firebase Initialized (Client Booking)");
@@ -52,25 +57,31 @@
   }
 
   // --- Type Definitions ---
+  type ServiceType = typeof services[number];
+  type SubServiceType = typeof subServices[keyof typeof subServices][number];
+  type ServiceWithSubServices = keyof typeof subServices;
+
   type Appointment = {
     id: string;
     date: string;
     time: string;
     patientId: string;
-    service: string;
-    subServices: string[];
+    service: ServiceType;
+    subServices: SubServiceType[];
     cancellationStatus?: 'pending' | 'Approved' | 'decline' | 'requested' | null | '';
     cancelReason?: string;
     status: "pending" | "Decline"| "Missed"  | "confirmed" | "Completed" | "cancelled" | "Accepted" | "Reschedule Requested" | "Rescheduled" |"Scheduled" |"Completed: Need Follow-up" |"cancellationRequested" | "";
     requestedDate?: string;
     requestedTime?: string;
     createdAt?: Date;
+    paymentStatus?: 'paid' | 'unpaid' | 'refunded' | null;
+    paymentDate?: string;
   };
 
   // --- Component State ---
   let selectedDate: string = new Date().toISOString().split('T')[0];
   let selectedTime: string | null = null;
-  let selectedService: string | null = null;
+  let selectedService: ServiceType | null = null;
   let selectedSubServices: string[] = [];
   let patientId: string | null = null;
   let hasCompleteProfile: boolean = false;
@@ -93,10 +104,13 @@
 
   let popupModal = false;
   let rescheduleModal = false;
+  let paymentModal = false;
   let selectedAppointmentId: string | null = null;
   let currentAppointment: Appointment | null = null;
   let newDate: string = "";
   let newTime: string = "";
+  let paymentAmount: number = 500; // Default payment amount
+  let paymentStatus: 'pending' | 'success' | 'failed' | null = null;
 
   let reasonNotAvailable = false;
   let reasonSchedulingConflict = false;
@@ -106,10 +120,24 @@
   const services = [
     "Consultation", "Oral Prophylaxis / Linis", "Filling / Pasta", "COSMETIC", "ORAL SURGERY",
     "ENDODONTIC", "PROSTHODONTICS", "CROWNS", "ORTHODONTICS", "TMJ", "IMPLANTS"
-  ];
+  ] as const;
 
-  type SubServices = { [key: string]: string[]; };
-  const subServices: SubServices = {
+  // Add service prices
+  const servicePrices: Record<ServiceType, number> = {
+    "Consultation": 300,
+    "Oral Prophylaxis / Linis": 1000,
+    "Filling / Pasta": 1500,
+    "COSMETIC": 5000,
+    "ORAL SURGERY": 3000,
+    "ENDODONTIC": 4000,
+    "PROSTHODONTICS": 8000,
+    "CROWNS": 12000,
+    "ORTHODONTICS": 50000,
+    "TMJ": 2000,
+    "IMPLANTS": 30000
+  };
+
+  const subServices = {
     "Oral Prophylaxis / Linis": ["Simple & Deep Scaling", "Fluoride"],
     "Filling / Pasta": ["Composite", "Temporary", "Pit & Fissure Sealants"],
     "COSMETIC": ["Whitening", "Laminate / Veneer"],
@@ -118,6 +146,28 @@
     "PROSTHODONTICS": ["Complete Denture", "Removable Denture"],
     "CROWNS": ["Plastic", "Porcelain, Zirconia, Emax", "Fixed Bridge"],
     "ORTHODONTICS": ["Braces", "Retainers"]
+  } as const;
+
+  // Add sub-service prices
+  const subServicePrices: Record<SubServiceType, number> = {
+    "Simple & Deep Scaling": 500,
+    "Fluoride": 300,
+    "Composite": 800,
+    "Temporary": 500,
+    "Pit & Fissure Sealants": 400,
+    "Whitening": 3000,
+    "Laminate / Veneer": 8000,
+    "Simple": 1500,
+    "Complicated": 2500,
+    "Odontectomy": 3000,
+    "Pulpotomy": 2000,
+    "Complete Denture": 5000,
+    "Removable Denture": 4000,
+    "Plastic": 3000,
+    "Porcelain, Zirconia, Emax": 8000,
+    "Fixed Bridge": 10000,
+    "Braces": 45000,
+    "Retainers": 2000
   };
 
   // --- Helper Functions ---
@@ -163,7 +213,7 @@
 
   function formatDate(dateString: string): string {
       try {
-          const date = new Date(dateString + 'T00:00:00Z'); // Treat as UTC
+          const date = new Date(dateString + 'T00:00:00Z');
           return date.toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
@@ -614,6 +664,105 @@
     }
   }
 
+  async function processPayment() {
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error('Stripe failed to load');
+
+      const appointment = upcomingAppointments.find(a => a.id === selectedAppointmentId);
+      if (!appointment) throw new Error('Appointment not found');
+
+      // Calculate total amount with type assertions
+      let totalAmount = servicePrices[appointment.service as ServiceType] || 500;
+      
+      if (appointment.subServices && appointment.subServices.length > 0) {
+        appointment.subServices.forEach(subService => {
+          totalAmount += subServicePrices[subService as SubServiceType] || 0;
+        });
+      }
+
+      // Create a payment session
+      const response = await fetch('/api/create-payment-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: selectedAppointmentId,
+          amount: totalAmount,
+          service: appointment.service,
+          subServices: appointment.subServices
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment session');
+      }
+
+      const { id: sessionId } = await response.json();
+      if (!sessionId) throw new Error('No session ID received');
+
+      // Redirect to Stripe Checkout
+      const result = await stripe.redirectToCheckout({
+        sessionId: sessionId
+      });
+
+      if (result.error) {
+        throw result.error;
+      }
+    } catch (error: unknown) {
+      console.error('Payment error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Payment Error',
+        text: error instanceof Error ? error.message : 'There was an error processing your payment. Please try again.',
+      });
+    }
+  }
+
+  function openPaymentModal(appointmentId: string) {
+    selectedAppointmentId = appointmentId;
+    const appointment = upcomingAppointments.find(a => a.id === appointmentId);
+    if (appointment) {
+      let totalAmount = servicePrices[appointment.service as ServiceType] || 500;
+      if (appointment.subServices && appointment.subServices.length > 0) {
+        appointment.subServices.forEach(subService => {
+          totalAmount += subServicePrices[subService as SubServiceType] || 0;
+        });
+      }
+      paymentAmount = totalAmount;
+    }
+    paymentModal = true;
+    paymentStatus = null;
+  }
+
+  async function processRefund(appointmentId: string) {
+    try {
+      const response = await fetch('/api/process-refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointmentId })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Refund Processed',
+        text: 'Your refund has been processed successfully.'
+      });
+    } catch (error) {
+      console.error('Refund error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Refund Failed',
+        text: error instanceof Error ? error.message : 'Failed to process refund'
+      });
+    }
+  }
+
   // --- Lifecycle ---
   let authUnsubscribe: Unsubscribe | null = null;
   let appointmentsUnsubscribe: Unsubscribe | null = null;
@@ -714,11 +863,11 @@
               </select>
           </div>
 
-          {#if selectedService && subServices[selectedService]}
+          {#if selectedService && selectedService in subServices}
           <div class="pt-2">
               <label for="subservices-group" class="block text-sm font-medium text-gray-700 mb-1">Sub-services (Optional)</label>
                <div id="subservices-group" class="space-y-1">
-                   {#each subServices[selectedService] as subService}
+                   {#each subServices[selectedService as ServiceWithSubServices] as subService}
                    <label for={`sub-${subService}`} class="flex items-center">
                        <Checkbox id={`sub-${subService}`} value={subService} on:change={() => toggleSubService(subService)} disabled={isLoadingBookingSlots} class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"/>
                        <span class="ml-2 text-sm text-gray-600">{subService}</span>
@@ -853,19 +1002,19 @@
                                </div>
                             
                                <div class="mt-auto pt-2 border-t border-gray-100 flex justify-between items-center min-h-[50px]">
-                                    <div class="status-badge {appointment.status.toLowerCase().replace(/\s+/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''}">
-                                        {#if appointment.status === 'Reschedule Requested'}
-                                            <i class="fas fa-exchange-alt mr-1"></i> Reschedule Req.
-                                        {:else if appointment.cancellationStatus === 'requested'}
-                                            <i class="fas fa-ban mr-1"></i> Cancel Req.
+                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''} {appointment.paymentStatus === 'refunded' ? 'refunded-status' : ''}">
+                                        {#if appointment.paymentStatus === 'refunded'}
+                                            <i class="fas fa-undo mr-1"></i> Refunded
                                         {:else if appointment.cancellationStatus === 'Approved'}
                                             <i class="fas fa-times-circle mr-1"></i> Cancelled
                                         {:else if appointment.cancellationStatus === 'decline'}
                                             <i class="fas fa-exclamation-circle mr-1"></i> Cancel Declined
-                                        {:else if appointment.status === 'Accepted' || appointment.status === 'confirmed'}
-                                            <i class="fas fa-check-circle mr-1"></i> {appointment.status}
-                                         {:else if appointment.status === 'pending'}
-                                            <i class="fas fa-hourglass-half mr-1"></i> Pending
+                                        {:else if appointment.status === 'Completed'}
+                                            <i class="fas fa-check-double mr-1"></i> Completed
+                                        {:else if appointment.status === 'Completed: Need Follow-up'}
+                                            <i class="fas fa-notes-medical mr-1"></i> Completed (Follow-up)
+                                        {:else if appointment.status === 'Missed'}
+                                            <i class="fas fa-calendar-times mr-1"></i> Missed
                                         {:else}
                                            {appointment.status || 'Unknown'}
                                         {/if}
@@ -878,10 +1027,20 @@
                                            <button title="Cancel Appointment" class="btn-action btn-cancel" on:click={() => openCancelModal(appointment.id)}>
                                                 <i class="fas fa-times"></i> <span class="hidden sm:inline ml-1">Cancel</span>
                                            </button>
+                                           {#if appointment.status === 'Accepted' && (!appointment.paymentStatus || appointment.paymentStatus !== 'paid')}
+                                           <button title="Make Payment" class="btn-action btn-payment" on:click={() => openPaymentModal(appointment.id)}>
+                                                <i class="fas fa-credit-card"></i> <span class="hidden sm:inline ml-1">Pay Now</span>
+                                           </button>
+                                           {/if}
                                         {:else if appointment.status === 'Reschedule Requested'}
                                              <span class="text-xs italic text-purple-600 px-2">Pending...</span>
                                          {:else if appointment.cancellationStatus === 'requested'}
                                              <span class="text-xs italic text-yellow-700 px-2">Pending...</span>
+                                         {/if}
+                                         {#if appointment.cancellationStatus === 'Approved' && appointment.paymentStatus === 'paid'}
+                                            <button title="Request Refund" class="btn-action btn-refund" on:click={() => processRefund(appointment.id)}>
+                                                <i class="fas fa-undo"></i> <span class="hidden sm:inline ml-1">Request Refund</span>
+                                            </button>
                                          {/if}
                                          {#if appointment.cancellationStatus === 'Approved'}
                                             <span class="text-xs italic text-red-600 px-2 truncate" title={appointment.cancelReason}>
@@ -920,8 +1079,10 @@
                                      {/if}
                                 </div>
                                 <div class="mt-auto pt-2 border-t border-gray-100 flex items-center min-h-[50px]">
-                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''}">
-                                       {#if appointment.cancellationStatus === 'Approved'}
+                                    <div class="status-badge {appointment.status?.toLowerCase().replace(/\s|:/g, '-')}-status {appointment.cancellationStatus ? appointment.cancellationStatus.toLowerCase() + '-status' : ''} {appointment.paymentStatus === 'refunded' ? 'refunded-status' : ''}">
+                                       {#if appointment.paymentStatus === 'refunded'}
+                                            <i class="fas fa-undo mr-1"></i> Refunded
+                                       {:else if appointment.cancellationStatus === 'Approved'}
                                             <i class="fas fa-times-circle mr-1"></i> Cancelled
                                        {:else if appointment.cancellationStatus === 'decline'}
                                             <i class="fas fa-exclamation-circle mr-1"></i> Cancel Declined
@@ -1032,6 +1193,41 @@
     </div>
   </Modal>
 
+  <!-- Payment Modal -->
+  {#if paymentModal && selectedAppointmentId}
+  <div class="modal payment-modal">
+    <div class="modal-content">
+      <h2 class="text-xl font-semibold mb-4">Secure Payment</h2>
+      
+      <div class="space-y-4">
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600 mb-2">Payment Details:</p>
+          <p class="font-semibold text-lg">₱{paymentAmount.toFixed(2)}</p>
+          <p class="text-sm text-gray-500 mt-1">Service: {currentAppointment?.service}</p>
+        </div>
+
+        <div class="text-sm text-gray-600">
+          <p class="mb-2">You will be redirected to our secure payment processor.</p>
+          <ul class="list-disc list-inside space-y-1">
+            <li>Secure payment processing</li>
+            <li>Multiple payment methods accepted</li>
+            <li>Instant confirmation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+          <Button color="alternative" on:click={() => { paymentModal = false; }}>
+              Cancel
+          </Button>
+          <Button color="green" on:click={processPayment}>
+            <i class="fas fa-lock mr-2"></i> Proceed to Payment
+          </Button>
+      </div>
+    </div>
+  </div>
+  {/if}
+
 </div>
 <style>
   .responsive-container {
@@ -1042,35 +1238,35 @@
     width: 100%;
     margin-top: 2rem; 
     margin-bottom: 2rem;
-    /* max-height: 90vh; */ /* Removing this might help stretching on desktop if needed */
+    /* max-height: 90vh; * 
     flex-wrap: wrap;
-    align-items: stretch; /* Explicitly set default, ensures cards stretch vertically on desktop */
+    align-items: stretch; 
   }
   .responsive-card {
     flex: 1 1 45%;
     min-width: 320px;
-    border: 1px solid #e5e7eb; /* border-gray-200 */
-    border-radius: 0.75rem; /* rounded-xl */
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* shadow-sm */
+    border: 1px solid #e5e7eb;  
+    border-radius: 0.75rem;  
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);  
     background-color: #fff;
     padding: 1.5rem; /* p-6 */
-    display: flex;           /* Needed for internal flex layout */
-    flex-direction: column; /* Needed for internal flex layout */
-    /* REMOVED fixed height from here */
+    display: flex;           
+    flex-direction: column;  
+     
   }
 
    @media (max-width: 768px) {
         .responsive-container {
             flex-direction: column;
-            /* max-height: none; */ /* Allow container to grow */
-            align-items: center; /* Center cards when stacked */
+            /* max-height: none; */  
+            align-items: center; 
             margin-top: 1rem;
             gap: 1rem; /* gap-4 */
         }
         .responsive-card {
-            flex-basis: auto; /* Allow natural height */
-            width: 95%;      /* Control width when stacked */
-            /* Ensure min-width doesn't conflict */
+            flex-basis: auto;  
+            width: 95%;      
+          
              min-width: 0;
             margin-left: auto;
             margin-right: auto;
@@ -1283,4 +1479,67 @@
  :global(.dark) .modal h2, :global(.dark) .modal h3 { color: #f3f4f6; }
  :global(.dark) .modal p, :global(.dark) .modal label { color: #d1d5db; }
  :global(.dark) .cancel-modal .text-gray-600 { color: #d1d5db; }
+
+ .btn-payment { 
+    background-color: #10b981; 
+    border-color: #059669; 
+  }
+  .btn-payment:hover { 
+    background-color: #059669; 
+  }
+
+  .payment-modal .modal-content {
+    max-width: 400px;
+  }
+
+  .payment-modal .payment-status {
+    text-align: center;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+  }
+
+  .payment-modal .payment-status.pending {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+
+  .payment-modal .payment-status.success {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  .payment-modal .payment-status.failed {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  :global(.dark) .payment-modal .payment-status.pending {
+    background-color: #78350f;
+    color: #fcd34d;
+  }
+
+  :global(.dark) .payment-modal .payment-status.success {
+    background-color: #064e3b;
+    color: #6ee7b7;
+  }
+
+  :global(.dark) .payment-modal .payment-status.failed {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  .refunded-status {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+  }
+
+  .btn-refund {
+    background-color: #f59e0b;
+    border-color: #d97706;
+  }
+  .btn-refund:hover {
+    background-color: #d97706;
+  }
 </style>

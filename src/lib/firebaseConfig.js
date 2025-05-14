@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth"; 
-
+import { browser } from '$app/environment';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDNGNakXXmB89nR5-JOYcMOMAEDCTS9WjE",
@@ -14,20 +14,22 @@ const firebaseConfig = {
   measurementId: "G-4QT0RK92C0"
 };
 
-
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore
-const db = getFirestore(app);
-
-// Initialize Authentication
-const auth = getAuth(app); // Add authentication initialization
-
-// Initialize Analytics only in the browser
+// Initialize Firebase App only in browser
+let app;
+let db;
+let auth;
 let analytics;
-if (typeof window !== "undefined") {
-  analytics = getAnalytics(app);
+
+if (browser) {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    analytics = getAnalytics(app);
+    console.log("Firebase initialized successfully");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+  }
 }
 
 // Export the Firestore database, Auth, and Firebase config

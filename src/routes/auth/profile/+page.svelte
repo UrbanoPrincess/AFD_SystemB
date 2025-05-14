@@ -24,6 +24,10 @@
     let isPrescriptionDropdownOpen = true;
     let prescriptions: any[] = [];
 
+    // Add new state for profile image
+    let profileImage: string = '';
+    let isUploading = false;
+
     type PatientProfile = {
         name: string;
         lastName: string;
@@ -33,7 +37,8 @@
         email: string;
         phone: string;
         address: string;
-        birthday:string;
+        birthday: string;
+        profileImage?: string; // Add profile image to type
     };
 
     let patientProfile: PatientProfile = {
@@ -45,13 +50,16 @@
         email: '',
         phone: '',
         address: '',
-        birthday:''
+        birthday: '',
+        profileImage: ''
     };
 
     let currentUser: User | null = null;
     let isEditingProfile = false; 
     let doneAppointments: any[] = [];
     let isDropdownOpen = true;
+    let showDetails = false;
+    let isMobile = false;
 
 onMount(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -90,7 +98,8 @@ onMount(() => {
                         email: '',
                         phone: '',
                         address: '',
-                        birthday: ''
+                        birthday: '',
+                        profileImage: ''
                     };
                 }
 
@@ -137,7 +146,8 @@ onMount(() => {
                 email: '',
                 phone: '',
                 address: '',
-                birthday:''
+                birthday: '',
+                profileImage: ''
             };
             doneAppointments = [];
             prescriptions = [];
@@ -145,7 +155,16 @@ onMount(() => {
         }
     });
 
-    return () => unsubscribe();
+    const checkMobile = () => {
+        isMobile = window.innerWidth <= 640;
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => {
+        unsubscribe();
+        window.removeEventListener('resize', checkMobile);
+    };
 });
 function calculateAge(birthday: string) {
         const birthDate = new Date(birthday);
@@ -235,7 +254,6 @@ async function savePatientProfile() {
         const userRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userRef);
         
-        // Get customUserId with a fallback value
         let customUserId = "N/A";
         if (userDoc.exists() && userDoc.data().customUserId) {
             customUserId = userDoc.data().customUserId;
@@ -250,7 +268,8 @@ async function savePatientProfile() {
             email: formEmail,
             phone: cleanedPhone,
             address: formHomeAddress,
-            id: customUserId
+            id: customUserId,
+            profileImage: profileImage
         };
 
         console.log("Saving profile data:", profileData);
@@ -308,100 +327,107 @@ function toggleEditProfile() {
     function toggleDropdown(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }) {
         isDropdownOpen = !isDropdownOpen; 
     }
+
+    async function handleImageUpload(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || !input.files[0]) return;
+
+        const file = input.files[0];
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            Swal.fire('Error', 'Image size should be less than 5MB', 'error');
+            return;
+        }
+
+        isUploading = true;
+        try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Set max dimensions
+                    const maxDim = 300;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxDim) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        }
+                    } else {
+                        if (height > maxDim) {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Compress to JPEG, quality 0.7
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        profileImage = compressedBase64;
+                    }
+                    isUploading = false;
+                };
+                img.onerror = () => {
+                    Swal.fire('Error', 'Invalid image file', 'error');
+                    isUploading = false;
+                };
+                img.src = e.target?.result as string;
+            };
+            reader.readAsDataURL(file);
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            Swal.fire('Error', 'Failed to upload image', 'error');
+            isUploading = false;
+        }
+    }
 </script>
 <div class="main-container">
     <div class="patient-card">
-        <img src="/images/logo(landing) copy.png" alt="Clinic Logo" class="logo"/>
+        <div class="profile-image-container">
+            {#if patientProfile.profileImage}
+                <img src={patientProfile.profileImage} alt="Profile Picture" class="profile-image" />
+            {:else}
+                <div class="profile-image-placeholder">
+                    <i class="fas fa-user"></i>
+                </div>
+            {/if}
+            <!-- svelte-ignore a11y_consider_explicit_label -->
+            <button class="edit-pen-btn" on:click={toggleEditProfile} title="Edit Profile">
+                <i class="fas fa-pen"></i>
+            </button>
+        </div>
         <div class="patient-info">
             <h1>{`${patientProfile.name} ${patientProfile.lastName}` || "<Patient Name>"}</h1>
-            <div class="info-grid">
-                 <p><strong>Patient ID:</strong> {patientProfile.id || "N/A"}</p>
-                 <p><strong>Age:</strong> {patientProfile.age != null ? patientProfile.age : "N/A"}</p>
-                 <p><strong>Gender:</strong> {patientProfile.gender || "N/A"}</p>
-                 <p><strong>Phone:</strong> {patientProfile.phone || "N/A"}</p>
-                 <p><strong>Email:</strong> {patientProfile.email || "N/A"}</p>
-                 <p class="address"><strong>Address:</strong> {patientProfile.address || "N/A"}</p>
-            </div>
+            {#if isMobile}
+                <button class="toggle-details-btn" on:click={() => showDetails = !showDetails}>
+                    {showDetails ? 'Hide Details' : 'Show Details'}
+                    <i class={showDetails ? 'fas fa-chevron-up' : 'fas fa-chevron-down'}></i>
+                </button>
+                {#if showDetails}
+                    <div class="info-grid details-section show">
+                        <p><strong>Patient ID:</strong> {patientProfile.id || "N/A"}</p>
+                        <p><strong>Age:</strong> {patientProfile.age != null ? patientProfile.age : "N/A"}</p>
+                        <p><strong>Gender:</strong> {patientProfile.gender || "N/A"}</p>
+                        <p><strong>Phone:</strong> {patientProfile.phone || "N/A"}</p>
+                        <p><strong>Email:</strong> {patientProfile.email || "N/A"}</p>
+                        <p class="address"><strong>Address:</strong> {patientProfile.address || "N/A"}</p>
+                    </div>
+                {/if}
+            {:else}
+                <div class="info-grid">
+                    <p><strong>Patient ID:</strong> {patientProfile.id || "N/A"}</p>
+                    <p><strong>Age:</strong> {patientProfile.age != null ? patientProfile.age : "N/A"}</p>
+                    <p><strong>Gender:</strong> {patientProfile.gender || "N/A"}</p>
+                    <p><strong>Phone:</strong> {patientProfile.phone || "N/A"}</p>
+                    <p><strong>Email:</strong> {patientProfile.email || "N/A"}</p>
+                    <p class="address"><strong>Address:</strong> {patientProfile.address || "N/A"}</p>
+                </div>
+            {/if}
         </div>
-    </div>
-
-    <div class="edit-profile-section">
-        <button on:click={toggleEditProfile} class="edit-button">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="icon-edit">
-                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-            </svg>
-            <span>{isEditingProfile ? 'Close Form' : 'Update Profile'}</span>
-        </button>
-
-        {#if isEditingProfile}
-            <div class="profile-form-container slide-down">
-                 <h3 class="form-title">Edit Patient Information</h3>
-                <form class="profile-form" on:submit|preventDefault={savePatientProfile}>
-                    <div class="input-grid">
-                        <div class="form-group">
-                            <label for="first-name">First Name</label>
-                            <input id="first-name" type="text" bind:value={formPatientName} required />
-                        </div>
-                        <div class="form-group">
-                            <label for="last-name">Last Name</label>
-                            <input id="last-name" type="text" bind:value={formLastName} required />
-                        </div>
-                        <div class="form-group">
-                            <label for="phone">Phone Number</label>
-                            <input 
-                                id="phone" 
-                                type="tel" 
-                                placeholder="e.g., 09123456789" 
-                                bind:value={formPhone}
-                                on:input={(e) => {
-                                    const input = e.currentTarget as HTMLInputElement;
-                                    formPhone = input.value.replace(/\D/g, '');
-                                    if (formPhone.length > 11) {
-                                        formPhone = formPhone.slice(0, 11);
-                                    }
-                                }}
-                                maxlength="11"
-                            />
-                            {#if formPhone && formPhone.length !== 11}
-                                <span class="error-message">Phone number must be exactly 11 digits</span>
-                            {/if}
-                        </div>
-                        <div class="form-group">
-                            <label for="email">E-Mail Address</label>
-                            <input id="email" type="email" bind:value={formEmail} />
-                        </div>
-                         <div class="form-group full-width"> 
-                            <label for="home-address">Home Address</label>
-                            <input id="home-address" type="text" bind:value={formHomeAddress} />
-                        </div>
-                        <div class="form-group">
-                            <label for="birthday">Birth Date</label>
-                            <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} />
-                        </div>
-                         <div class="form-group">
-                            <label for="age">Age</label>
-                            <!-- Changed readonly to disabled for clearer visual cue -->
-                            <input id="age" type="number" bind:value={formAge} disabled />
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <select id="gender" bind:value={formGender}>
-                                <option value="" disabled>Select Gender</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                                 <option value="prefer_not_to_say">Prefer not to say</option>
-                            </select>
-                        </div>
-
-                    </div>
-                    <div class="save-button-container">
-                        <button type="submit" class="save-button">Save Changes</button>
-                         <button type="button" on:click={toggleEditProfile} class="cancel-button">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        {/if}
     </div>
 
     <!-- ========== History Section ========== -->
@@ -454,6 +480,96 @@ function toggleEditProfile() {
         {/if}
     </div>
 </div>
+
+{#if isEditingProfile}
+    <div class="profile-form-container slide-down">
+        <h3 class="form-title">Edit Patient Information</h3>
+        <form class="profile-form" on:submit|preventDefault={savePatientProfile}>
+            <div class="form-image-upload">
+                <div class="profile-image-container">
+                    {#if profileImage || patientProfile.profileImage}
+                        <img src={profileImage || patientProfile.profileImage} alt="Profile Picture" class="profile-image" />
+                    {:else}
+                        <div class="profile-image-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {/if}
+                    <label for="profile-image-upload" class="upload-button" title="Upload Image">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input 
+                        type="file" 
+                        id="profile-image-upload" 
+                        accept="image/*" 
+                        on:change={handleImageUpload}
+                        style="display: none;"
+                    />
+                </div>
+            </div>
+            <div class="input-grid">
+                <div class="form-group">
+                    <label for="first-name">First Name</label>
+                    <input id="first-name" type="text" bind:value={formPatientName} required />
+                </div>
+                <div class="form-group">
+                    <label for="last-name">Last Name</label>
+                    <input id="last-name" type="text" bind:value={formLastName} required />
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input 
+                        id="phone" 
+                        type="tel" 
+                        placeholder="e.g., 09123456789" 
+                        bind:value={formPhone}
+                        on:input={(e) => {
+                            const input = e.currentTarget as HTMLInputElement;
+                            formPhone = input.value.replace(/\D/g, '');
+                            if (formPhone.length > 11) {
+                                formPhone = formPhone.slice(0, 11);
+                            }
+                        }}
+                        maxlength="11"
+                    />
+                    {#if formPhone && formPhone.length !== 11}
+                        <span class="error-message">Phone number must be exactly 11 digits</span>
+                    {/if}
+                </div>
+                <div class="form-group">
+                    <label for="email">E-Mail Address</label>
+                    <input id="email" type="email" bind:value={formEmail} />
+                </div>
+                <div class="form-group full-width"> 
+                    <label for="home-address">Home Address</label>
+                    <input id="home-address" type="text" bind:value={formHomeAddress} />
+                </div>
+                <div class="form-group">
+                    <label for="birthday">Birth Date</label>
+                    <input id="birthday" type="date" bind:value={formBirthday} on:input={updateAge} />
+                </div>
+                <div class="form-group">
+                    <label for="age">Age</label>
+                    <input id="age" type="number" bind:value={formAge} disabled />
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" bind:value={formGender}>
+                        <option value="" disabled>Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                </div>
+            </div>
+            <div class="save-button-container">
+                <button type="submit" class="save-button">Save Changes</button>
+                <button type="button" on:click={toggleEditProfile} class="cancel-button">Cancel</button>
+            </div>
+        </form>
+    </div>
+{/if}
+
 <style>
     :root {
         --primary-color: #6681e2;
@@ -745,19 +861,45 @@ function toggleEditProfile() {
             grid-template-columns: 1fr;
             gap: 15px;
         }
-         .form-group.full-width {
+        .form-group.full-width {
             grid-column: auto;
-         }
+        }
         .save-button-container {
-            flex-direction: column;
+            flex-direction: row;
             gap: 10px;
         }
-         .save-button, .cancel-button {
-             width: 100%;
-         }
-         .profile-form-container {
-             padding: 16px;
-         }
+        .save-button, .cancel-button {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        .profile-form-container {
+            padding: 16px;
+        }
+        .form-image-upload {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .details-section {
+            margin-top: 10px;
+            text-align: left;
+            width: 100%;
+            font-size: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            color: #222 !important;
+            font-weight: 500;
+        }
+        .details-section p, .details-section strong, .details-section .address {
+            color: #222 !important;
+        }
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
     }
 
     .history-section {
@@ -906,6 +1048,161 @@ function toggleEditProfile() {
         color: var(--danger-color);
         font-size: 0.8rem;
         margin-top: 4px;
+    }
+
+    .profile-image-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        overflow: visible;
+        border: 3px solid var(--white);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        background-color: var(--light-gray);
+        flex-shrink: 0;
+    }
+
+    .profile-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+
+    .profile-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--medium-gray);
+        color: var(--dark-gray);
+        font-size: 2.5rem;
+        border-radius: 50%;
+    }
+
+    .upload-button {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        background-color: var(--primary-color);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        z-index: 3;
+    }
+
+    .upload-button:hover {
+        background-color: var(--secondary-color);
+    }
+
+    .edit-pen-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        cursor: pointer;
+        z-index: 3;
+        transition: background 0.2s;
+    }
+    .edit-pen-btn:hover {
+        background: var(--secondary-color);
+    }
+    @media (max-width: 768px) {
+        .profile-image-container {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .edit-pen-btn {
+            width: 30px;
+            height: 30px;
+            bottom: 4px;
+            right: 4px;
+        }
+    }
+
+    .toggle-details-btn {
+        display: none;
+        margin: 12px auto 0 auto;
+        background: var(--primary-color);
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        padding: 6px 18px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+        align-items: center;
+        gap: 6px;
+    }
+    .toggle-details-btn i {
+        margin-left: 8px;
+    }
+    .details-section {
+        display: block;
+    }
+    @media (max-width: 640px) {
+        .main-container {
+            padding: 10px;
+            max-width: 98vw;
+        }
+        .patient-card {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px;
+            gap: 10px;
+        }
+        .profile-image-container {
+            width: 110px;
+            height: 110px;
+            margin-bottom: 10px;
+        }
+        .patient-info h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            margin-top: 8px;
+        }
+        .toggle-details-btn {
+            display: flex;
+        }
+        .details-section {
+            margin-top: 10px;
+            text-align: left;
+            width: 100%;
+            font-size: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            color: #222 !important;
+            font-weight: 500;
+        }
+        .details-section p, .details-section strong, .details-section .address {
+            color: #222 !important;
+        }
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
     }
 
 </style>
