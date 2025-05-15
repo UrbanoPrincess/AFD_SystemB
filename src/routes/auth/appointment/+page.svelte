@@ -15,6 +15,7 @@
   import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte'; // Keep if used elsewhere, otherwise remove
   import Swal from 'sweetalert2';
   import { loadStripe } from '@stripe/stripe-js';
+  import { browser } from '$app/environment';
 
   // --- Constants ---
   const FIRESTORE_APPOINTMENTS_COLLECTION = 'appointments';
@@ -39,21 +40,23 @@
   let db: ReturnType<typeof getFirestore>;
   let auth: ReturnType<typeof getAuth>;
 
-  try {
-    if (getApps().length === 0) {
-      const app = initializeApp(env.firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-      console.log("Firebase Initialized (Client Booking)");
-    } else {
-      const app = getApp();
-      db = getFirestore(app);
-      auth = getAuth(app);
-      console.log("Using existing Firebase instance (Client Booking)");
+  if (browser && typeof window !== 'undefined') {
+    try {
+      if (getApps().length === 0) {
+        const app = initializeApp(env.firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        console.log("Firebase Initialized (Client Booking)");
+      } else {
+        const app = getApp();
+        db = getFirestore(app);
+        auth = getAuth(app);
+        console.log("Using existing Firebase instance (Client Booking)");
+      }
+    } catch (e) {
+      console.error("Error initializing Firebase:", e);
+      Swal.fire('Error', 'Could not connect to the booking system.', 'error');
     }
-  } catch (e) {
-    console.error("Error initializing Firebase:", e);
-    Swal.fire('Error', 'Could not connect to the booking system.', 'error');
   }
 
   // --- Type Definitions ---
